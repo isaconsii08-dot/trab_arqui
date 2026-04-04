@@ -1,0 +1,35 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ItemStatus {
+  available
+  loaned
+  reserved
+  maintenance
+  lost
+}
+
+// Cada ejemplar físico o digital vinculado a un registro bibliográfico del catálogo
+model Item {
+  id         String     @id @default(uuid())
+  barcode    String     @unique
+  recordId   String     @map("record_id")  // ID en catalog-service
+  libraryId  String     @map("library_id")
+  location   String     @default("Sala General")
+  callNumber String?    @map("call_number")
+  status     ItemStatus @default(available)
+  condition  String     @default("bueno")
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  @@index([recordId])
+  @@index([status])
+  @@map("items")
+}

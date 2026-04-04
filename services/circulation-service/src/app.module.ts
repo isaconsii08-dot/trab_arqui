@@ -28,6 +28,7 @@ import { HOLDINGS_SERVICE_CLIENT } from './application/ports/holdings-service-cl
     }),
   ],
   controllers: [CirculationController],
+  // El controlador necesita acceder directamente al repositorio para los endpoints de consulta
   providers: [
     PrismaService,
     JwtStrategy,

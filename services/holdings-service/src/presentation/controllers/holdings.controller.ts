@@ -1,32 +1,94 @@
-import { Controller, Get, Patch, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 
 @ApiTags('Holdings')
 @Controller('holdings')
 export class HoldingsController {
+  constructor(private readonly prisma: PrismaService) {}
+
   @Get('items/:barcode')
-  @ApiOperation({ summary: 'Get item by barcode' })
+  @ApiOperation({ summary: 'Obtener ejemplar por código de barras' })
   async getByBarcode(@Param('barcode') barcode: string) {
-    return { barcode, status: 'available', location: 'Sala General' };
+    const item = await this.prisma.item.findUnique({ where: { barcode } });
+    if (!item) return null;
+    return item;
   }
 
   @Get('records/:recordId/items')
-  @ApiOperation({ summary: 'Get all items for a bibliographic record' })
+  @ApiOperation({ summary: 'Ejemplares de un registro bibliográfico' })
   async getByRecord(@Param('recordId') recordId: string) {
-    return { recordId, items: [] };
+    const items = await this.prisma.item.findMany({ where: { recordId } });
+    const total = items.length;
+    const disponibles = items.filter((i) => i.status === 'available').length;
+    return { recordId, items, total, disponibles };
+  }
+
+  @Get('items')
+  @ApiOperation({ summary: 'Listar ejemplares con filtros' })
+  @ApiQuery({ name: 'recordId', required: false })
+  @ApiQuery({ name: 'status', required: false })
+  async listItems(
+    @Query('recordId') recordId?: string,
+    @Query('status') status?: string,
+  ) {
+    const where: Record<string, unknown> = {};
+    if (recordId) where['recordId'] = recordId;
+    if (status) where['status'] = status;
+    const items = await this.prisma.item.findMany({ where, orderBy: { barcode: 'asc' } });
+    return { data: items, total: items.length };
+  }
+
+  @Post('items')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Registrar nuevo ejemplar' })
+  async createItem(
+    @Body() body: { barcode: string; recordId: string; libraryId: string; location?: string; callNumber?: string },
+  ) {
+    return this.prisma.item.create({
+      data: {
+        barcode: body.barcode,
+        recordId: body.recordId,
+        libraryId: body.libraryId ?? 'lib-001',
+        location: body.location ?? 'Sala General',
+        callNumber: body.callNumber ?? null,
+      },
+    });
   }
 
   @Patch('items/:barcode/reserve')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Atomically reserve an item for loan (called by Circulation)' })
+  @ApiOperation({ summary: 'Reservar ejemplar para préstamo (usa Circulation)' })
   async reserveItem(@Param('barcode') barcode: string) {
-    return { barcode, status: 'loaned', reservedAt: new Date().toISOString() };
+    const item = await this.prisma.item.findUnique({ where: { barcode } });
+    if (!item || item.status !== 'available') {
+      return { error: 'Ejemplar no disponible', barcode, status: item?.status ?? 'not_found' };
+    }
+    const updated = await this.prisma.item.update({
+      where: { barcode },
+      data: { status: 'loaned' },
+    });
+    return { barcode: updated.barcode, status: updated.status, reservedAt: new Date().toISOString() };
   }
 
   @Patch('items/:barcode/release')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Release an item back to available (called by Circulation)' })
+  @ApiOperation({ summary: 'Liberar ejemplar (devolución)' })
   async releaseItem(@Param('barcode') barcode: string) {
-    return { barcode, status: 'available', releasedAt: new Date().toISOString() };
+    const updated = await this.prisma.item.update({
+      where: { barcode },
+      data: { status: 'available' },
+    });
+    return { barcode: updated.barcode, status: updated.status, releasedAt: new Date().toISOString() };
   }
 }

@@ -9,7 +9,8 @@ import { SearchFilters, SearchResult } from '@biblioflow/shared-types';
 @Injectable()
 export class NoopSearchEngine implements ISearchEngine {
   async search(_filters: SearchFilters): Promise<SearchResult> {
-    return { data: [], total: 0, page: 1, limit: 20, totalPages: 0 };
+    // Sin Elasticsearch configurado, lanzamos error para que el use-case use PostgreSQL como fallback
+    throw new Error('Motor de búsqueda no disponible, usando base de datos');
   }
 
   async indexRecord(_id: string): Promise<void> {}

@@ -17,6 +17,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
   const {
     register,
@@ -26,6 +27,7 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginForm) => {
     setIsLoading(true);
+    setLoginError('');
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -33,10 +35,14 @@ export default function LoginPage() {
         body: JSON.stringify(data),
       });
       if (res.ok) {
-        const { accessToken } = await res.json() as { accessToken: string };
-        localStorage.setItem('token', accessToken);
+        // Las cookies bf_token y bf_user las establece la ruta API del servidor
         window.location.href = '/dashboard';
+      } else {
+        const body = await res.json() as { error?: string };
+        setLoginError(body.error ?? 'Credenciales incorrectas');
       }
+    } catch {
+      setLoginError('No se pudo conectar con el servidor');
     } finally {
       setIsLoading(false);
     }
@@ -89,6 +95,12 @@ export default function LoginPage() {
           <p className="mb-8 text-sm text-ink-muted">
             Accede a tu cuenta para gestionar tus préstamos y reservas.
           </p>
+
+          {loginError && (
+            <div className="mb-4 rounded-sm border border-rust/30 bg-rust/5 px-4 py-3 font-body text-sm text-rust">
+              {loginError}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             {/* Email */}
