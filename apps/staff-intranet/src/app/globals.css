@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-syne:       'Syne', system-ui, sans-serif;
+  --font-jetbrains:  'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: #0B0E14;
+  color: #E8ECF0;
+  font-family: var(--font-syne);
+}
+
+/* ─── Component layer ──────────────────────────────────────────────────────── */
+@layer components {
+  .surface-card {
+    @apply rounded-sm bg-surface-card border border-surface-border shadow-card;
+  }
+
+  .stat-card {
+    @apply surface-card p-5 transition-all duration-200 hover:border-surface-overlay;
+  }
+
+  .nav-link {
+    @apply flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm font-medium text-text-secondary transition-all duration-150 hover:bg-surface-raised hover:text-text-primary;
+  }
+
+  .nav-link-active {
+    @apply bg-surface-raised text-text-primary;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 font-mono text-xs font-medium;
+  }
+
+  .badge-green  { @apply bg-accent-green/15 text-accent-green; }
+  .badge-amber  { @apply bg-accent-amber/15 text-accent-amber; }
+  .badge-red    { @apply bg-accent-red/15 text-accent-red; }
+  .badge-blue   { @apply bg-accent-blue/15 text-accent-blue; }
+
+  .table-row {
+    @apply border-b border-surface-border last:border-0 hover:bg-surface-raised/50 transition-colors;
+  }
+
+  .input-dark {
+    @apply w-full rounded-sm border border-surface-border bg-surface-raised px-3 py-2.5 font-mono text-sm text-text-primary placeholder-text-muted transition-colors focus:border-accent-green/50 focus:outline-none focus:ring-1 focus:ring-accent-green/20;
+  }
+
+  .btn-green {
+    @apply inline-flex items-center gap-2 rounded-sm bg-accent-green px-4 py-2.5 font-body text-sm font-semibold text-surface-base transition-all duration-150 hover:bg-accent-green/90 active:scale-95 disabled:opacity-50;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 rounded-sm border border-surface-border px-4 py-2.5 font-body text-sm text-text-secondary transition-all duration-150 hover:border-text-secondary hover:text-text-primary;
+  }
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 6px; }
+::-webkit-scrollbar-track { background: #0B0E14; }
+::-webkit-scrollbar-thumb { background: #1E2A42; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2A3A55; }
+
+/* ─── Animated scan line ─────────────────────────────────────────────────── */
+.scanline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(31,184,112,0.4), transparent);
+  animation: scan 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 100;
+}
+
+@keyframes scan {
+  0%   { transform: translateY(0); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+/* ─── Table ──────────────────────────────────────────────────────────────── */
+.data-table th {
+  @apply px-4 py-3 text-left font-mono text-xs uppercase tracking-wider text-text-muted;
+  border-bottom: 1px solid #1E2A42;
+}
+
+.data-table td {
+  @apply px-4 py-3.5 font-body text-sm text-text-primary;
+}

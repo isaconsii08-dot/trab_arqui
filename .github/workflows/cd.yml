@@ -1,0 +1,146 @@
+name: CD – Build, Push & Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/juanguillermomarinco/biblioflow
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Build and push Docker images to GHCR
+  # ─────────────────────────────────────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push – ${{ matrix.service }}
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        service:
+          - patron-service
+          - catalog-service
+          - circulation-service
+          - holdings-service
+          - notification-service
+          - acquisitions-service
+          - space-service
+          - analytics-service
+          - api-gateway
+
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.service }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: services/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Deploy to Render (rolling updates via deploy hooks)
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: production
+
+    steps:
+      - name: Deploy API Gateway
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_API_GATEWAY }}"
+
+      - name: Deploy Patron Service
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_PATRON }}"
+
+      - name: Deploy Catalog Service
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_CATALOG }}"
+
+      - name: Deploy Holdings Service
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_HOLDINGS }}"
+
+      - name: Deploy Circulation Service
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_CIRCULATION }}"
+
+      - name: Deploy Notification Service
+        run: curl -X POST "${{ secrets.RENDER_DEPLOY_HOOK_NOTIFICATION }}"
+
+      - name: Notify deployment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: '${{ job.status }}' === 'success' ? 'success' : 'failure',
+              target_url: 'https://dashboard.render.com',
+              description: 'Render deployment ${{ job.status }}',
+              context: 'CD / Render Deploy',
+            });
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Deploy Frontend to Vercel
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy Frontend to Vercel
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy Patron Portal
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_PATRON_PORTAL }}
+          vercel-args: '--prod'
+          working-directory: apps/patron-portal
+
+      - name: Deploy Staff Intranet
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_STAFF_INTRANET }}
+          vercel-args: '--prod'
+          working-directory: apps/staff-intranet

@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MaterialType {
+  book
+  journal
+  audiovisual
+  map
+  archive
+  digital
+}
+
+model BibliographicRecord {
+  id              String       @id @default(uuid())
+  title           String
+  uniformTitle    String?      @map("uniform_title")
+  edition         String?
+  publicationYear Int?         @map("publication_year")
+  publisher       String?
+  isbn            String?      @unique
+  issn            String?      @unique
+  summary         String?
+  coverImageUrl   String?      @map("cover_image_url")
+  materialType    MaterialType @default(book) @map("material_type")
+  libraryId       String       @map("library_id")
+  esIndexed       Boolean      @default(false) @map("es_indexed")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  recordAuthors  RecordAuthor[]
+  recordSubjects RecordSubject[]
+
+  @@index([libraryId])
+  @@index([isbn])
+  @@index([publicationYear])
+  @@map("bibliographic_records")
+}
+
+model Author {
+  id          String  @id @default(uuid())
+  name        String
+  dates       String?
+  authorityId String? @unique @map("authority_id")
+
+  recordAuthors RecordAuthor[]
+
+  @@index([name])
+  @@map("authors")
+}
+
+model Subject {
+  id          String  @id @default(uuid())
+  term        String
+  authorityId String? @unique @map("authority_id")
+
+  recordSubjects RecordSubject[]
+
+  @@index([term])
+  @@map("subjects")
+}
+
+model RecordAuthor {
+  recordId String @map("record_id")
+  authorId String @map("author_id")
+  role     String @default("author")
+
+  record BibliographicRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  author Author              @relation(fields: [authorId], references: [id])
+
+  @@id([recordId, authorId])
+  @@map("record_authors")
+}
+
+model RecordSubject {
+  recordId  String @map("record_id")
+  subjectId String @map("subject_id")
+
+  record  BibliographicRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+  subject Subject             @relation(fields: [subjectId], references: [id])
+
+  @@id([recordId, subjectId])
+  @@map("record_subjects")
+}

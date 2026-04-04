@@ -1,0 +1,100 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// BiblioFlow – Patron Service Database Schema
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PatronStatus {
+  active
+  suspended
+  expired
+  blocked
+}
+
+enum StaffRole {
+  administrator
+  librarian
+  assistant
+}
+
+enum FineStatus {
+  pending
+  paid
+  waived
+}
+
+model Patron {
+  id               String       @id @default(uuid())
+  libraryId        String       @map("library_id")
+  cardNumber       String       @unique @map("card_number")
+  fullName         String       @map("full_name")
+  email            String       @unique
+  phone            String?
+  address          String?
+  passwordHash     String       @map("password_hash")
+  registrationDate DateTime     @default(now()) @map("registration_date")
+  status           PatronStatus @default(active)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  fines Fine[]
+
+  @@index([libraryId])
+  @@index([email])
+  @@index([cardNumber])
+  @@map("patrons")
+}
+
+model Staff {
+  id          String    @id @default(uuid())
+  libraryId   String    @map("library_id")
+  fullName    String    @map("full_name")
+  email       String    @unique
+  passwordHash String   @map("password_hash")
+  role        StaffRole @default(librarian)
+  permissions String[]  @default([])
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([libraryId])
+  @@index([email])
+  @@map("staff")
+}
+
+model Fine {
+  id        String     @id @default(uuid())
+  patronId  String     @map("patron_id")
+  loanId    String     @map("loan_id")
+  amount    Decimal    @db.Decimal(10, 2)
+  reason    String
+  status    FineStatus @default(pending)
+  createdAt DateTime   @default(now()) @map("created_at")
+  paidAt    DateTime?  @map("paid_at")
+
+  patron Patron @relation(fields: [patronId], references: [id], onDelete: Cascade)
+
+  @@index([patronId])
+  @@index([status])
+  @@map("fines")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  action     String
+  performedBy String  @map("performed_by")
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}

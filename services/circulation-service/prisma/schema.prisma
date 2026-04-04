@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum LoanStatus {
+  pending
+  active
+  returned
+  overdue
+  lost
+}
+
+enum ReservationStatus {
+  waiting
+  available
+  fulfilled
+  cancelled
+  expired
+}
+
+model Loan {
+  id           String     @id @default(uuid())
+  itemId       String     @map("item_id")
+  patronId     String     @map("patron_id")
+  libraryId    String     @map("library_id")
+  loanDate     DateTime   @default(now()) @map("loan_date")
+  dueDate      DateTime   @map("due_date")
+  returnDate   DateTime?  @map("return_date")
+  status       LoanStatus @default(pending)
+  renewedCount Int        @default(0) @map("renewed_count")
+  staffId      String     @map("staff_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  fines Fine[]
+
+  @@index([patronId])
+  @@index([itemId])
+  @@index([status])
+  @@index([dueDate])
+  @@map("loans")
+}
+
+model Reservation {
+  id          String            @id @default(uuid())
+  itemId      String            @map("item_id")
+  patronId    String            @map("patron_id")
+  libraryId   String            @map("library_id")
+  reserveDate DateTime          @default(now()) @map("reserve_date")
+  expiryDate  DateTime          @map("expiry_date")
+  status      ReservationStatus @default(waiting)
+  position    Int               @default(1)
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  @@index([itemId, status])
+  @@index([patronId])
+  @@map("reservations")
+}
+
+model Fine {
+  id        String   @id @default(uuid())
+  loanId    String   @map("loan_id")
+  patronId  String   @map("patron_id")
+  amount    Decimal  @db.Decimal(10, 2)
+  reason    String
+  isPaid    Boolean  @default(false) @map("is_paid")
+  createdAt DateTime @default(now()) @map("created_at")
+  paidAt    DateTime? @map("paid_at")
+
+  loan Loan @relation(fields: [loanId], references: [id])
+
+  @@index([patronId])
+  @@map("fines")
+}
+
+// Saga outbox – ensures at-least-once event delivery
+model OutboxEvent {
+  id          String   @id @default(uuid())
+  channel     String
+  payload     Json
+  published   Boolean  @default(false)
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([published, createdAt])
+  @@map("outbox_events")
+}

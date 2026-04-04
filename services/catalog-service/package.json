@@ -1,0 +1,53 @@
+{
+  "name": "@biblioflow/catalog-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BiblioFlow Catalog Service – Bibliographic records, MARC21/Dublin Core, advanced search",
+  "scripts": {
+    "build": "nest build",
+    "dev": "nest start --watch",
+    "start": "node dist/main",
+    "lint": "eslint \"{src,test}/**/*.ts\" --fix",
+    "test": "jest --passWithNoTests",
+    "type-check": "tsc --noEmit",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:seed": "ts-node prisma/seed.ts"
+  },
+  "dependencies": {
+    "@biblioflow/shared-errors": "workspace:*",
+    "@biblioflow/shared-events": "workspace:*",
+    "@biblioflow/shared-types": "workspace:*",
+    "@elastic/elasticsearch": "^8.12.0",
+    "@nestjs/common": "^10.3.0",
+    "@nestjs/config": "^3.2.0",
+    "@nestjs/core": "^10.3.0",
+    "@nestjs/jwt": "^10.2.0",
+    "@nestjs/passport": "^10.0.3",
+    "@nestjs/platform-express": "^10.3.0",
+    "@nestjs/swagger": "^7.3.0",
+    "@prisma/client": "^5.9.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.1",
+    "helmet": "^7.1.0",
+    "ioredis": "^5.3.2",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "reflect-metadata": "^0.2.0",
+    "rxjs": "^7.8.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^10.3.0",
+    "@nestjs/testing": "^10.3.0",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.11.0",
+    "@types/passport-jwt": "^4.0.1",
+    "@types/uuid": "^9.0.7",
+    "jest": "^29.7.0",
+    "prisma": "^5.9.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.0"
+  }
+}

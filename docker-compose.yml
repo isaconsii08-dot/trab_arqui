@@ -1,0 +1,205 @@
+name: biblioflow
+
+services:
+  # ──────────────────────────────────────────────
+  # Databases – one per microservice
+  # ──────────────────────────────────────────────
+  db-patron:
+    image: postgres:16-alpine
+    container_name: bf-db-patron
+    environment:
+      POSTGRES_DB: patron_db
+      POSTGRES_USER: patron_user
+      POSTGRES_PASSWORD: patron_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - patron_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U patron_user -d patron_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-catalog:
+    image: postgres:16-alpine
+    container_name: bf-db-catalog
+    environment:
+      POSTGRES_DB: catalog_db
+      POSTGRES_USER: catalog_user
+      POSTGRES_PASSWORD: catalog_secret
+    ports:
+      - "5433:5432"
+    volumes:
+      - catalog_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U catalog_user -d catalog_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-holdings:
+    image: postgres:16-alpine
+    container_name: bf-db-holdings
+    environment:
+      POSTGRES_DB: holdings_db
+      POSTGRES_USER: holdings_user
+      POSTGRES_PASSWORD: holdings_secret
+    ports:
+      - "5434:5432"
+    volumes:
+      - holdings_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U holdings_user -d holdings_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-circulation:
+    image: postgres:16-alpine
+    container_name: bf-db-circulation
+    environment:
+      POSTGRES_DB: circulation_db
+      POSTGRES_USER: circulation_user
+      POSTGRES_PASSWORD: circulation_secret
+    ports:
+      - "5435:5432"
+    volumes:
+      - circulation_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U circulation_user -d circulation_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-acquisitions:
+    image: postgres:16-alpine
+    container_name: bf-db-acquisitions
+    environment:
+      POSTGRES_DB: acquisitions_db
+      POSTGRES_USER: acquisitions_user
+      POSTGRES_PASSWORD: acquisitions_secret
+    ports:
+      - "5436:5432"
+    volumes:
+      - acquisitions_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U acquisitions_user -d acquisitions_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-space:
+    image: postgres:16-alpine
+    container_name: bf-db-space
+    environment:
+      POSTGRES_DB: space_db
+      POSTGRES_USER: space_user
+      POSTGRES_PASSWORD: space_secret
+    ports:
+      - "5437:5432"
+    volumes:
+      - space_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U space_user -d space_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  db-analytics:
+    image: postgres:16-alpine
+    container_name: bf-db-analytics
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: analytics_user
+      POSTGRES_PASSWORD: analytics_secret
+    ports:
+      - "5438:5432"
+    volumes:
+      - analytics_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics_user -d analytics_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────────
+  # Redis – Event bus & cache
+  # ──────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: bf-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────────
+  # Elasticsearch – Full-text search for catalog
+  # ──────────────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: bf-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  # ──────────────────────────────────────────────
+  # Kibana – Elasticsearch UI (dev only)
+  # ──────────────────────────────────────────────
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.12.0
+    container_name: bf-kibana
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    profiles:
+      - observability
+
+  # ──────────────────────────────────────────────
+  # RedisInsight – Redis UI (dev only)
+  # ──────────────────────────────────────────────
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: bf-redisinsight
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+    profiles:
+      - observability
+
+volumes:
+  patron_data:
+  catalog_data:
+  holdings_data:
+  circulation_data:
+  acquisitions_data:
+  space_data:
+  analytics_data:
+  redis_data:
+  es_data:
+
+networks:
+  default:
+    name: biblioflow_network

@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Custom Properties ─────────────────────────────────────────────── */
+:root {
+  --font-playfair: 'Playfair Display', Georgia, serif;
+  --font-dm-sans: 'DM Sans', system-ui, sans-serif;
+  --font-jetbrains: 'JetBrains Mono', monospace;
+
+  /* Spacing & sizing */
+  --section-padding: clamp(3rem, 8vw, 8rem);
+  --content-max-width: 1280px;
+}
+
+/* ─── Base Styles ───────────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: #F5EFE0;
+  color: #1C1B29;
+  font-family: var(--font-dm-sans);
+}
+
+/* ─── Typography ─────────────────────────────────────────────────────────── */
+.font-display { font-family: var(--font-playfair); }
+.font-mono    { font-family: var(--font-jetbrains); }
+
+/* ─── Custom Components ─────────────────────────────────────────────────── */
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-sm bg-ink px-6 py-3 font-body text-sm font-medium text-parchment transition-all duration-200 hover:bg-ink-light active:scale-95;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center gap-2 rounded-sm border border-ink/20 px-6 py-3 font-body text-sm font-medium text-ink transition-all duration-200 hover:border-ink hover:bg-ink/5;
+  }
+
+  .btn-amber {
+    @apply inline-flex items-center gap-2 rounded-sm bg-amber-book px-6 py-3 font-body text-sm font-semibold text-white transition-all duration-200 hover:bg-amber-warm active:scale-95;
+  }
+
+  .card {
+    @apply rounded-sm bg-parchment-light shadow-sm border border-ink/8;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-amber-book/30;
+  }
+
+  .input-field {
+    @apply w-full rounded-sm border border-ink/20 bg-white px-4 py-3 font-body text-sm text-ink placeholder-ink-muted transition-colors focus:border-amber-book focus:outline-none focus:ring-2 focus:ring-amber-book/20;
+  }
+
+  .section-label {
+    @apply font-mono text-xs uppercase tracking-[0.2em] text-amber-book;
+  }
+
+  .heading-xl {
+    @apply font-display text-4xl font-semibold leading-tight md:text-5xl lg:text-6xl;
+  }
+
+  .heading-lg {
+    @apply font-display text-3xl font-semibold leading-tight md:text-4xl;
+  }
+
+  .heading-md {
+    @apply font-display text-2xl font-semibold leading-tight;
+  }
+
+  .divider-ornament {
+    @apply flex items-center gap-4;
+  }
+
+  .divider-ornament::before,
+  .divider-ornament::after {
+    @apply flex-1 border-t border-ink/15 content-[''];
+  }
+}
+
+/* ─── Decorative Elements ────────────────────────────────────────────────── */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────── */
+.animate-in {
+  animation: fadeUp 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+[style*="--delay"] { animation-delay: var(--delay); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Book card spine effect ─────────────────────────────────────────────── */
+.book-spine {
+  position: relative;
+}
+.book-spine::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, #C8860A, #8B3A3A);
+  border-radius: 0 0 0 2px;
+}
+
+/* ─── Skeleton loading ───────────────────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #EDE5CC 25%, #F5EFE0 50%, #EDE5CC 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
