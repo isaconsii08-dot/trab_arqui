@@ -1,6 +1,5 @@
-import type { NextConfig } from 'next';
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'covers.openlibrary.org' },
@@ -8,7 +7,7 @@ const nextConfig: NextConfig = {
     ],
   },
   env: {
-    API_URL: process.env['API_URL'] ?? 'http://localhost:3000',
+    API_URL: process.env.API_URL ?? 'http://localhost:3000',
   },
 };
 

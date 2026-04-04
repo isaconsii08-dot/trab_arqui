@@ -51,15 +51,24 @@ body {
   }
 
   .card {
-    @apply rounded-sm bg-parchment-light shadow-sm border border-ink/8;
+    @apply rounded-sm bg-parchment-light shadow-sm;
+    border: 1px solid rgba(28, 27, 41, 0.08);
   }
 
   .card-hover {
-    @apply card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-amber-book/30;
+    @apply card transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+  .card-hover:hover {
+    border-color: rgba(200, 134, 10, 0.3);
   }
 
   .input-field {
-    @apply w-full rounded-sm border border-ink/20 bg-white px-4 py-3 font-body text-sm text-ink placeholder-ink-muted transition-colors focus:border-amber-book focus:outline-none focus:ring-2 focus:ring-amber-book/20;
+    @apply w-full rounded-sm bg-white px-4 py-3 font-body text-sm text-ink placeholder-ink-muted transition-colors focus:outline-none;
+    border: 1px solid rgba(28, 27, 41, 0.2);
+  }
+  .input-field:focus {
+    border-color: #C8860A;
+    box-shadow: 0 0 0 2px rgba(200, 134, 10, 0.2);
   }
 
   .section-label {
@@ -84,7 +93,8 @@ body {
 
   .divider-ornament::before,
   .divider-ornament::after {
-    @apply flex-1 border-t border-ink/15 content-[''];
+    @apply flex-1 content-[''];
+    border-top: 1px solid rgba(28, 27, 41, 0.15);
   }
 }
 

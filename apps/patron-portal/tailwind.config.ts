@@ -54,6 +54,11 @@ const config: Config = {
           '100%': { backgroundPosition: '200% 0' },
         },
       },
+      opacity: {
+        '3': '0.03',
+        '8': '0.08',
+        '15': '0.15',
+      },
     },
   },
   plugins: [],

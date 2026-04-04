@@ -37,6 +37,11 @@ const config: Config = {
         glow:  '0 0 20px rgba(31, 184, 112, 0.15)',
         'glow-amber': '0 0 20px rgba(245, 158, 11, 0.15)',
       },
+      opacity: {
+        '3': '0.03',
+        '8': '0.08',
+        '15': '0.15',
+      },
     },
   },
   plugins: [],
