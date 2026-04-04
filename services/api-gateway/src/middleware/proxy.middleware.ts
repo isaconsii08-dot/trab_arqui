@@ -1,7 +1,8 @@
 import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request, Response, NextFunction } from 'express';
-import * as proxy from 'express-http-proxy';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const proxy = require('express-http-proxy') as (target: string, opts?: Record<string, unknown>) => (req: Request, res: Response, next: NextFunction) => void;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProxyMiddleware – Routes requests to the appropriate microservice
@@ -42,8 +43,8 @@ export class ProxyMiddleware implements NestMiddleware {
     this.logger.debug(`Proxying ${req.method} ${req.path} → ${route.target}`);
 
     proxy(route.target, {
-      proxyReqPathResolver: (req) => `/api/v1${req.url}`,
-      proxyErrorHandler: (err, _res, next) => {
+      proxyReqPathResolver: (req: Request) => `/api/v1${req.url}`,
+      proxyErrorHandler: (err: Error, _res: unknown, next: (e: Error) => void) => {
         this.logger.error(`Proxy error for ${req.path}`, err);
         next(err);
       },

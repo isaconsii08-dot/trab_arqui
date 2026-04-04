@@ -7,7 +7,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   async onModuleInit(): Promise<void> {
     await this.$connect();
-    this.logger.log('Database connection established');
+    this.logger.log('Catalog DB connection established');
   }
 
   async onModuleDestroy(): Promise<void> {

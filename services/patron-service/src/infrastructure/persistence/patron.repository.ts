@@ -4,7 +4,7 @@ import { IPatronRepository } from '../../domain/repositories/patron.repository.i
 import { Patron } from '../../domain/entities/patron.entity';
 import { Email } from '../../domain/value-objects/email.vo';
 import { CardNumber } from '../../domain/value-objects/card-number.vo';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../../generated/prisma';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PrismaPatronRepository – Infrastructure Adapter
@@ -98,7 +98,7 @@ export class PrismaPatronRepository implements IPatronRepository {
 
   private toDomain(record: PatronWithFines): Patron {
     const pendingFinesAmount = record.fines.reduce(
-      (sum, f) => sum + Number(f.amount),
+      (sum: number, f: { amount: unknown }) => sum + Number(f.amount),
       0,
     );
     return Patron.create({

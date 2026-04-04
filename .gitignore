@@ -38,6 +38,11 @@ coverage/
 # Prisma
 prisma/*.db
 prisma/*.db-journal
+src/generated/
+**/src/generated/
+
+# Claude memory
+.claude/
 
 # Docker
 .docker/
