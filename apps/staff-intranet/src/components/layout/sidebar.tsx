@@ -14,10 +14,11 @@ import {
   LogOut,
 } from 'lucide-react';
 import { clsx } from 'clsx';
+import { useEffect, useState } from 'react';
 
 const navItems = [
   { href: '/',              icon: LayoutDashboard, label: 'Dashboard'    },
-  { href: '/circulation',   icon: RefreshCw,       label: 'Circulación' },
+  { href: '/circulation',   icon: RefreshCw,       label: 'Circulación', badge: 'prestamos' },
   { href: '/catalog',       icon: BookOpen,        label: 'Catálogo'    },
   { href: '/patrons',       icon: Users,           label: 'Socios'      },
   { href: '/acquisitions',  icon: ShoppingCart,    label: 'Adquisiciones' },
@@ -27,6 +28,21 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [pendientes, setPendientes] = useState(0);
+
+  useEffect(() => {
+    const fetchPendientes = () => {
+      fetch('/api/prestamos')
+        .then((r) => r.json())
+        .then((data: Array<{ estado: string }>) => {
+          setPendientes(data.filter((s) => s.estado === 'pendiente').length);
+        })
+        .catch(() => {});
+    };
+    fetchPendientes();
+    const interval = setInterval(fetchPendientes, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r border-surface-border bg-surface-card">
@@ -50,6 +66,7 @@ export default function Sidebar() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+            const badgeCount = item.badge === 'prestamos' ? pendientes : 0;
             return (
               <li key={item.href}>
                 <Link
@@ -61,7 +78,12 @@ export default function Sidebar() {
                 >
                   <Icon className={clsx('h-4 w-4', isActive ? 'text-accent-green' : 'text-text-muted')} />
                   <span>{item.label}</span>
-                  {isActive && (
+                  {badgeCount > 0 && (
+                    <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-amber px-1 font-mono text-[10px] font-bold text-white">
+                      {badgeCount}
+                    </span>
+                  )}
+                  {badgeCount === 0 && isActive && (
                     <span className="ml-auto h-1 w-1 rounded-full bg-accent-green" />
                   )}
                 </Link>

@@ -27,6 +27,7 @@ export default function NewPatronPage() {
       });
       const data = await res.json() as { message?: string };
       if (!res.ok) { setError(data.message ?? 'Error al crear el socio'); return; }
+      router.refresh();
       router.push('/patrons');
     } catch {
       setError('No se pudo conectar con el servidor');

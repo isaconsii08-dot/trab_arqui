@@ -127,6 +127,7 @@ export default function EditCatalogPage() {
       });
       const data = await res.json() as { message?: string };
       if (!res.ok) { setError(data.message ?? 'Error al actualizar'); return; }
+      router.refresh();
       router.push(`/catalog/${id}`);
     } catch {
       setError('No se pudo conectar con el servidor');
@@ -140,6 +141,7 @@ export default function EditCatalogPage() {
     try {
       const res = await fetch(`/api/catalogo/${id}`, { method: 'DELETE' });
       if (res.ok || res.status === 204) {
+        router.refresh();
         router.push('/catalog');
       } else {
         const data = await res.json() as { message?: string };

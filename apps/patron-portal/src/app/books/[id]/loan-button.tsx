@@ -2,34 +2,51 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { BookOpen, CheckCircle, X, LogIn } from 'lucide-react';
+import { BookOpen, CheckCircle, X, LogIn, Loader2 } from 'lucide-react';
 
 interface LoanButtonProps {
   bookId: string;
+  bookTitle: string;
 }
 
-export default function LoanButton({ bookId }: LoanButtonProps) {
+interface UserCookie {
+  fullName?: string;
+  id?: string;
+}
+
+export default function LoanButton({ bookId, bookTitle }: LoanButtonProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
+  const [userId, setUserId] = useState('');
   const [solicitado, setSolicitado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
-    // bf_token es httpOnly (no accesible desde JS); bf_user no lo es
     const userCookie = document.cookie.split('; ').find((r) => r.startsWith('bf_user='));
     if (userCookie) {
       try {
         const u = JSON.parse(
           decodeURIComponent(userCookie.split('=').slice(1).join('=')),
-        ) as { fullName?: string };
+        ) as UserCookie;
         setUserName(u.fullName?.split(' ')[0] ?? 'Socio');
+        setUserId(u.id ?? '');
         setIsLoggedIn(true);
       } catch { /* ignorar */ }
     }
   }, []);
 
-  const solicitarPrestamo = () => {
+  const solicitarPrestamo = async () => {
+    setEnviando(true);
+    try {
+      await fetch('/api/prestamos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookId, bookTitle, userId, userName }),
+      });
+    } catch { /* la solicitud se registra igual en UI */ }
     setSolicitado(true);
+    setEnviando(false);
     setToast(
       `Solicitud registrada, ${userName}. Preséntate al mostrador de préstamos con tu carnet para retirar el material.`,
     );
@@ -47,9 +64,13 @@ export default function LoanButton({ bookId }: LoanButtonProps) {
         ) : (
           <button
             onClick={solicitarPrestamo}
+            disabled={enviando}
             className="btn-amber w-full justify-center"
           >
-            <BookOpen className="h-4 w-4" /> Solicitar préstamo
+            {enviando
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <BookOpen className="h-4 w-4" />}
+            {enviando ? 'Enviando...' : 'Solicitar préstamo'}
           </button>
         )
       ) : (

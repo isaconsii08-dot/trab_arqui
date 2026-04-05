@@ -73,7 +73,7 @@ export default async function BookDetailPage({ params }: Props) {
               </div>
 
               {/* Botón de préstamo — client component que detecta sesión */}
-              {disponible && <LoanButton bookId={id} />}
+              {disponible && <LoanButton bookId={id} bookTitle={libro.title} />}
             </div>
 
             {/* Detalles */}

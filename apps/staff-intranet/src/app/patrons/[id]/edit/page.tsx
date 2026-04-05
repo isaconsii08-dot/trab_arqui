@@ -52,6 +52,7 @@ export default function EditPatronPage() {
       });
       const data = await res.json() as { message?: string };
       if (!res.ok) { setError(data.message ?? 'Error al guardar'); return; }
+      router.refresh();
       router.push(`/patrons/${id}`);
     } catch {
       setError('No se pudo conectar con el servidor');
@@ -65,6 +66,7 @@ export default function EditPatronPage() {
     setDeleting(true);
     try {
       await fetch(`/api/socios/${id}`, { method: 'DELETE' });
+      router.refresh();
       router.push('/patrons');
     } catch {
       setError('No se pudo eliminar el socio');

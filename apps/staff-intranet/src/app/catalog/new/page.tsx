@@ -71,6 +71,7 @@ export default function NewCatalogPage() {
       });
       const data = await res.json() as { message?: string; id?: string };
       if (!res.ok) { setError(data.message ?? 'Error al crear el registro'); return; }
+      router.refresh();
       router.push('/catalog');
     } catch {
       setError('No se pudo conectar con el servidor');
