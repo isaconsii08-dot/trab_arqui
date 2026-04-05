@@ -6,7 +6,6 @@ import {
   HttpStatus,
   Inject,
   Param,
-  ParseUUIDPipe,
   Post,
   Query,
   UseGuards,
@@ -105,7 +104,7 @@ export class PatronController {
   @Roles('administrator', 'librarian', 'assistant')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Obtener socio por ID (personal)' })
-  async getPatron(@Param('id', ParseUUIDPipe) id: string) {
+  async getPatron(@Param('id') id: string) {
     const patron = await this.patronRepo.findById(id);
     if (!patron) return null;
     return PatronMapper.toDto(patron);

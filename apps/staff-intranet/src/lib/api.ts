@@ -44,12 +44,10 @@ async function obtenerCredencialesServicio(): Promise<{ token: string; staffId: 
   return { token: data.accessToken, staffId: data.user.id, libraryId };
 }
 
-async function obtenerTokenServicio(): Promise<string> {
+export async function obtenerTokenServicio(): Promise<string> {
   const { token } = await obtenerCredencialesServicio();
   return token;
 }
-
-export { obtenerCredencialesServicio };
 
 // ─── Estadísticas ─────────────────────────────────────────────────────────────
 

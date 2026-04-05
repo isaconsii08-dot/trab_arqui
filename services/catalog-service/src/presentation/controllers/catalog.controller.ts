@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Post,
   Put,
   Query,
@@ -50,7 +49,7 @@ export class CatalogController {
   @Public()
   @ApiOperation({ summary: 'Get bibliographic record details (public)' })
   @ApiResponse({ status: 404, description: 'Record not found' })
-  async getOne(@Param('id', ParseUUIDPipe) id: string) {
+  async getOne(@Param('id') id: string) {
     return this.getRecord.execute(id);
   }
 
@@ -69,7 +68,7 @@ export class CatalogController {
   @Roles('administrator', 'librarian')
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Update a bibliographic record (staff only)' })
-  async update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: Partial<CreateRecordDto>) {
+  async update(@Param('id') id: string, @Body() dto: Partial<CreateRecordDto>) {
     return { id, ...dto };
   }
 
@@ -79,5 +78,5 @@ export class CatalogController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a bibliographic record (admin only)' })
-  async remove(@Param('id', ParseUUIDPipe) _id: string): Promise<void> {}
+  async remove(@Param('id') _id: string): Promise<void> {}
 }
