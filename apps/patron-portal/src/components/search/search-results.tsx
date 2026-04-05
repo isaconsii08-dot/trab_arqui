@@ -1,7 +1,7 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { BookOpen, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { buscarCatalogo } from '@/lib/api';
+import BookCover from '@/components/ui/book-cover';
 
 interface SearchResultsProps {
   filters: Record<string, string | undefined>;
@@ -61,13 +61,15 @@ export default async function SearchResults({ filters }: SearchResultsProps) {
               className="group flex gap-4 rounded-sm border border-ink/8 bg-white p-4 transition-all hover:border-amber-book/40 hover:shadow-sm"
             >
               <div className="relative h-28 w-20 shrink-0 overflow-hidden rounded-sm bg-parchment-dark">
-                {libro.coverImageUrl ? (
-                  <Image src={libro.coverImageUrl} alt={libro.title} fill className="object-cover" sizes="80px" />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <BookOpen className="h-8 w-8 text-ink/20" />
-                  </div>
-                )}
+                <BookCover
+                  src={libro.coverImageUrl}
+                  title={libro.title}
+                  author={libro.authors[0]?.name}
+                  fill
+                  sizes="80px"
+                  className="object-cover"
+                  colorIndex={data.indexOf(libro)}
+                />
               </div>
 
               <div className="flex flex-1 flex-col justify-between min-w-0">

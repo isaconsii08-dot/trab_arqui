@@ -72,25 +72,6 @@ body {
 ::-webkit-scrollbar-thumb { background: #1E2A42; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #2A3A55; }
 
-/* ─── Animated scan line ─────────────────────────────────────────────────── */
-.scanline {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(31,184,112,0.4), transparent);
-  animation: scan 4s ease-in-out infinite;
-  pointer-events: none;
-  z-index: 100;
-}
-
-@keyframes scan {
-  0%   { transform: translateY(0); opacity: 0; }
-  10%  { opacity: 1; }
-  90%  { opacity: 1; }
-  100% { transform: translateY(100vh); opacity: 0; }
-}
 
 /* ─── Table ──────────────────────────────────────────────────────────────── */
 .data-table th {

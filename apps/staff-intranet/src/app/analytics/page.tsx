@@ -1,51 +1,53 @@
-import { BarChart2, TrendingUp, Users, BookOpen, AlertTriangle } from 'lucide-react';
-import { obtenerEstadisticas } from '@/lib/api';
+import { Users, BookOpen, AlertTriangle, TrendingUp } from 'lucide-react';
+import { obtenerEstadisticas, listarCatalogo } from '@/lib/api';
+import AnalyticsCharts from './charts';
 
 export default async function AnalyticsPage() {
-  const estadisticas = await obtenerEstadisticas().catch(() => ({
-    socios: { total: 0, activos: 0, suspendidos: 0, expirados: 0 },
-    circulacion: { prestamosVencidos: 0 },
-    catalogTotal: 0,
+  const [estadisticas, catalogData] = await Promise.all([
+    obtenerEstadisticas().catch(() => ({
+      socios: { total: 0, activos: 0, suspendidos: 0, expirados: 0, bloqueados: 0 },
+      circulacion: { prestamosVencidos: 0 },
+      catalogTotal: 0,
+    })),
+    listarCatalogo({ limit: 100, page: 1 }).catch(() => ({ data: [], total: 0 })),
+  ]);
+
+  // Contar materiales por tipo
+  const byType: Record<string, number> = {};
+  for (const item of catalogData.data as Array<{ materialType: string }>) {
+    byType[item.materialType] = (byType[item.materialType] ?? 0) + 1;
+  }
+
+  const tipoLabels: Record<string, string> = {
+    book: 'Libro', journal: 'Revista', audiovisual: 'Audiovisual',
+    digital: 'Digital', map: 'Mapa', archive: 'Archivo',
+  };
+
+  const tiposData = Object.entries(byType).map(([k, v]) => ({
+    name: tipoLabels[k] ?? k, value: v,
   }));
 
+  const patronesData = [
+    { name: 'Activos',     value: estadisticas.socios.activos,     fill: '#1FB870' },
+    { name: 'Suspendidos', value: estadisticas.socios.suspendidos,  fill: '#EF4444' },
+    { name: 'Expirados',   value: estadisticas.socios.expirados ?? 0, fill: '#F59E0B' },
+  ];
+
   const metricas = [
-    {
-      label: 'Socios totales',
-      value: estadisticas.socios.total,
-      sub: `${estadisticas.socios.activos} activos`,
-      icon: Users,
-      color: 'text-accent-purple',
-    },
-    {
-      label: 'Materiales en catálogo',
-      value: estadisticas.catalogTotal,
-      sub: 'Títulos registrados',
-      icon: BookOpen,
-      color: 'text-accent-blue',
-    },
-    {
-      label: 'Préstamos vencidos',
-      value: estadisticas.circulacion.prestamosVencidos,
-      sub: 'Pendientes de devolución',
-      icon: AlertTriangle,
-      color: estadisticas.circulacion.prestamosVencidos > 0 ? 'text-accent-amber' : 'text-text-muted',
-    },
-    {
-      label: 'Socios suspendidos',
-      value: estadisticas.socios.suspendidos,
-      sub: 'Con restricciones activas',
-      icon: TrendingUp,
-      color: estadisticas.socios.suspendidos > 0 ? 'text-accent-red' : 'text-text-muted',
-    },
+    { label: 'Socios totales',       value: estadisticas.socios.total,             icon: Users,         color: 'text-accent-purple' },
+    { label: 'Materiales',           value: estadisticas.catalogTotal,             icon: BookOpen,      color: 'text-accent-blue'   },
+    { label: 'Préstamos vencidos',   value: estadisticas.circulacion.prestamosVencidos, icon: AlertTriangle, color: estadisticas.circulacion.prestamosVencidos > 0 ? 'text-accent-amber' : 'text-text-muted' },
+    { label: 'Socios activos',       value: estadisticas.socios.activos,           icon: TrendingUp,    color: 'text-accent-green'  },
   ];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="font-display text-xl font-semibold text-text-primary">Estadísticas</h1>
-        <p className="font-mono text-xs text-text-muted">Métricas generales del sistema</p>
+        <p className="font-mono text-xs text-text-muted">Métricas generales del sistema en tiempo real</p>
       </div>
 
+      {/* KPIs */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {metricas.map((m) => {
           const Icon = m.icon;
@@ -56,19 +58,19 @@ export default async function AnalyticsPage() {
                 {m.value.toLocaleString()}
               </div>
               <div className="mt-1 font-body text-xs text-text-muted">{m.label}</div>
-              <div className="mt-0.5 font-mono text-xs text-text-muted/70">{m.sub}</div>
             </div>
           );
         })}
       </div>
 
-      <div className="surface-card p-8 flex flex-col items-center text-center">
-        <BarChart2 className="mb-4 h-12 w-12 text-text-muted/20" />
-        <p className="font-display text-sm font-semibold text-text-primary">Gráficos de actividad</p>
-        <p className="mt-1 font-mono text-xs text-text-muted">
-          Visualizaciones detalladas de préstamos, devoluciones y tendencias próximamente.
-        </p>
-      </div>
+      {/* Gráficos */}
+      <AnalyticsCharts
+        patronesData={patronesData}
+        tiposData={tiposData}
+        totalSocios={estadisticas.socios.total}
+        totalMateriales={estadisticas.catalogTotal}
+        prestamosVencidos={estadisticas.circulacion.prestamosVencidos}
+      />
     </div>
   );
 }

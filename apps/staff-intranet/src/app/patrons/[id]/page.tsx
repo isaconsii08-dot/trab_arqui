@@ -1,4 +1,4 @@
-import { ArrowLeft, User, AlertTriangle, CheckCircle, Clock, BookOpen } from 'lucide-react';
+import { ArrowLeft, User, AlertTriangle, CheckCircle, Clock, BookOpen, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { obtenerTokenServicio } from '@/lib/api';
@@ -88,7 +88,10 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
           <h1 className="font-display text-xl font-semibold text-text-primary">{socio.fullName}</h1>
           <p className="font-mono text-xs text-text-muted">{socio.cardNumber}</p>
         </div>
-        <span className={`badge ml-2 ${estadoBadge[socio.status] ?? ''}`}>
+        <Link href={`/patrons/${id}/edit`} className="ml-auto btn-ghost text-sm">
+          <Pencil className="h-4 w-4" /> Editar
+        </Link>
+        <span className={`badge ${estadoBadge[socio.status] ?? ''}`}>
           {socio.status === 'active'    && <><CheckCircle className="mr-1 h-3 w-3" />Activo</>}
           {socio.status === 'suspended' && <><AlertTriangle className="mr-1 h-3 w-3" />Suspendido</>}
           {socio.status === 'expired'   && <><Clock className="mr-1 h-3 w-3" />Caducado</>}

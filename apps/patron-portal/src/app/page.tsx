@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { BookOpen, Clock, MapPin, ArrowRight, Library, BookMarked, Star } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import Footer from '@/components/layout/footer';
 import SearchBar from '@/components/search/search-bar';
+import BookCover from '@/components/ui/book-cover';
 import { buscarCatalogo } from '@/lib/api';
 
 const categorias = [
@@ -141,24 +141,17 @@ export default async function HomePage() {
                   href={`/books/${libro.id}`}
                   className="card-hover group book-spine flex flex-col p-5"
                 >
-                  {/* Portada con imagen real de Open Library */}
+                  {/* Portada */}
                   <div className="mb-4 relative aspect-[3/4] overflow-hidden rounded-sm bg-parchment-dark">
-                    {libro.coverImageUrl ? (
-                      <Image
-                        src={libro.coverImageUrl}
-                        alt={`Portada de ${libro.title}`}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        sizes="(max-width: 768px) 50vw, 25vw"
-                      />
-                    ) : (
-                      <div
-                        className="absolute inset-0 flex items-center justify-center"
-                        style={{ background: `hsl(${i * 45 + 30}, 20%, 80%)` }}
-                      >
-                        <BookOpen className="h-10 w-10 text-ink/30" />
-                      </div>
-                    )}
+                    <BookCover
+                      src={libro.coverImageUrl}
+                      title={libro.title}
+                      author={libro.authors[0]?.name}
+                      fill
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      colorIndex={i}
+                    />
                   </div>
 
                   <span className="mb-1 font-mono text-xs text-ink-muted">{materia}</span>
