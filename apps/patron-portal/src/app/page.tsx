@@ -150,7 +150,6 @@ export default async function HomePage() {
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-105"
                         sizes="(max-width: 768px) 50vw, 25vw"
-                        onError={() => {}}
                       />
                     ) : (
                       <div

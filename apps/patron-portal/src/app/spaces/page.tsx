@@ -1,3 +1,5 @@
+'use client';
+
 import { MapPin, Clock, Users, Wifi } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 
