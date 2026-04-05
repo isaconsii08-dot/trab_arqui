@@ -3,9 +3,10 @@
  * Usadas desde componentes del servidor (Server Components) y rutas API.
  */
 
-const CATALOG_URL = process.env.CATALOG_SERVICE_URL ?? 'http://localhost:3002';
-const PATRON_URL  = process.env.PATRON_SERVICE_URL  ?? 'http://localhost:3001';
-const CIRC_URL    = process.env.CIRC_SERVICE_URL    ?? 'http://localhost:3004';
+const CATALOG_URL  = process.env.CATALOG_SERVICE_URL  ?? 'http://localhost:3002';
+const PATRON_URL   = process.env.PATRON_SERVICE_URL   ?? 'http://localhost:3001';
+const CIRC_URL     = process.env.CIRC_SERVICE_URL     ?? 'http://localhost:3004';
+const HOLDINGS_URL = process.env.HOLDINGS_SERVICE_URL ?? 'http://localhost:3003';
 
 export interface LibroResumen {
   id: string;
@@ -57,7 +58,27 @@ export async function buscarCatalogo(params: Record<string, string | number | un
   });
 
   if (!res.ok) return { data: [], total: 0, page: 1, limit: 20 };
-  return res.json() as Promise<ResultadoBusqueda>;
+  const result = await res.json() as ResultadoBusqueda;
+
+  // Enriquecer con disponibilidad real desde el servicio de ejemplares
+  if (result.data.length > 0) {
+    const ids = result.data.map((r) => r.id).join(',');
+    const avail = await fetch(
+      `${HOLDINGS_URL}/api/v1/holdings/availability?recordIds=${ids}`,
+      { cache: 'no-store' },
+    )
+      .then((r) => r.ok ? r.json() : {})
+      .catch(() => ({})) as Record<string, { total: number; available: number }>;
+
+    for (const rec of result.data) {
+      if (avail[rec.id]) {
+        rec.totalItems = avail[rec.id].total;
+        rec.availableItems = avail[rec.id].available;
+      }
+    }
+  }
+
+  return result;
 }
 
 export async function obtenerLibro(id: string): Promise<LibroResumen | null> {
@@ -71,7 +92,7 @@ export async function obtenerLibro(id: string): Promise<LibroResumen | null> {
 // ─── Ejemplares ───────────────────────────────────────────────────────────────
 
 export async function obtenerEjemplaresLibro(recordId: string) {
-  const res = await fetch(`http://localhost:3003/api/v1/holdings/records/${recordId}/items`, {
+  const res = await fetch(`${HOLDINGS_URL}/api/v1/holdings/records/${recordId}/items`, {
     cache: 'no-store',
   });
   if (!res.ok) return { items: [], total: 0, disponibles: 0 };

@@ -18,6 +18,9 @@ interface Prestamo {
   itemTitle: string;
 }
 
+const copFmt = (n: number) =>
+  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+
 function diasHasta(fechaStr: string): number {
   const hoy = new Date();
   const fecha = new Date(fechaStr);
@@ -51,6 +54,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const userCookie = document.cookie.split('; ').find((r) => r.startsWith('bf_user='));
+    const hasSession = !!userCookie;
     if (userCookie) {
       try {
         const decoded = JSON.parse(decodeURIComponent(userCookie.split('=').slice(1).join('='))) as { sub: string; role: string; fullName: string };
@@ -63,10 +67,11 @@ export default function DashboardPage() {
       .then((r) => r.json())
       .then((data: { data: Prestamo[] }) => {
         const todos = data.data ?? [];
-        if (todos.length > 0) {
+        if (hasSession) {
+          // Sesión activa: mostrar préstamos reales (puede ser lista vacía)
           setPrestamos(todos.filter((l) => l.status === 'active' || l.status === 'overdue'));
         } else {
-          // Sin sesión o sin préstamos reales: mostrar demo
+          // Sin sesión: mostrar demo
           return fetch('/api/prestamos-demo')
             .then((r) => r.json())
             .then((d: { data: Prestamo[] }) => setPrestamos(d.data ?? []));
@@ -139,7 +144,7 @@ export default function DashboardPage() {
                 </p>
                 <p className="mt-0.5 font-body text-xs text-rust/70">
                   Devuelve los materiales cuanto antes.
-                  {multaTotal > 0 && <> Multa acumulada: <strong>${multaTotal.toFixed(2)}</strong></>}
+                  {multaTotal > 0 && <> Multa acumulada: <strong>{copFmt(multaTotal)}</strong></>}
                 </p>
               </div>
               {multaTotal > 0 && (
@@ -158,7 +163,7 @@ export default function DashboardPage() {
             {[
               { label: 'Préstamos activos', value: activos.length,              icon: BookOpen,       color: 'text-emerald-library' },
               { label: 'Vencidos',          value: vencidos.length,             icon: Clock,          color: vencidos.length > 0 ? 'text-rust' : 'text-ink-muted' },
-              { label: 'Multas pendientes', value: `$${multaTotal.toFixed(2)}`, icon: AlertTriangle,  color: multaTotal > 0 ? 'text-amber-book' : 'text-ink-muted' },
+              { label: 'Multas pendientes', value: copFmt(multaTotal),           icon: AlertTriangle,  color: multaTotal > 0 ? 'text-amber-book' : 'text-ink-muted' },
               { label: 'Total préstamos',   value: prestamos.length,            icon: BookOpen,       color: 'text-ink-muted' },
             ].map((stat) => {
               const Icon = stat.icon;
@@ -231,7 +236,7 @@ export default function DashboardPage() {
                         </p>
                         {prestamo.fineAmount > 0 && (
                           <p className="font-mono text-xs text-rust mt-1">
-                            Multa: ${prestamo.fineAmount.toFixed(2)}
+                            Multa: {copFmt(prestamo.fineAmount)}
                           </p>
                         )}
                         {puedeRenovar && (
@@ -279,7 +284,7 @@ export default function DashboardPage() {
             </div>
 
             <p className="mb-4 font-body text-sm text-ink-muted">
-              Total a pagar: <strong className="text-rust">${multaTotal.toFixed(2)}</strong>
+              Total a pagar: <strong className="text-rust">{copFmt(multaTotal)}</strong>
             </p>
 
             <div className="space-y-3">
@@ -319,7 +324,7 @@ export default function DashboardPage() {
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4" /> Confirmar pago ${multaTotal.toFixed(2)}
+                  <CreditCard className="h-4 w-4" /> Confirmar pago {copFmt(multaTotal)}
                 </span>
               )}
             </button>

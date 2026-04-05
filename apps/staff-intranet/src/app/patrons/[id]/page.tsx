@@ -50,6 +50,9 @@ async function obtenerPrestamosDelSocio(patronId: string, token: string): Promis
   return data.data ?? [];
 }
 
+const copFmt = (n: number) =>
+  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+
 const estadoBadge: Record<string, string> = {
   active:    'badge-green',
   suspended: 'badge-red',
@@ -135,7 +138,7 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
             </div>
             <div className="surface-card p-3 text-center">
               <p className={`font-display text-xl font-semibold ${socio.pendingFinesTotal > 0 ? 'text-accent-amber' : 'text-text-primary'}`}>
-                ${(socio.pendingFinesTotal ?? 0).toFixed(0)}
+                {copFmt(socio.pendingFinesTotal ?? 0)}
               </p>
               <p className="font-mono text-xs text-text-muted">Multas</p>
             </div>
@@ -186,7 +189,7 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
                         <span className={`badge ${est.badge}`}>{est.label}</span>
                       </td>
                       <td className={`font-mono text-sm ${p.fineAmount > 0 ? 'text-accent-amber' : 'text-text-muted'}`}>
-                        {p.fineAmount > 0 ? `$${p.fineAmount.toFixed(2)}` : '—'}
+                        {p.fineAmount > 0 ? copFmt(p.fineAmount) : '—'}
                       </td>
                     </tr>
                   );

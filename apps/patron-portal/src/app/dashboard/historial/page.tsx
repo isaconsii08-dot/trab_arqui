@@ -20,6 +20,9 @@ interface Prestamo {
   itemTitle: string;
 }
 
+const copFmt = (n: number) =>
+  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+
 const estadoLabel: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   active:   { label: 'Activo',   color: 'text-emerald-library', icon: BookOpen     },
   overdue:  { label: 'Vencido',  color: 'text-rust',            icon: AlertTriangle },
@@ -142,7 +145,7 @@ export default function HistorialPage() {
                       )}
                       {prestamo.fineAmount > 0 && (
                         <p className="font-mono text-xs text-rust mt-0.5">
-                          Multa: ${prestamo.fineAmount.toFixed(2)}
+                          Multa: {copFmt(prestamo.fineAmount)}
                         </p>
                       )}
                     </div>

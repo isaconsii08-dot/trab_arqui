@@ -29,6 +29,9 @@ interface Solicitud {
   notas?: string;
 }
 
+const copFmt = (n: number) =>
+  new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+
 const ESTADO_STYLES: Record<string, { label: string; cls: string }> = {
   pendiente:  { label: 'Pendiente',  cls: 'bg-accent-amber/15 text-accent-amber border-accent-amber/20' },
   aprobada:   { label: 'Aprobada',   cls: 'bg-accent-green/15 text-accent-green border-accent-green/20' },
@@ -339,7 +342,7 @@ export default function CirculationPage() {
                 {returnOk.fineAmount && returnOk.fineAmount > 0 ? (
                   <div className="mt-3 rounded-sm border border-accent-amber/20 bg-accent-amber/8 px-4 py-2">
                     <p className="font-mono text-sm text-accent-amber">
-                      Multa generada: <strong>${returnOk.fineAmount.toFixed(2)}</strong>
+                      Multa generada: <strong>{copFmt(returnOk.fineAmount)}</strong>
                     </p>
                   </div>
                 ) : (

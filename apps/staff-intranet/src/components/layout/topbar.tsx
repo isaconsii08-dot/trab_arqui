@@ -1,20 +1,39 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { Bell, Search } from 'lucide-react';
+import { useState } from 'react';
 
 export default function TopBar() {
+  const router = useRouter();
+  const [query, setQuery] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const q = query.trim();
+    if (!q) return;
+    // Intentar detectar si es carnet o barcode de ejemplar, si no → buscar socio
+    if (/^EJ\d/.test(q)) {
+      router.push(`/catalog?query=${encodeURIComponent(q)}`);
+    } else {
+      router.push(`/patrons?query=${encodeURIComponent(q)}`);
+    }
+  };
+
   return (
     <header className="flex h-14 items-center justify-between border-b border-surface-border bg-surface-card px-6">
       {/* Search */}
-      <div className="flex w-72 items-center gap-2 rounded-sm border border-surface-border bg-surface-raised px-3 py-2">
-        <Search className="h-3.5 w-3.5 text-text-muted" />
+      <form onSubmit={handleSearch} className="flex w-72 items-center gap-2 rounded-sm border border-surface-border bg-surface-raised px-3 py-2">
+        <Search className="h-3.5 w-3.5 shrink-0 text-text-muted" />
         <input
           type="search"
-          placeholder="Buscar socio, ejemplar, préstamo..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar socio, libro, ejemplar..."
           className="flex-1 bg-transparent font-mono text-xs text-text-secondary placeholder-text-muted focus:outline-none"
         />
-        <span className="font-mono text-xs text-text-muted">⌘K</span>
-      </div>
+        <span className="font-mono text-xs text-text-muted">↵</span>
+      </form>
 
       {/* Right actions */}
       <div className="flex items-center gap-3">
@@ -27,14 +46,11 @@ export default function TopBar() {
         {/* Notifications */}
         <button className="relative flex h-8 w-8 items-center justify-center rounded-sm border border-surface-border text-text-muted hover:text-text-primary transition-colors">
           <Bell className="h-4 w-4" />
-          <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-accent-amber font-mono text-[8px] text-surface-base font-semibold">
-            3
-          </span>
         </button>
 
-        {/* Current time */}
+        {/* Current time — 12h */}
         <span className="font-mono text-xs text-text-muted" suppressHydrationWarning>
-          {new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          {new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: true })}
         </span>
       </div>
     </header>

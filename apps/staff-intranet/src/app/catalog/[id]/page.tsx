@@ -1,7 +1,8 @@
-import { BookOpen, ArrowLeft, Package, Pencil } from 'lucide-react';
+import { BookOpen, ArrowLeft, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
+import ItemsManager from './items-manager';
 
 const CATALOG_URL = process.env.CATALOG_SERVICE_URL ?? 'http://localhost:3002';
 const HOLDINGS_URL = process.env.HOLDINGS_SERVICE_URL ?? 'http://localhost:3003';
@@ -134,55 +135,7 @@ export default async function CatalogDetailPage({ params }: { params: Promise<{ 
             </div>
           )}
 
-          {/* Ejemplares */}
-          <div className="surface-card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
-              <div className="flex items-center gap-2">
-                <Package className="h-4 w-4 text-text-muted" />
-                <h2 className="font-display text-sm font-semibold text-text-primary">
-                  Ejemplares ({ejemplares.length})
-                </h2>
-              </div>
-              <span className="font-mono text-xs text-accent-green">
-                {ejemplares.filter((e) => e.status === 'available').length} disponibles
-              </span>
-            </div>
-
-            {ejemplares.length === 0 ? (
-              <div className="flex flex-col items-center py-10 text-center">
-                <Package className="mb-2 h-8 w-8 text-text-muted/20" />
-                <p className="font-mono text-xs text-text-muted">Sin ejemplares registrados</p>
-              </div>
-            ) : (
-              <table className="data-table w-full">
-                <thead>
-                  <tr>
-                    <th>Código de barras</th>
-                    <th>Ubicación</th>
-                    <th>Signatura</th>
-                    <th>Estado</th>
-                    <th>Condición</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ejemplares.map((item) => {
-                    const estado = estadoItem[item.status] ?? { label: item.status, badge: '' };
-                    return (
-                      <tr key={item.id} className="table-row">
-                        <td className="font-mono text-xs">{item.barcode}</td>
-                        <td className="text-text-secondary">{item.location}</td>
-                        <td className="font-mono text-xs text-text-muted">{item.callNumber ?? '—'}</td>
-                        <td>
-                          <span className={`badge ${estado.badge}`}>{estado.label}</span>
-                        </td>
-                        <td className="font-mono text-xs text-text-muted capitalize">{item.condition}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
+          <ItemsManager recordId={id} items={ejemplares} />
         </div>
       </div>
     </div>

@@ -3,9 +3,10 @@
  * Solo se usan en Server Components o rutas API de Next.js.
  */
 
-const PATRON_URL = process.env.PATRON_SERVICE_URL  ?? 'http://localhost:3001';
-const CATALOG_URL = process.env.CATALOG_SERVICE_URL ?? 'http://localhost:3002';
-const CIRC_URL    = process.env.CIRC_SERVICE_URL    ?? 'http://localhost:3004';
+const PATRON_URL   = process.env.PATRON_SERVICE_URL   ?? 'http://localhost:3001';
+const CATALOG_URL  = process.env.CATALOG_SERVICE_URL  ?? 'http://localhost:3002';
+const HOLDINGS_URL = process.env.HOLDINGS_SERVICE_URL ?? 'http://localhost:3003';
+const CIRC_URL     = process.env.CIRC_SERVICE_URL     ?? 'http://localhost:3004';
 
 // Credenciales del servicio (bibliotecario de turno)
 let tokenCache: { value: string; staffId: string; libraryId: string; expira: number } | null = null;
@@ -28,7 +29,6 @@ export async function obtenerCredencialesServicio(): Promise<{ token: string; st
     user: { id: string; role: string; libraryId?: string };
   };
 
-  // Extraer libraryId del payload JWT (campo 4 del token decodificado)
   let libraryId = 'lib-001';
   try {
     const payload = JSON.parse(atob(data.accessToken.split('.')[1] ?? '')) as { libraryId?: string };
@@ -77,10 +77,13 @@ export async function obtenerEstadisticas() {
 
 // ─── Socios ───────────────────────────────────────────────────────────────────
 
-export async function listarSocios(page = 1, limit = 20) {
+export async function listarSocios(page = 1, limit = 20, query = '') {
   const token = await obtenerTokenServicio();
+  const qs = query
+    ? `page=${page}&limit=${limit}&query=${encodeURIComponent(query)}`
+    : `page=${page}&limit=${limit}`;
   const res = await fetch(
-    `${PATRON_URL}/api/v1/patrons?page=${page}&limit=${limit}`,
+    `${PATRON_URL}/api/v1/patrons?${qs}`,
     { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' },
   );
   if (!res.ok) return { data: [], total: 0, page: 1, limit: 20 };
@@ -95,28 +98,102 @@ export async function listarSocios(page = 1, limit = 20) {
 
 // ─── Catálogo ─────────────────────────────────────────────────────────────────
 
+interface CatalogRecord {
+  id: string;
+  totalItems: number;
+  availableItems: number;
+  [key: string]: unknown;
+}
+
 export async function listarCatalogo(params: Record<string, string | number | undefined> = {}) {
-  const query = Object.entries({ limit: 20, page: 1, ...params })
+  const qs = Object.entries({ limit: 20, page: 1, ...params })
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
     .join('&');
 
-  const res = await fetch(`${CATALOG_URL}/api/v1/catalog/search?${query}`, {
-    cache: 'no-store',
-  });
+  const res = await fetch(`${CATALOG_URL}/api/v1/catalog/search?${qs}`, { cache: 'no-store' });
   if (!res.ok) return { data: [], total: 0 };
-  return res.json() as Promise<{ data: unknown[]; total: number }>;
+  const result = await res.json() as { data: CatalogRecord[]; total: number };
+
+  // Enriquecer con conteo real de ejemplares desde holdings
+  if (result.data.length > 0) {
+    const ids = result.data.map((r) => r.id).join(',');
+    const avail = await fetch(`${HOLDINGS_URL}/api/v1/holdings/availability?recordIds=${ids}`, { cache: 'no-store' })
+      .then((r) => r.ok ? r.json() : {})
+      .catch(() => ({})) as Record<string, { total: number; available: number }>;
+    for (const rec of result.data) {
+      if (avail[rec.id]) {
+        rec.totalItems = avail[rec.id].total;
+        rec.availableItems = avail[rec.id].available;
+      }
+    }
+  }
+  return result;
 }
 
-// ─── Préstamos recientes ──────────────────────────────────────────────────────
+// ─── Préstamos activos + info de ejemplar ──────────────────────────────────────
 
-export async function obtenerPrestamosVencidos() {
+export interface LoanConDetalle {
+  id: string;
+  itemId: string;
+  patronId: string;
+  patronName?: string;
+  loanDate: string;
+  dueDate: string;
+  status: string;
+  renewedCount: number;
+  fineAmount: number;
+  itemBarcode: string;
+  itemTitle: string;
+  recordId?: string;
+}
+
+export async function obtenerPrestamosActivos(): Promise<LoanConDetalle[]> {
   const token = await obtenerTokenServicio();
-  const res = await fetch(`${CIRC_URL}/api/v1/circulation/loans/active`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!res.ok) return [];
-  const data = await res.json() as { data: unknown[] };
-  return data.data ?? [];
+  const [loansRes, patronesRes] = await Promise.all([
+    fetch(`${CIRC_URL}/api/v1/circulation/loans/active`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    }),
+    fetch(`${PATRON_URL}/api/v1/patrons?page=1&limit=200`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    }),
+  ]);
+
+  if (!loansRes.ok) return [];
+  const loansData = await loansRes.json() as { data: LoanConDetalle[] };
+  const loans = loansData.data ?? [];
+
+  // Mapear patronId → nombre
+  let patronMap: Record<string, string> = {};
+  if (patronesRes.ok) {
+    const patData = await patronesRes.json() as { data: Array<{ id: string; fullName: string }> };
+    for (const p of patData.data ?? []) patronMap[p.id] = p.fullName;
+  }
+
+  // Enriquecer loans con nombre del patron y recordId del ejemplar
+  const barcodes = loans.map((l) => l.itemBarcode).filter(Boolean);
+  const holdingsMap: Record<string, { recordId: string }> = {};
+  await Promise.all(
+    barcodes.map((bc) =>
+      fetch(`${HOLDINGS_URL}/api/v1/holdings/items/${bc}`, { cache: 'no-store' })
+        .then((r) => r.ok ? r.json() : null)
+        .then((item: { barcode: string; recordId: string } | null) => {
+          if (item) holdingsMap[item.barcode] = { recordId: item.recordId };
+        })
+        .catch(() => {}),
+    ),
+  );
+
+  return loans.map((l) => ({
+    ...l,
+    patronName: patronMap[l.patronId] ?? l.patronId,
+    recordId: holdingsMap[l.itemBarcode]?.recordId,
+  }));
+}
+
+// Kept for backward compat (dashboard)
+export async function obtenerPrestamosVencidos() {
+  return obtenerPrestamosActivos();
 }

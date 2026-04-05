@@ -1,16 +1,21 @@
-import { Search, UserPlus, Filter, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Search, UserPlus, CheckCircle, XCircle, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { listarSocios } from '@/lib/api';
 
 interface PageProps {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; query?: string }>;
+}
+
+function copFormat(amount: number) {
+  return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(amount);
 }
 
 export default async function PatronsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? '1', 10));
+  const query = params.query ?? '';
 
-  const resultado = await listarSocios(page, 20).catch(() => ({
+  const resultado = await listarSocios(page, 20, query).catch(() => ({
     data: [] as Array<{
       id: string; cardNumber: string; fullName: string; email: string;
       status: string; phone: string | null; pendingFinesTotal: number;
@@ -28,7 +33,8 @@ export default async function PatronsPage({ searchParams }: PageProps) {
         <div>
           <h1 className="font-display text-xl font-semibold text-text-primary">Gestión de socios</h1>
           <p className="font-mono text-xs text-text-muted">
-            {resultado.total.toLocaleString()} socios registrados
+            {resultado.total.toLocaleString('es-CO')} socios registrados
+            {query && ` — resultados para "${query}"`}
           </p>
         </div>
         <Link href="/patrons/new" className="btn-green">
@@ -38,20 +44,22 @@ export default async function PatronsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Barra de búsqueda */}
-      <div className="flex gap-3">
+      <form method="get" className="flex gap-3">
         <div className="flex flex-1 items-center gap-2 rounded-sm border border-surface-border bg-surface-raised px-3 py-2.5">
           <Search className="h-4 w-4 text-text-muted" />
           <input
+            name="query"
             type="search"
+            defaultValue={query}
             placeholder="Buscar por nombre, email o nº de carnet..."
             className="flex-1 bg-transparent font-body text-sm text-text-primary placeholder-text-muted focus:outline-none"
           />
         </div>
-        <button className="btn-ghost">
-          <Filter className="h-4 w-4" />
-          Filtros
-        </button>
-      </div>
+        <button type="submit" className="btn-green">Buscar</button>
+        {query && (
+          <Link href="/patrons" className="btn-ghost">Limpiar</Link>
+        )}
+      </form>
 
       {/* Tabla */}
       <div className="surface-card overflow-hidden">
@@ -101,7 +109,7 @@ export default async function PatronsPage({ searchParams }: PageProps) {
                   </td>
                   <td className={`font-mono text-sm ${(patron.pendingFinesTotal ?? 0) > 0 ? 'text-accent-amber' : 'text-text-muted'}`}>
                     {(patron.pendingFinesTotal ?? 0) > 0
-                      ? `$${(patron.pendingFinesTotal).toFixed(2)}`
+                      ? copFormat(patron.pendingFinesTotal)
                       : '—'}
                   </td>
                   <td>
@@ -124,12 +132,12 @@ export default async function PatronsPage({ searchParams }: PageProps) {
           </span>
           <div className="flex gap-2">
             {page > 1 && (
-              <Link href={`/patrons?page=${page - 1}`} className="btn-ghost text-sm">
+              <Link href={`/patrons?page=${page - 1}${query ? `&query=${encodeURIComponent(query)}` : ''}`} className="btn-ghost text-sm">
                 ← Anterior
               </Link>
             )}
             {page < totalPages && (
-              <Link href={`/patrons?page=${page + 1}`} className="btn-ghost text-sm">
+              <Link href={`/patrons?page=${page + 1}${query ? `&query=${encodeURIComponent(query)}` : ''}`} className="btn-ghost text-sm">
                 Siguiente →
               </Link>
             )}
