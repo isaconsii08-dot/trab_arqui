@@ -57,14 +57,14 @@ export async function obtenerEstadisticas() {
   const [patroStats, circStats, catalogTotal] = await Promise.all([
     fetch(`${PATRON_URL}/api/v1/patrons/stats`, {
       headers: { Authorization: `Bearer ${token}` },
-      next: { revalidate: 60 },
+      cache: 'no-store',
     }).then((r) => r.ok ? r.json() : { total: 0, activos: 0, suspendidos: 0 }),
     fetch(`${CIRC_URL}/api/v1/circulation/stats`, {
       headers: { Authorization: `Bearer ${token}` },
-      next: { revalidate: 60 },
+      cache: 'no-store',
     }).then((r) => r.ok ? r.json() : { prestamosVencidos: 0 }),
     fetch(`${CATALOG_URL}/api/v1/catalog/search?limit=1`, {
-      next: { revalidate: 300 },
+      cache: 'no-store',
     }).then((r) => r.ok ? r.json() : { total: 0 }),
   ]);
 
@@ -81,7 +81,7 @@ export async function listarSocios(page = 1, limit = 20) {
   const token = await obtenerTokenServicio();
   const res = await fetch(
     `${PATRON_URL}/api/v1/patrons?page=${page}&limit=${limit}`,
-    { headers: { Authorization: `Bearer ${token}` }, next: { revalidate: 30 } },
+    { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' },
   );
   if (!res.ok) return { data: [], total: 0, page: 1, limit: 20 };
   return res.json() as Promise<{
@@ -102,7 +102,7 @@ export async function listarCatalogo(params: Record<string, string | number | un
     .join('&');
 
   const res = await fetch(`${CATALOG_URL}/api/v1/catalog/search?${query}`, {
-    next: { revalidate: 60 },
+    cache: 'no-store',
   });
   if (!res.ok) return { data: [], total: 0 };
   return res.json() as Promise<{ data: unknown[]; total: number }>;
@@ -114,7 +114,7 @@ export async function obtenerPrestamosVencidos() {
   const token = await obtenerTokenServicio();
   const res = await fetch(`${CIRC_URL}/api/v1/circulation/loans/active`, {
     headers: { Authorization: `Bearer ${token}` },
-    next: { revalidate: 30 },
+    cache: 'no-store',
   });
   if (!res.ok) return [];
   const data = await res.json() as { data: unknown[] };

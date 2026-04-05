@@ -53,7 +53,7 @@ export async function buscarCatalogo(params: Record<string, string | number | un
     .join('&');
 
   const res = await fetch(`${CATALOG_URL}/api/v1/catalog/search?${query}`, {
-    next: { revalidate: 60 },
+    cache: 'no-store',
   });
 
   if (!res.ok) return { data: [], total: 0, page: 1, limit: 20 };
@@ -62,7 +62,7 @@ export async function buscarCatalogo(params: Record<string, string | number | un
 
 export async function obtenerLibro(id: string): Promise<LibroResumen | null> {
   const res = await fetch(`${CATALOG_URL}/api/v1/catalog/${id}`, {
-    next: { revalidate: 300 },
+    cache: 'no-store',
   });
   if (!res.ok) return null;
   return res.json() as Promise<LibroResumen>;
@@ -72,7 +72,7 @@ export async function obtenerLibro(id: string): Promise<LibroResumen | null> {
 
 export async function obtenerEjemplaresLibro(recordId: string) {
   const res = await fetch(`http://localhost:3003/api/v1/holdings/records/${recordId}/items`, {
-    next: { revalidate: 30 },
+    cache: 'no-store',
   });
   if (!res.ok) return { items: [], total: 0, disponibles: 0 };
   return res.json() as Promise<{ items: unknown[]; total: number; disponibles: number }>;

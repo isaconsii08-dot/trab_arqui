@@ -5,8 +5,12 @@ import {
   RefreshCw,
   Clock,
   CheckCircle,
+  Inbox,
 } from 'lucide-react';
+import Link from 'next/link';
 import { obtenerEstadisticas, obtenerPrestamosVencidos, listarCatalogo } from '@/lib/api';
+
+export const dynamic = 'force-dynamic';
 
 interface LoanDto {
   id: string;
@@ -28,13 +32,21 @@ interface CatalogRecord {
   authors?: Array<{ name: string }>;
 }
 
+interface Solicitud {
+  id: string;
+  bookTitle: string;
+  userName: string;
+  estado: string;
+  creadaEn: string;
+}
+
 export default async function DashboardPage() {
   const today = new Date().toLocaleDateString('es-ES', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 
   // Obtener datos reales en paralelo
-  const [estadisticas, prestamosVencidos, catalogData] = await Promise.all([
+  const [estadisticas, prestamosVencidos, catalogData, solicitudesRaw] = await Promise.all([
     obtenerEstadisticas().catch(() => ({
       socios: { total: 0, activos: 0, suspendidos: 0, expirados: 0 },
       circulacion: { prestamosVencidos: 0 },
@@ -42,10 +54,15 @@ export default async function DashboardPage() {
     })),
     obtenerPrestamosVencidos().catch(() => [] as LoanDto[]),
     listarCatalogo({ limit: 5, page: 1 }).catch(() => ({ data: [] as CatalogRecord[], total: 0 })),
+    fetch('http://localhost:4000/api/prestamos', { cache: 'no-store' })
+      .then((r) => r.ok ? r.json() as Promise<Solicitud[]> : [] as Solicitud[])
+      .catch(() => [] as Solicitud[]),
   ]);
 
   const loans = prestamosVencidos as LoanDto[];
   const topTitulos = (catalogData.data as CatalogRecord[]).slice(0, 5);
+  const solicitudes = (solicitudesRaw as Solicitud[]).slice(0, 10);
+  const pendientesCount = solicitudes.filter((s) => s.estado === 'pendiente').length;
 
   const stats = [
     {
@@ -202,6 +219,67 @@ export default async function DashboardPage() {
             </a>
           </div>
         </div>
+      </div>
+
+      {/* Solicitudes de préstamo en línea */}
+      <div className="surface-card overflow-hidden">
+        <div className="flex items-center justify-between border-b border-surface-border px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Inbox className="h-4 w-4 text-text-muted" />
+            <h2 className="font-display text-sm font-semibold text-text-primary">
+              Solicitudes de préstamo en línea
+            </h2>
+            {pendientesCount > 0 && (
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-amber px-1 font-mono text-[10px] font-bold text-white">
+                {pendientesCount}
+              </span>
+            )}
+          </div>
+          <Link href="/circulation" className="font-mono text-xs text-accent-green hover:underline">
+            Gestionar →
+          </Link>
+        </div>
+
+        {solicitudes.length === 0 ? (
+          <div className="flex flex-col items-center py-8 text-center">
+            <Inbox className="mb-2 h-6 w-6 text-text-muted/20" />
+            <p className="font-mono text-xs text-text-muted">Sin solicitudes registradas</p>
+          </div>
+        ) : (
+          <table className="data-table w-full">
+            <thead>
+              <tr>
+                <th>Libro</th>
+                <th>Socio</th>
+                <th>Hora</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {solicitudes.map((s) => (
+                <tr key={s.id} className="table-row">
+                  <td className="max-w-[220px] truncate font-body text-sm">{s.bookTitle}</td>
+                  <td className="text-text-secondary">{s.userName}</td>
+                  <td className="font-mono text-xs text-text-muted">
+                    {new Date(s.creadaEn).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}
+                  </td>
+                  <td>
+                    <span className={`badge ${
+                      s.estado === 'pendiente'  ? 'badge-amber' :
+                      s.estado === 'aprobada'   ? 'badge-green' :
+                      s.estado === 'entregada'  ? 'badge-green' :
+                      'badge-red'
+                    }`}>
+                      {s.estado === 'pendiente' ? 'Pendiente' :
+                       s.estado === 'aprobada'  ? 'Aprobada'  :
+                       s.estado === 'entregada' ? 'Entregada' : 'Rechazada'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {/* Acciones rápidas */}

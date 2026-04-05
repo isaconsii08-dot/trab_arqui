@@ -5,8 +5,6 @@ import { Clock, BookOpen, AlertTriangle, RefreshCw, CreditCard, X, CheckCircle }
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
 
-const CIRC_URL = process.env.NEXT_PUBLIC_CIRC_URL ?? 'http://localhost:3004';
-
 interface Prestamo {
   id: string;
   itemId: string;
@@ -39,7 +37,6 @@ function Toast({ msg, tipo, onClose }: { msg: string; tipo: 'ok' | 'err'; onClos
 export default function DashboardPage() {
   const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
   const [usuario, setUsuario] = useState<{ sub: string; role: string; fullName: string } | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [toast, setToast] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
   const [renovando, setRenovando] = useState<string | null>(null);
@@ -54,66 +51,30 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const userCookie = document.cookie.split('; ').find((r) => r.startsWith('bf_user='));
-    const tokenCookie = document.cookie.split('; ').find((r) => r.startsWith('bf_token='));
     if (userCookie) {
       try {
         const decoded = JSON.parse(decodeURIComponent(userCookie.split('=').slice(1).join('='))) as { sub: string; role: string; fullName: string };
         setUsuario(decoded);
       } catch { /* cookie malformada */ }
     }
-    if (tokenCookie) {
-      setToken(decodeURIComponent(tokenCookie.split('=').slice(1).join('=')));
-    }
+
+    // Llamada única al API route server-side que lee las cookies y busca préstamos
+    fetch('/api/mis-prestamos')
+      .then((r) => r.json())
+      .then((data: { data: Prestamo[] }) => {
+        const todos = data.data ?? [];
+        if (todos.length > 0) {
+          setPrestamos(todos.filter((l) => l.status === 'active' || l.status === 'overdue'));
+        } else {
+          // Sin sesión o sin préstamos reales: mostrar demo
+          return fetch('/api/prestamos-demo')
+            .then((r) => r.json())
+            .then((d: { data: Prestamo[] }) => setPrestamos(d.data ?? []));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setCargando(false));
   }, []);
-
-  useEffect(() => {
-    if (usuario === null && token === null) return; // esperar
-    if (usuario && token) {
-      cargarPrestamos(usuario.sub, token);
-    } else {
-      cargarPrestamosDemo();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [usuario, token]);
-
-  // Esperar 300ms para que las cookies carguen antes de determinar si hay sesión
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!usuario) {
-        cargarPrestamosDemo();
-      }
-    }, 400);
-    return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function cargarPrestamosDemo() {
-    try {
-      const res = await fetch('/api/prestamos-demo');
-      if (res.ok) {
-        const data = await res.json() as { data: Prestamo[] };
-        setPrestamos(data.data ?? []);
-      }
-    } catch { /* ignorar */ } finally {
-      setCargando(false);
-    }
-  }
-
-  async function cargarPrestamos(patronId: string, jwt: string) {
-    try {
-      const res = await fetch(
-        `${CIRC_URL}/api/v1/circulation/loans/patron/${patronId}?page=1&limit=20`,
-        { headers: { Authorization: `Bearer ${jwt}` } },
-      );
-      if (res.ok) {
-        const data = await res.json() as { data: Prestamo[] };
-        const activos = (data.data ?? []).filter((l) => l.status === 'active' || l.status === 'overdue');
-        setPrestamos(activos);
-      }
-    } catch { /* ignorar */ } finally {
-      setCargando(false);
-    }
-  }
 
   async function renovarPrestamo(prestamoId: string) {
     setRenovando(prestamoId);
