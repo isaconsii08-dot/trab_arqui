@@ -25,7 +25,7 @@ export default function SearchBar({ variant = 'inline', defaultValue = '' }: Sea
     <form onSubmit={handleSubmit} className={clsx('relative', variant === 'hero' && 'w-full')}>
       <div
         className={clsx(
-          'flex items-center overflow-hidden transition-all',
+          'flex overflow-hidden transition-all',
           variant === 'hero'
             ? 'rounded-sm bg-parchment shadow-2xl ring-1 ring-white/20'
             : 'rounded-sm border border-ink/15 bg-white',
@@ -33,7 +33,7 @@ export default function SearchBar({ variant = 'inline', defaultValue = '' }: Sea
       >
         <Search
           className={clsx(
-            'ml-4 shrink-0',
+            'ml-4 shrink-0 self-center',
             variant === 'hero' ? 'h-5 w-5 text-ink-muted' : 'h-4 w-4 text-ink-muted',
           )}
         />
@@ -56,7 +56,7 @@ export default function SearchBar({ variant = 'inline', defaultValue = '' }: Sea
           <button
             type="button"
             onClick={() => setQuery('')}
-            className="px-3 text-ink-muted hover:text-ink"
+            className="self-center px-3 text-ink-muted hover:text-ink"
           >
             <X className="h-4 w-4" />
           </button>

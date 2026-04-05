@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { BookOpen, Clock, MapPin, ArrowRight, Library, BookMarked, Star } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import Footer from '@/components/layout/footer';
@@ -14,6 +15,9 @@ const categorias = [
 ];
 
 export default async function HomePage() {
+  const cookieStore = await cookies();
+  const isLoggedIn = !!cookieStore.get('bf_token')?.value;
+
   // Portada: últimos 8 libros ingresados
   const destacados = await buscarCatalogo({ limit: 8, page: 1 });
 
@@ -211,27 +215,29 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ─── CTA ──────────────────────────────────────────────────────────────── */}
-      <section className="bg-parchment py-24">
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <div className="divider-ornament mb-8">
-            <span className="font-mono text-xs uppercase tracking-[0.2em] text-ink-muted">
-              ¿Todavía no eres socio?
-            </span>
+      {/* ─── CTA — solo visible si no está autenticado ───────────────────────── */}
+      {!isLoggedIn && (
+        <section className="bg-parchment py-24">
+          <div className="mx-auto max-w-3xl px-6 text-center">
+            <div className="divider-ornament mb-8">
+              <span className="font-mono text-xs uppercase tracking-[0.2em] text-ink-muted">
+                ¿Todavía no eres socio?
+              </span>
+            </div>
+            <h2 className="heading-md mb-6 text-ink">Únete a la comunidad de lectores</h2>
+            <p className="mb-10 text-ink-muted">
+              El registro es gratuito y te da acceso inmediato al catálogo completo,
+              préstamos a domicilio y reserva de salas.
+            </p>
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <Link href="/register" className="btn-amber">
+                Registrarme como socio <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/login" className="btn-secondary">Ya tengo cuenta</Link>
+            </div>
           </div>
-          <h2 className="heading-md mb-6 text-ink">Únete a la comunidad de lectores</h2>
-          <p className="mb-10 text-ink-muted">
-            El registro es gratuito y te da acceso inmediato al catálogo completo,
-            préstamos a domicilio y reserva de salas.
-          </p>
-          <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <Link href="/register" className="btn-amber">
-              Registrarme como socio <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link href="/login" className="btn-secondary">Ya tengo cuenta</Link>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <Footer />
     </>

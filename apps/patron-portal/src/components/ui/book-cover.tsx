@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 
 interface BookCoverProps {
   src: string | null;
@@ -26,56 +25,82 @@ const SPINE_COLORS = [
   { bg: '#1F3A3A', text: '#7AC8C8' },
 ];
 
+function Placeholder({ color, title, author, fill, className }: {
+  color: { bg: string; text: string };
+  title: string;
+  author?: string;
+  fill?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={`flex flex-col items-center justify-center px-3 py-4 text-center ${fill ? 'absolute inset-0' : ''} ${className ?? ''}`}
+      style={{ backgroundColor: color.bg }}
+    >
+      <div
+        className="mb-2 w-full border-t border-b py-2"
+        style={{ borderColor: `${color.text}40` }}
+      >
+        <p
+          className="line-clamp-4 font-serif text-xs font-semibold leading-snug"
+          style={{ color: color.text }}
+        >
+          {title}
+        </p>
+      </div>
+      {author && (
+        <p className="line-clamp-2 font-mono text-[10px] leading-tight" style={{ color: `${color.text}99` }}>
+          {author}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function BookCover({
   src,
   title,
   author,
   fill = false,
-  sizes,
   className = '',
-  priority = false,
   colorIndex = 0,
 }: BookCoverProps) {
   const [imgError, setImgError] = useState(false);
   const color = SPINE_COLORS[colorIndex % SPINE_COLORS.length]!;
 
-  const showPlaceholder = !src || imgError;
+  // Detectar imagen 1×1 transparente que Open Library devuelve cuando no hay portada
+  const handleLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { naturalWidth, naturalHeight } = e.currentTarget;
+    if (naturalWidth <= 1 || naturalHeight <= 1) {
+      setImgError(true);
+    }
+  };
 
-  if (showPlaceholder) {
+  if (!src || imgError) {
     return (
-      <div
-        className={`flex flex-col items-center justify-center px-3 py-4 text-center ${fill ? 'absolute inset-0' : ''} ${className}`}
-        style={{ backgroundColor: color.bg }}
-      >
-        <div
-          className="mb-2 w-full border-t border-b py-2"
-          style={{ borderColor: `${color.text}40` }}
-        >
-          <p
-            className="line-clamp-4 font-serif text-xs font-semibold leading-snug"
-            style={{ color: color.text }}
-          >
-            {title}
-          </p>
-        </div>
-        {author && (
-          <p className="line-clamp-2 font-mono text-[10px] leading-tight" style={{ color: `${color.text}99` }}>
-            {author}
-          </p>
-        )}
-      </div>
+      <Placeholder
+        color={color}
+        title={title}
+        author={author}
+        fill={fill}
+        className={className}
+      />
     );
   }
 
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={src}
       alt={`Portada de ${title}`}
-      fill={fill}
-      sizes={sizes}
-      className={className}
-      priority={priority}
+      onLoad={handleLoad}
       onError={() => setImgError(true)}
+      style={
+        fill
+          ? { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }
+          : {}
+      }
+      className={className}
     />
   );
 }

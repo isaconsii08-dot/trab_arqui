@@ -1,17 +1,19 @@
-import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { BookOpen, ArrowLeft, CheckCircle, XCircle, Calendar, Building, Tag, Hash } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, Calendar, Building, Tag, Hash } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import Footer from '@/components/layout/footer';
+import BookCover from '@/components/ui/book-cover';
+import LoanButton from './loan-button';
 import { obtenerLibro, obtenerEjemplaresLibro } from '@/lib/api';
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({ params }: Props) {
-  const libro = await obtenerLibro(params.id);
+  const { id } = await params;
+  const libro = await obtenerLibro(id);
   if (!libro) return { title: 'Libro no encontrado – BiblioFlow' };
   return {
     title: `${libro.title} – BiblioFlow`,
@@ -20,9 +22,10 @@ export async function generateMetadata({ params }: Props) {
 }
 
 export default async function BookDetailPage({ params }: Props) {
+  const { id } = await params;
   const [libro, ejemplares] = await Promise.all([
-    obtenerLibro(params.id),
-    obtenerEjemplaresLibro(params.id),
+    obtenerLibro(id),
+    obtenerEjemplaresLibro(id),
   ]);
 
   if (!libro) notFound();
@@ -37,7 +40,6 @@ export default async function BookDetailPage({ params }: Props) {
       <div className="min-h-screen bg-parchment">
         <div className="mx-auto max-w-5xl px-6 py-10">
 
-          {/* Volver */}
           <Link
             href="/search"
             className="mb-8 inline-flex items-center gap-2 font-mono text-xs text-ink-muted hover:text-amber-book transition-colors"
@@ -49,20 +51,14 @@ export default async function BookDetailPage({ params }: Props) {
             {/* Portada */}
             <div className="space-y-4">
               <div className="relative aspect-[3/4] overflow-hidden rounded-sm bg-parchment-dark shadow-md">
-                {libro.coverImageUrl ? (
-                  <Image
-                    src={libro.coverImageUrl}
-                    alt={`Portada de ${libro.title}`}
-                    fill
-                    className="object-cover"
-                    sizes="280px"
-                    priority
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <BookOpen className="h-16 w-16 text-ink/20" />
-                  </div>
-                )}
+                <BookCover
+                  src={libro.coverImageUrl}
+                  title={libro.title}
+                  author={libro.authors[0]?.name}
+                  fill
+                  sizes="280px"
+                  className="object-cover"
+                />
               </div>
 
               {/* Disponibilidad */}
@@ -76,19 +72,12 @@ export default async function BookDetailPage({ params }: Props) {
                 </p>
               </div>
 
-              {disponible && (
-                <Link
-                  href="/login"
-                  className="btn-amber w-full justify-center"
-                >
-                  Solicitar préstamo
-                </Link>
-              )}
+              {/* Botón de préstamo — client component que detecta sesión */}
+              {disponible && <LoanButton bookId={id} />}
             </div>
 
             {/* Detalles */}
             <div>
-              {/* Materias */}
               <div className="mb-3 flex flex-wrap gap-2">
                 {materias.map((m) => (
                   <Link
@@ -106,7 +95,6 @@ export default async function BookDetailPage({ params }: Props) {
               </h1>
               <p className="mt-2 font-body text-lg text-ink-muted">{autores}</p>
 
-              {/* Resumen */}
               {libro.summary && (
                 <div className="mt-6">
                   <h2 className="mb-3 font-display text-sm font-semibold uppercase tracking-wider text-ink-muted">
@@ -116,13 +104,12 @@ export default async function BookDetailPage({ params }: Props) {
                 </div>
               )}
 
-              {/* Datos técnicos */}
               <div className="mt-8 grid grid-cols-2 gap-4 rounded-sm border border-ink/8 bg-parchment-light p-5">
                 {[
                   { icon: Calendar, label: 'Año de publicación', value: libro.publicationYear ?? '—' },
-                  { icon: Building, label: 'Editorial', value: libro.publisher ?? '—' },
-                  { icon: Hash, label: 'ISBN', value: libro.isbn ?? '—' },
-                  { icon: Tag, label: 'Tipo de material', value: libro.materialType === 'book' ? 'Libro' : libro.materialType },
+                  { icon: Building, label: 'Editorial',          value: libro.publisher ?? '—' },
+                  { icon: Hash,     label: 'ISBN',                value: libro.isbn ?? '—' },
+                  { icon: Tag,      label: 'Tipo de material',    value: libro.materialType === 'book' ? 'Libro' : libro.materialType },
                 ].map(({ icon: Icon, label, value }) => (
                   <div key={label} className="flex items-start gap-3">
                     <Icon className="mt-0.5 h-4 w-4 shrink-0 text-amber-book" />
@@ -134,7 +121,6 @@ export default async function BookDetailPage({ params }: Props) {
                 ))}
               </div>
 
-              {/* Ejemplares */}
               {ejemplares.total > 0 && (
                 <div className="mt-8">
                   <h2 className="mb-3 font-display text-sm font-semibold uppercase tracking-wider text-ink-muted">

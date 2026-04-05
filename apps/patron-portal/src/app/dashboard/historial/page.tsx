@@ -5,6 +5,8 @@ import { BookOpen, ArrowLeft, Clock, CheckCircle, AlertTriangle } from 'lucide-r
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
 
+const CIRC_URL = process.env.NEXT_PUBLIC_CIRC_URL ?? 'http://localhost:3004';
+
 interface Prestamo {
   id: string;
   itemId: string;
@@ -19,10 +21,10 @@ interface Prestamo {
 }
 
 const estadoLabel: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  active:   { label: 'Activo',    color: 'text-emerald-library', icon: BookOpen },
-  overdue:  { label: 'Vencido',   color: 'text-rust',            icon: AlertTriangle },
-  returned: { label: 'Devuelto',  color: 'text-ink-muted',       icon: CheckCircle },
-  lost:     { label: 'Perdido',   color: 'text-rust',            icon: AlertTriangle },
+  active:   { label: 'Activo',   color: 'text-emerald-library', icon: BookOpen     },
+  overdue:  { label: 'Vencido',  color: 'text-rust',            icon: AlertTriangle },
+  returned: { label: 'Devuelto', color: 'text-ink-muted',       icon: CheckCircle   },
+  lost:     { label: 'Perdido',  color: 'text-rust',            icon: AlertTriangle },
 };
 
 export default function HistorialPage() {
@@ -34,17 +36,17 @@ export default function HistorialPage() {
 
   useEffect(() => {
     cargarHistorial(page);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   async function cargarHistorial(p: number) {
     setCargando(true);
     try {
-      // Leer sesión desde cookies
       const tokenCookie = document.cookie.split('; ').find((r) => r.startsWith('bf_token='));
-      const userCookie = document.cookie.split('; ').find((r) => r.startsWith('bf_user='));
+      const userCookie  = document.cookie.split('; ').find((r) => r.startsWith('bf_user='));
 
       if (!tokenCookie || !userCookie) {
-        // Sin sesión: mostrar historial del socio de demo
+        // Sin sesión: mostrar historial del socio de demo vía endpoint de historial
         const res = await fetch('/api/prestamos-demo');
         if (res.ok) {
           const data = await res.json() as { data: Prestamo[] };
@@ -55,10 +57,10 @@ export default function HistorialPage() {
       }
 
       const token = decodeURIComponent(tokenCookie.split('=').slice(1).join('='));
-      const user = JSON.parse(decodeURIComponent(userCookie.split('=')[1] ?? '')) as { sub: string };
+      const user  = JSON.parse(decodeURIComponent(userCookie.split('=').slice(1).join('='))) as { sub: string };
 
       const res = await fetch(
-        `http://localhost:3004/api/v1/circulation/loans/patron/${user.sub}?page=${p}&limit=${limit}`,
+        `${CIRC_URL}/api/v1/circulation/loans/patron/${user.sub}?page=${p}&limit=${limit}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
@@ -106,12 +108,12 @@ export default function HistorialPage() {
           ) : (
             <div className="space-y-3">
               {prestamos.map((prestamo) => {
-                const estado = estadoLabel[prestamo.status] ?? estadoLabel['returned'];
+                const estado = estadoLabel[prestamo.status] ?? estadoLabel['returned']!;
                 const Icon = estado.icon;
                 return (
                   <div key={prestamo.id} className="card flex items-center gap-4 p-4">
-                    <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-sm bg-parchment-dark">
-                      <BookOpen className="absolute inset-0 m-auto h-5 w-5 text-ink/20" />
+                    <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-sm bg-parchment-dark flex items-center justify-center">
+                      <BookOpen className="h-5 w-5 text-ink/20" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="truncate font-body text-sm font-medium text-ink">
@@ -120,18 +122,22 @@ export default function HistorialPage() {
                       <p className="font-mono text-xs text-ink-muted mt-0.5">
                         {prestamo.itemBarcode || prestamo.itemId}
                       </p>
+                      <p className="font-mono text-xs text-ink-muted">
+                        Préstamo: {new Date(prestamo.loanDate).toLocaleDateString('es-CO')}
+                      </p>
                     </div>
                     <div className="shrink-0 text-right">
                       <div className={`flex items-center gap-1 justify-end ${estado.color}`}>
                         <Icon className="h-3.5 w-3.5" />
                         <span className="font-mono text-xs font-medium">{estado.label}</span>
                       </div>
-                      <p className="font-mono text-xs text-ink-muted mt-0.5">
-                        {new Date(prestamo.loanDate).toLocaleDateString('es-CO')}
-                      </p>
-                      {prestamo.returnDate && (
-                        <p className="font-mono text-xs text-ink-muted">
+                      {prestamo.returnDate ? (
+                        <p className="font-mono text-xs text-ink-muted mt-0.5">
                           Dev: {new Date(prestamo.returnDate).toLocaleDateString('es-CO')}
+                        </p>
+                      ) : (
+                        <p className="font-mono text-xs text-ink-muted mt-0.5">
+                          Vence: {new Date(prestamo.dueDate).toLocaleDateString('es-CO')}
                         </p>
                       )}
                       {prestamo.fineAmount > 0 && (
@@ -146,7 +152,6 @@ export default function HistorialPage() {
             </div>
           )}
 
-          {/* Paginación */}
           {totalPages > 1 && (
             <div className="mt-6 flex items-center justify-between">
               <span className="font-mono text-xs text-ink-muted">
@@ -154,18 +159,12 @@ export default function HistorialPage() {
               </span>
               <div className="flex gap-2">
                 {page > 1 && (
-                  <button
-                    onClick={() => setPage(page - 1)}
-                    className="btn-secondary px-4 py-2 text-sm"
-                  >
+                  <button onClick={() => setPage(page - 1)} className="btn-secondary px-4 py-2 text-sm">
                     ← Anterior
                   </button>
                 )}
                 {page < totalPages && (
-                  <button
-                    onClick={() => setPage(page + 1)}
-                    className="btn-secondary px-4 py-2 text-sm"
-                  >
+                  <button onClick={() => setPage(page + 1)} className="btn-secondary px-4 py-2 text-sm">
                     Siguiente →
                   </button>
                 )}

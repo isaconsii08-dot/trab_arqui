@@ -42,5 +42,6 @@ import { SEARCH_ENGINE } from './application/ports/search-engine.interface';
       inject: [{ token: CATALOG_REPOSITORY, optional: false }],
     },
   ],
+  exports: [CATALOG_REPOSITORY],
 })
 export class AppModule {}

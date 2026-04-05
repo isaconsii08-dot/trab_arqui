@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, BookOpen, Plus, Loader2, X } from 'lucide-react';
+import { ArrowLeft, BookOpen, Plus, Loader2, X, Download, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 const TIPOS = [
@@ -25,7 +25,27 @@ export default function NewCatalogPage() {
     materialType: 'book', coverImageUrl: '', libraryId: 'lib-001',
   });
 
+  const [descargandoPortada, setDescargandoPortada] = useState(false);
+  const [errorPortada, setErrorPortada] = useState('');
+
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+
+  const descargarPortada = async () => {
+    if (!form.coverImageUrl) return;
+    setDescargandoPortada(true);
+    setErrorPortada('');
+    try {
+      const res = await fetch('/api/catalogo/fetch-cover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: form.coverImageUrl }),
+      });
+      const data = await res.json() as { dataUrl?: string; sizeKb?: number; error?: string };
+      if (!res.ok || !data.dataUrl) { setErrorPortada(data.error ?? 'No se pudo descargar'); return; }
+      set('coverImageUrl', data.dataUrl);
+      setErrorPortada(`Imagen descargada y guardada (${data.sizeKb} KB)`);
+    } catch { setErrorPortada('Error de conexión'); } finally { setDescargandoPortada(false); }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,9 +132,41 @@ export default function NewCatalogPage() {
               </div>
             </div>
 
-            <div>
-              <label className="mb-1.5 block font-mono text-xs text-text-muted">URL de portada</label>
-              <input type="url" placeholder="https://covers.openlibrary.org/b/isbn/..." value={form.coverImageUrl} onChange={(e) => set('coverImageUrl', e.target.value)} className="input-dark" />
+            <div className="space-y-2">
+              <label className="block font-mono text-xs text-text-muted">URL de portada</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="https://covers.openlibrary.org/b/id/…-L.jpg"
+                  value={form.coverImageUrl}
+                  onChange={(e) => { set('coverImageUrl', e.target.value); setErrorPortada(''); }}
+                  className="input-dark flex-1 min-w-0"
+                />
+                {form.coverImageUrl && !form.coverImageUrl.startsWith('data:') && (
+                  <button type="button" onClick={descargarPortada} disabled={descargandoPortada}
+                    className="flex shrink-0 items-center gap-1.5 rounded-sm border border-accent-green/30 px-3 font-mono text-xs text-accent-green hover:bg-accent-green/5 disabled:opacity-50">
+                    {descargandoPortada ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                    {descargandoPortada ? '...' : 'Guardar'}
+                  </button>
+                )}
+              </div>
+              {errorPortada && (
+                <p className={`font-mono text-xs ${errorPortada.startsWith('Imagen') ? 'text-accent-green' : 'text-accent-red'}`}>{errorPortada}</p>
+              )}
+              {form.coverImageUrl && (
+                <div className="flex items-start gap-3 mt-1">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={form.coverImageUrl} alt="Preview" className="h-20 w-14 rounded-sm object-cover bg-surface-raised" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display='none'; }} />
+                  <div className="space-y-1 text-[10px] font-mono text-text-muted">
+                    <p>{form.coverImageUrl.startsWith('data:') ? `Embebida (${Math.round(form.coverImageUrl.length*0.75/1024)} KB)` : 'URL externa'}</p>
+                    {!form.coverImageUrl.startsWith('data:') && (
+                      <a href={form.coverImageUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent-green hover:underline">
+                        <ExternalLink className="h-3 w-3" /> Ver imagen
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     // Guardar token en cookie HTTP-only para SSR
     res.cookies.set('bf_token', resultado.accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       sameSite: 'lax',
       maxAge: 86400,
       path: '/',

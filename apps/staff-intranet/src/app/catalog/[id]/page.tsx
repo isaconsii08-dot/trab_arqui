@@ -1,7 +1,6 @@
-import { BookOpen, ArrowLeft, Package } from 'lucide-react';
+import { BookOpen, ArrowLeft, Package, Pencil } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { listarCatalogo } from '@/lib/api';
 import { notFound } from 'next/navigation';
 
 const CATALOG_URL = process.env.CATALOG_SERVICE_URL ?? 'http://localhost:3002';
@@ -77,6 +76,9 @@ export default async function CatalogDetailPage({ params }: { params: Promise<{ 
           </h1>
           <p className="font-mono text-xs text-text-muted">{libro.id}</p>
         </div>
+        <Link href={`/catalog/${id}/edit`} className="ml-auto btn-ghost text-sm">
+          <Pencil className="h-4 w-4" /> Editar
+        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

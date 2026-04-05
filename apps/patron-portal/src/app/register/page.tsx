@@ -18,19 +18,31 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
     setLoading(true);
     setError('');
 
     try {
-      const res = await fetch('http://localhost:3001/api/v1/patrons', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          fullName: form.fullName,
+          email: form.email,
+          phone: form.phone || undefined,
+          address: form.address || undefined,
+          password: form.password,
+          libraryId: form.libraryId,
+        }),
       });
 
       if (!res.ok) {
         const data = await res.json() as { message?: string };
-        setError(data.message ?? 'Error al registrarse');
+        const msg = Array.isArray(data.message) ? data.message.join(', ') : (data.message ?? 'Error al registrarse');
+        setError(msg);
         return;
       }
 
@@ -66,10 +78,10 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               {[
-                { name: 'fullName', label: 'Nombre completo', type: 'text', placeholder: 'Ej: Carlos Andrés Pérez' },
-                { name: 'email', label: 'Correo electrónico', type: 'email', placeholder: 'socio@ucc.edu.co' },
-                { name: 'phone', label: 'Teléfono', type: 'tel', placeholder: '300 123 4567' },
-                { name: 'address', label: 'Dirección', type: 'text', placeholder: 'Calle 10 # 5-20, Bogotá' },
+                { name: 'fullName',  label: 'Nombre completo *',   type: 'text',  placeholder: 'Ej: Carlos Andrés Pérez', required: true  },
+                { name: 'email',     label: 'Correo electrónico *', type: 'email', placeholder: 'socio@ucc.edu.co',         required: true  },
+                { name: 'phone',     label: 'Teléfono',             type: 'tel',   placeholder: '300 123 4567',             required: false },
+                { name: 'address',   label: 'Dirección',            type: 'text',  placeholder: 'Calle 10 # 5-20, Bogotá', required: false },
               ].map((campo) => (
                 <div key={campo.name}>
                   <label className="mb-1 block font-body text-sm font-medium text-ink">
@@ -81,14 +93,14 @@ export default function RegisterPage() {
                     className="input-field w-full"
                     value={form[campo.name as keyof typeof form]}
                     onChange={(e) => setForm({ ...form, [campo.name]: e.target.value })}
-                    required={campo.name !== 'phone' && campo.name !== 'address'}
+                    required={campo.required}
                   />
                 </div>
               ))}
 
               <div>
                 <label className="mb-1 block font-body text-sm font-medium text-ink">
-                  Contraseña
+                  Contraseña *
                 </label>
                 <div className="relative">
                   <input
@@ -108,6 +120,9 @@ export default function RegisterPage() {
                     {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {form.password && form.password.length < 8 && (
+                  <p className="mt-1 font-mono text-xs text-rust">Mínimo 8 caracteres</p>
+                )}
               </div>
 
               <button
@@ -136,10 +151,9 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Beneficios */}
           <div className="mt-6 space-y-2">
             {[
-              'Acceso al catálogo completo de más de 1,200 títulos',
+              'Acceso al catálogo completo de más de 20 títulos',
               'Gestiona tus préstamos y renuévalos en línea',
               'Reserva salas de estudio con un clic',
             ].map((b) => (

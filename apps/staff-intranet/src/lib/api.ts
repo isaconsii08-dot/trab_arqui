@@ -10,7 +10,7 @@ const CIRC_URL    = process.env.CIRC_SERVICE_URL    ?? 'http://localhost:3004';
 // Credenciales del servicio (bibliotecario de turno)
 let tokenCache: { value: string; staffId: string; libraryId: string; expira: number } | null = null;
 
-async function obtenerCredencialesServicio(): Promise<{ token: string; staffId: string; libraryId: string }> {
+export async function obtenerCredencialesServicio(): Promise<{ token: string; staffId: string; libraryId: string }> {
   if (tokenCache && Date.now() < tokenCache.expira) {
     return { token: tokenCache.value, staffId: tokenCache.staffId, libraryId: tokenCache.libraryId };
   }

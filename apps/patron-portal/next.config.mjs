@@ -4,10 +4,8 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: 'covers.openlibrary.org' },
       { protocol: 'https', hostname: 'images.isbndb.com' },
+      { protocol: 'https', hostname: 'books.google.com' },
     ],
-  },
-  env: {
-    API_URL: process.env.API_URL ?? 'http://localhost:3000',
   },
 };
 

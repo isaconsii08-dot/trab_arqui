@@ -1,45 +1,36 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-import { BookOpen, Eye, EyeOff, ArrowRight } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { BookOpen, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
 
-const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(1, 'La contraseña es requerida'),
-});
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const registered = searchParams.get('registered') === '1';
 
-type LoginForm = z.infer<typeof loginSchema>;
-
-export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
-
-  const onSubmit = async (data: LoginForm) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
     setIsLoading(true);
     setLoginError('');
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ email, password }),
       });
       if (res.ok) {
-        // Las cookies bf_token y bf_user las establece la ruta API del servidor
         window.location.href = '/dashboard';
       } else {
         const body = await res.json() as { error?: string };
-        setLoginError(body.error ?? 'Credenciales incorrectas');
+        setLoginError(body.error ?? 'Correo o contraseña incorrectos');
       }
     } catch {
       setLoginError('No se pudo conectar con el servidor');
@@ -50,7 +41,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen">
-      {/* Left – Decorative panel */}
+      {/* Panel decorativo */}
       <div className="relative hidden flex-1 overflow-hidden bg-ink lg:block">
         <div
           className="absolute inset-0 opacity-5"
@@ -60,7 +51,6 @@ export default function LoginPage() {
           }}
         />
         <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-emerald-library/20 to-transparent" />
-
         <div className="relative flex h-full flex-col justify-between p-12">
           <Link href="/" className="inline-flex items-center gap-2.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-amber-book/20">
@@ -70,11 +60,10 @@ export default function LoginPage() {
               Biblio<span className="text-amber-book">Flow</span>
             </span>
           </Link>
-
           <div>
             <blockquote className="mb-8">
               <p className="font-display text-2xl italic leading-relaxed text-parchment/80">
-                "Una biblioteca es un hospital para la mente"
+                &ldquo;Una biblioteca es un hospital para la mente&rdquo;
               </p>
               <footer className="mt-3 font-mono text-xs text-parchment/40">— Proverbio anónimo</footer>
             </blockquote>
@@ -82,10 +71,9 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right – Login form */}
+      {/* Formulario */}
       <div className="flex flex-1 flex-col items-center justify-center bg-parchment-light px-6 py-12 lg:max-w-xl">
         <div className="w-full max-w-sm">
-          {/* Mobile logo */}
           <Link href="/" className="mb-8 inline-flex items-center gap-2 lg:hidden">
             <BookOpen className="h-5 w-5 text-amber-book" />
             <span className="font-display text-base font-semibold text-ink">BiblioFlow</span>
@@ -96,14 +84,20 @@ export default function LoginPage() {
             Accede a tu cuenta para gestionar tus préstamos y reservas.
           </p>
 
+          {registered && (
+            <div className="mb-4 flex items-center gap-2 rounded-sm border border-emerald-library/30 bg-emerald-library/8 px-4 py-3 font-body text-sm text-emerald-library">
+              <CheckCircle className="h-4 w-4 shrink-0" />
+              ¡Cuenta creada! Ya puedes iniciar sesión.
+            </div>
+          )}
+
           {loginError && (
             <div className="mb-4 rounded-sm border border-rust/30 bg-rust/5 px-4 py-3 font-body text-sm text-rust">
               {loginError}
             </div>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
-            {/* Email */}
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <div>
               <label htmlFor="email" className="mb-1.5 block font-body text-sm font-medium text-ink">
                 Correo electrónico
@@ -112,33 +106,30 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                {...register('email')}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="input-field"
-                placeholder="tu@email.es"
+                placeholder="tu@email.com"
+                required
               />
-              {errors.email && (
-                <p className="mt-1 font-mono text-xs text-rust">{errors.email.message}</p>
-              )}
             </div>
 
-            {/* Password */}
             <div>
               <div className="mb-1.5 flex items-center justify-between">
                 <label htmlFor="password" className="font-body text-sm font-medium text-ink">
                   Contraseña
                 </label>
-                <Link href="/forgot-password" className="font-body text-xs text-amber-book hover:underline">
-                  ¿Olvidaste tu contraseña?
-                </Link>
               </div>
               <div className="relative">
                 <input
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
-                  {...register('password')}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="input-field pr-10"
                   placeholder="••••••••"
+                  required
                 />
                 <button
                   type="button"
@@ -148,9 +139,6 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.password && (
-                <p className="mt-1 font-mono text-xs text-rust">{errors.password.message}</p>
-              )}
             </div>
 
             <button
@@ -158,13 +146,22 @@ export default function LoginPage() {
               disabled={isLoading}
               className="btn-amber w-full justify-center disabled:opacity-60"
             >
-              {isLoading ? 'Iniciando sesión...' : (
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Iniciando sesión...
+                </span>
+              ) : (
                 <>Acceder <ArrowRight className="h-4 w-4" /></>
               )}
             </button>
           </form>
 
-          <p className="mt-8 text-center font-body text-sm text-ink-muted">
+          <p className="mt-6 text-center font-body text-xs text-ink-muted">
+            Cuenta de prueba: <span className="font-mono">sgomez@ucc.edu.co</span> / <span className="font-mono">Socio2026!</span>
+          </p>
+
+          <p className="mt-4 text-center font-body text-sm text-ink-muted">
             ¿No tienes cuenta?{' '}
             <Link href="/register" className="text-amber-book hover:underline">
               Regístrate gratis
@@ -173,5 +170,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

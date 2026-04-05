@@ -17,6 +17,26 @@ import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 export class HoldingsController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @Get('availability')
+  @ApiOperation({ summary: 'Disponibilidad en lote por recordIds (separados por coma)' })
+  async getAvailability(@Query('recordIds') recordIds: string) {
+    if (!recordIds) return {};
+    const ids = recordIds.split(',').map((s) => s.trim()).filter(Boolean);
+    const items = await this.prisma.item.findMany({
+      where: { recordId: { in: ids } },
+      select: { recordId: true, status: true },
+    });
+    const result: Record<string, { total: number; available: number }> = {};
+    for (const id of ids) {
+      const grupo = items.filter((i) => i.recordId === id);
+      result[id] = {
+        total: grupo.length,
+        available: grupo.filter((i) => i.status === 'available').length,
+      };
+    }
+    return result;
+  }
+
   @Get('items/:barcode')
   @ApiOperation({ summary: 'Obtener ejemplar por código de barras' })
   async getByBarcode(@Param('barcode') barcode: string) {

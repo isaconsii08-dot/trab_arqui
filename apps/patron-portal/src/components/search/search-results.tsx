@@ -3,12 +3,34 @@ import { BookOpen, CheckCircle, XCircle, ChevronLeft, ChevronRight } from 'lucid
 import { buscarCatalogo } from '@/lib/api';
 import BookCover from '@/components/ui/book-cover';
 
+const HOLDINGS_URL = process.env.HOLDINGS_SERVICE_URL ?? 'http://localhost:3003';
+
 interface SearchResultsProps {
   filters: Record<string, string | undefined>;
 }
 
+async function obtenerDisponibilidad(recordIds: string[]): Promise<Record<string, { total: number; available: number }>> {
+  if (recordIds.length === 0) return {};
+  try {
+    const res = await fetch(
+      `${HOLDINGS_URL}/api/v1/holdings/availability?recordIds=${recordIds.join(',')}`,
+      { next: { revalidate: 30 } },
+    );
+    if (!res.ok) return {};
+    return res.json() as Promise<Record<string, { total: number; available: number }>>;
+  } catch {
+    return {};
+  }
+}
+
 export default async function SearchResults({ filters }: SearchResultsProps) {
   const page = Number(filters.page ?? 1);
+  const soloDisponibles = filters.available === 'true';
+
+  // Pedir más resultados si filtramos por disponibilidad para compensar posibles exclusiones
+  const limitBase = 12;
+  const limitPeticion = soloDisponibles ? 40 : limitBase;
+
   const resultado = await buscarCatalogo({
     query: filters.query,
     subject: filters.subject,
@@ -16,13 +38,30 @@ export default async function SearchResults({ filters }: SearchResultsProps) {
     yearFrom: filters.yearFrom ? Number(filters.yearFrom) : undefined,
     yearTo: filters.yearTo ? Number(filters.yearTo) : undefined,
     materialType: filters.materialType,
-    page,
-    limit: 12,
+    page: soloDisponibles ? 1 : page,
+    limit: limitPeticion,
   });
 
-  const { data, total, totalPages = Math.ceil(total / 12) } = resultado;
+  const recordIds = resultado.data.map((r) => r.id);
+  const disponibilidad = await obtenerDisponibilidad(recordIds);
 
-  if (data.length === 0) {
+  // Anotar cada registro con datos de disponibilidad reales
+  let libros = resultado.data.map((r) => ({
+    ...r,
+    totalItems: disponibilidad[r.id]?.total ?? r.totalItems ?? 0,
+    availableItems: disponibilidad[r.id]?.available ?? r.availableItems ?? 0,
+  }));
+
+  // Aplicar filtro de disponibilidad en el servidor
+  if (soloDisponibles) {
+    libros = libros.filter((r) => r.availableItems > 0);
+  }
+
+  const total = soloDisponibles ? libros.length : resultado.total;
+  const totalPages = soloDisponibles ? Math.ceil(total / limitBase) : resultado.totalPages ?? Math.ceil(total / limitBase);
+  const librosPagina = soloDisponibles ? libros.slice((page - 1) * limitBase, page * limitBase) : libros;
+
+  if (librosPagina.length === 0) {
     return (
       <div className="flex flex-col items-center py-20 text-center">
         <BookOpen className="mb-4 h-12 w-12 text-ink/20" />
@@ -49,7 +88,7 @@ export default async function SearchResults({ filters }: SearchResultsProps) {
       </div>
 
       <div className="space-y-4">
-        {data.map((libro) => {
+        {librosPagina.map((libro, idx) => {
           const autor = libro.authors.map((a) => a.name).join(', ') || 'Autor desconocido';
           const materias = libro.subjects.slice(0, 2).map((s) => s.term).join(', ');
           const disponible = libro.availableItems > 0;
@@ -68,7 +107,7 @@ export default async function SearchResults({ filters }: SearchResultsProps) {
                   fill
                   sizes="80px"
                   className="object-cover"
-                  colorIndex={data.indexOf(libro)}
+                  colorIndex={idx}
                 />
               </div>
 
@@ -79,7 +118,9 @@ export default async function SearchResults({ filters }: SearchResultsProps) {
                       {libro.title}
                     </h3>
                     <span className={`ml-auto shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-xs ${disponible ? 'bg-emerald-pale text-emerald-library' : 'bg-rust/10 text-rust'}`}>
-                      {disponible ? <><CheckCircle className="h-3 w-3" /> Disponible</> : <><XCircle className="h-3 w-3" /> Prestado</>}
+                      {disponible
+                        ? <><CheckCircle className="h-3 w-3" /> Disponible ({libro.availableItems})</>
+                        : <><XCircle className="h-3 w-3" /> Prestado</>}
                     </span>
                   </div>
                   <p className="mt-1 font-body text-sm text-ink-muted">{autor}</p>

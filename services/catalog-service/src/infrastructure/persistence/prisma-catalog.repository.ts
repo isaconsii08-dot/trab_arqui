@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
-import { ICatalogRepository } from '../../domain/repositories/catalog.repository.interface';
+import { ICatalogRepository, AuthorInput } from '../../domain/repositories/catalog.repository.interface';
 import { BibliographicRecord } from '../../domain/entities/bibliographic-record.entity';
 import { SearchFilters } from '@biblioflow/shared-types';
 
@@ -34,21 +33,46 @@ export class PrismaCatalogRepository implements ICatalogRepository {
   }
 
   async search(filters: SearchFilters): Promise<{ data: BibliographicRecord[]; total: number }> {
-    const where: Record<string, unknown> = {};
+    const andConditions: object[] = [];
 
     if (filters.query) {
-      where['OR'] = [
-        { title: { contains: filters.query, mode: 'insensitive' } },
-        { summary: { contains: filters.query, mode: 'insensitive' } },
-      ];
+      andConditions.push({
+        OR: [
+          { title: { contains: filters.query, mode: 'insensitive' } },
+          { summary: { contains: filters.query, mode: 'insensitive' } },
+          { publisher: { contains: filters.query, mode: 'insensitive' } },
+          { isbn: { contains: filters.query, mode: 'insensitive' } },
+          { recordAuthors: { some: { author: { name: { contains: filters.query, mode: 'insensitive' } } } } },
+        ],
+      });
     }
-    if (filters.materialType) where['materialType'] = filters.materialType;
+
+    if (filters.author) {
+      andConditions.push({
+        recordAuthors: { some: { author: { name: { contains: filters.author, mode: 'insensitive' } } } },
+      });
+    }
+
+    if (filters.subject) {
+      andConditions.push({
+        recordSubjects: { some: { subject: { term: { contains: filters.subject, mode: 'insensitive' } } } },
+      });
+    }
+
+    if (filters.materialType) {
+      andConditions.push({ materialType: filters.materialType });
+    }
+
     if (filters.yearFrom ?? filters.yearTo) {
-      where['publicationYear'] = {
-        ...(filters.yearFrom ? { gte: Number(filters.yearFrom) } : {}),
-        ...(filters.yearTo ? { lte: Number(filters.yearTo) } : {}),
-      };
+      andConditions.push({
+        publicationYear: {
+          ...(filters.yearFrom ? { gte: Number(filters.yearFrom) } : {}),
+          ...(filters.yearTo   ? { lte: Number(filters.yearTo)   } : {}),
+        },
+      });
     }
+
+    const where = andConditions.length > 0 ? { AND: andConditions } : {};
 
     const page = Number(filters.page ?? 1);
     const limit = Number(filters.limit ?? 20);
@@ -107,6 +131,82 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       },
     });
     return this.toDomain(saved);
+  }
+
+  async saveWithRelations(
+    record: BibliographicRecord,
+    authors: AuthorInput[],
+    subjectTerms: string[],
+  ): Promise<BibliographicRecord> {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Upsert el registro principal
+      await tx.bibliographicRecord.upsert({
+        where: { id: record.id },
+        update: {
+          title: record.title,
+          uniformTitle: record.uniformTitle ?? null,
+          edition: record.edition ?? null,
+          publicationYear: record.publicationYear ?? null,
+          publisher: record.publisher ?? null,
+          isbn: record.isbn ?? null,
+          issn: record.issn ?? null,
+          summary: record.summary ?? null,
+          coverImageUrl: record.coverImageUrl ?? null,
+          materialType: record.materialType,
+          libraryId: record.libraryId,
+        },
+        create: {
+          id: record.id,
+          title: record.title,
+          uniformTitle: record.uniformTitle ?? null,
+          edition: record.edition ?? null,
+          publicationYear: record.publicationYear ?? null,
+          publisher: record.publisher ?? null,
+          isbn: record.isbn ?? null,
+          issn: record.issn ?? null,
+          summary: record.summary ?? null,
+          coverImageUrl: record.coverImageUrl ?? null,
+          materialType: record.materialType,
+          libraryId: record.libraryId,
+        },
+      });
+
+      // 2. Reemplazar relaciones de autores
+      await tx.recordAuthor.deleteMany({ where: { recordId: record.id } });
+      for (const input of authors) {
+        let author = await tx.author.findFirst({ where: { name: input.name } });
+        if (!author) {
+          author = await tx.author.create({
+            data: { name: input.name, dates: input.dates ?? null },
+          });
+        }
+        await tx.recordAuthor.create({
+          data: { recordId: record.id, authorId: author.id, role: input.role ?? 'author' },
+        });
+      }
+
+      // 3. Reemplazar relaciones de materias
+      await tx.recordSubject.deleteMany({ where: { recordId: record.id } });
+      for (const term of subjectTerms) {
+        let subject = await tx.subject.findFirst({ where: { term } });
+        if (!subject) {
+          subject = await tx.subject.create({ data: { term } });
+        }
+        await tx.recordSubject.create({
+          data: { recordId: record.id, subjectId: subject.id },
+        });
+      }
+
+      // 4. Retornar el registro completo con relaciones
+      const saved = await tx.bibliographicRecord.findUnique({
+        where: { id: record.id },
+        include: {
+          recordAuthors: { include: { author: true } },
+          recordSubjects: { include: { subject: true } },
+        },
+      });
+      return this.toDomain(saved!);
+    });
   }
 
   async delete(id: string): Promise<void> {

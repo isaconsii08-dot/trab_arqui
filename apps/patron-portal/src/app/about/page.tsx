@@ -1,9 +1,11 @@
-import { BookOpen, Clock, MapPin, Phone, Mail } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
+import Footer from '@/components/layout/footer';
+import Link from 'next/link';
+import { BookOpen, MapPin, Phone, Mail, Clock, Users, Library, Award } from 'lucide-react';
 
 export const metadata = {
-  title: 'La biblioteca — BiblioFlow',
-  description: 'Conoce los servicios, horarios y recursos de la Biblioteca UCC.',
+  title: 'La biblioteca – BiblioFlow',
+  description: 'Biblioteca Campus Montería, Universidad Cooperativa de Colombia.',
 };
 
 export default function AboutPage() {
@@ -11,100 +13,207 @@ export default function AboutPage() {
     <>
       <Navbar />
       <div className="min-h-screen bg-parchment">
+
         {/* Hero */}
-        <div className="border-b border-ink/8 bg-parchment-light py-16">
-          <div className="mx-auto max-w-4xl px-6 text-center">
-            <span className="section-label">Biblioteca UCC</span>
-            <h1 className="heading-xl mt-3 text-ink">Tu espacio de conocimiento</h1>
-            <p className="mt-4 font-body text-base text-ink-muted max-w-2xl mx-auto">
-              La Biblioteca UCC pone a disposición de la comunidad universitaria más de 1.200 títulos,
-              salas de estudio, recursos digitales y un servicio de préstamo en línea.
+        <section className="relative overflow-hidden bg-ink py-20">
+          <div
+            className="absolute inset-0 opacity-5"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(245,239,224,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(245,239,224,0.4) 1px, transparent 1px)',
+              backgroundSize: '40px 40px',
+            }}
+          />
+          <div className="relative mx-auto max-w-4xl px-6 text-center">
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-sm bg-amber-book/15">
+              <Library className="h-8 w-8 text-amber-book" />
+            </div>
+            <span className="font-mono text-xs uppercase tracking-[0.25em] text-amber-book">
+              Universidad Cooperativa de Colombia
+            </span>
+            <h1 className="mt-3 font-display text-4xl font-semibold text-parchment">
+              Biblioteca Campus Montería
+            </h1>
+            <p className="mt-4 font-body text-lg leading-relaxed text-parchment/60">
+              Un espacio de conocimiento al servicio de la comunidad universitaria
+              del Campus Montería.
             </p>
           </div>
-        </div>
+        </section>
 
-        <div className="mx-auto max-w-4xl px-6 py-12 space-y-12">
+        <div className="mx-auto max-w-4xl px-6 py-16 space-y-16">
+
+          {/* Misión y visión */}
+          <section>
+            <span className="section-label">Quiénes somos</span>
+            <h2 className="heading-md mt-2 mb-8 text-ink">Nuestra misión</h2>
+            <div className="grid gap-6 md:grid-cols-2">
+              <div className="card p-6">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-sm bg-amber-book/10">
+                  <BookOpen className="h-5 w-5 text-amber-book" />
+                </div>
+                <h3 className="mb-2 font-display text-base font-semibold text-ink">Misión</h3>
+                <p className="font-body text-sm leading-relaxed text-ink-muted">
+                  Proporcionar acceso equitativo a la información y al conocimiento, apoyando
+                  los procesos académicos e investigativos de la comunidad universitaria mediante
+                  servicios bibliotecarios de calidad, recursos actualizados y espacios propicios
+                  para el aprendizaje.
+                </p>
+              </div>
+              <div className="card p-6">
+                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-sm bg-emerald-library/10">
+                  <Award className="h-5 w-5 text-emerald-library" />
+                </div>
+                <h3 className="mb-2 font-display text-base font-semibold text-ink">Visión</h3>
+                <p className="font-body text-sm leading-relaxed text-ink-muted">
+                  Ser una biblioteca universitaria de referencia en la región Caribe, reconocida
+                  por la excelencia en sus servicios, la modernización continua de sus recursos
+                  y su contribución al desarrollo académico y cultural de la comunidad educativa.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Estadísticas */}
+          <section>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              {[
+                { value: '+20.000', label: 'Títulos en colección', icon: BookOpen },
+                { value: '+65.000', label: 'Volúmenes físicos',    icon: Library  },
+                { value: '6',       label: 'Salas de estudio',     icon: Users    },
+                { value: 'REDBIUN', label: 'Red interbibliotecaria', icon: Award  },
+              ].map((s) => {
+                const Icon = s.icon;
+                return (
+                  <div key={s.label} className="card p-5 text-center">
+                    <Icon className="mx-auto mb-2 h-5 w-5 text-amber-book" />
+                    <div className="font-display text-2xl font-semibold text-ink">{s.value}</div>
+                    <div className="mt-1 font-mono text-xs text-ink-muted">{s.label}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
           {/* Servicios */}
           <section>
-            <h2 className="font-display text-xl font-semibold text-ink mb-6">Servicios</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <span className="section-label">Lo que ofrecemos</span>
+            <h2 className="heading-md mt-2 mb-8 text-ink">Servicios</h2>
+            <div className="grid gap-4 md:grid-cols-2">
               {[
-                { titulo: 'Préstamo de libros', desc: 'Hasta 3 libros simultáneos por un período de 14 días, renovables en línea.' },
-                { titulo: 'Sala de lectura', desc: 'Espacios silenciosos para lectura e investigación individual.' },
-                { titulo: 'Salas de grupos', desc: 'Reserva salas equipadas con proyector y pizarrón para trabajo en equipo.' },
-                { titulo: 'Bases de datos', desc: 'Acceso a JSTOR, ScienceDirect, EBSCOhost y otras plataformas académicas.' },
-                { titulo: 'Hemeroteca', desc: 'Colección de revistas científicas y publicaciones periódicas nacionales e internacionales.' },
-                { titulo: 'Préstamo interbibliotecario', desc: 'Solicitud de materiales de otras bibliotecas de la red UCC.' },
+                {
+                  title: 'Préstamo de materiales',
+                  desc: 'Préstamo domiciliario de libros, revistas y recursos multimedia para socios activos. Hasta 3 materiales simultáneos con opción de renovación en línea.',
+                },
+                {
+                  title: 'Acceso a bases de datos',
+                  desc: 'Acceso a bases de datos académicas: ProQuest, SciELO, JSTOR, Redalyc y portales especializados por programa académico.',
+                },
+                {
+                  title: 'Salas de estudio',
+                  desc: 'Seis espacios de estudio individual y grupal con WiFi, proyector y climatización. Reserva en línea desde el portal del socio.',
+                },
+                {
+                  title: 'Referencia y consulta',
+                  desc: 'Asesoría personalizada para búsqueda de información, normas APA/Vancouver, citación de fuentes y trabajos de grado.',
+                },
+                {
+                  title: 'Recursos digitales',
+                  desc: 'Acceso al catálogo digital, libros electrónicos y recursos de aprendizaje disponibles 24/7 desde cualquier dispositivo.',
+                },
+                {
+                  title: 'Préstamo interbibliotecario',
+                  desc: 'Servicio de préstamo entre sedes de la UCC a nivel nacional mediante la red REDBIUN.',
+                },
               ].map((s) => (
-                <div key={s.titulo} className="card p-5">
-                  <div className="mb-2 flex items-center gap-2">
-                    <BookOpen className="h-4 w-4 text-amber-book" />
-                    <h3 className="font-display text-sm font-semibold text-ink">{s.titulo}</h3>
-                  </div>
-                  <p className="font-body text-sm text-ink-muted">{s.desc}</p>
+                <div key={s.title} className="card p-5">
+                  <h3 className="mb-2 font-display text-sm font-semibold text-ink">{s.title}</h3>
+                  <p className="font-body text-xs leading-relaxed text-ink-muted">{s.desc}</p>
                 </div>
               ))}
             </div>
           </section>
 
           {/* Horarios */}
-          <section>
-            <h2 className="font-display text-xl font-semibold text-ink mb-6">Horarios de atención</h2>
+          <section id="horarios">
+            <span className="section-label">Planifica tu visita</span>
+            <h2 className="heading-md mt-2 mb-8 text-ink">Horarios de atención</h2>
             <div className="card overflow-hidden">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-ink/8 bg-parchment-light">
-                    <th className="px-5 py-3 text-left font-display text-sm font-semibold text-ink">Día</th>
-                    <th className="px-5 py-3 text-left font-mono text-xs font-medium text-ink-muted">Apertura</th>
-                    <th className="px-5 py-3 text-left font-mono text-xs font-medium text-ink-muted">Cierre</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-ink/6">
-                  {[
-                    { dia: 'Lunes – Viernes', apertura: '07:00', cierre: '22:00' },
-                    { dia: 'Sábado',          apertura: '08:00', cierre: '16:00' },
-                    { dia: 'Domingo',         apertura: 'Cerrado', cierre: '' },
-                  ].map((h) => (
-                    <tr key={h.dia}>
-                      <td className="px-5 py-3 font-body text-sm text-ink">{h.dia}</td>
-                      <td className="px-5 py-3 font-mono text-sm text-ink-muted">{h.apertura}</td>
-                      <td className="px-5 py-3 font-mono text-sm text-ink-muted">{h.cierre}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="flex items-center gap-3 border-b border-ink/8 px-5 py-4">
+                <Clock className="h-5 w-5 text-amber-book" />
+                <span className="font-display text-sm font-semibold text-ink">Semestre académico</span>
+              </div>
+              <div className="divide-y divide-ink/5">
+                {[
+                  { dia: 'Lunes – Viernes',      hora: '7:00 a.m. – 10:00 p.m.' },
+                  { dia: 'Sábados',               hora: '8:00 a.m. – 4:00 p.m.'  },
+                  { dia: 'Domingos y festivos',   hora: 'Cerrado'                 },
+                ].map((h) => (
+                  <div key={h.dia} className="flex items-center justify-between px-5 py-3">
+                    <span className="font-body text-sm text-ink">{h.dia}</span>
+                    <span className={`font-mono text-xs ${h.hora === 'Cerrado' ? 'text-rust' : 'text-emerald-library'}`}>
+                      {h.hora}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-ink/8 bg-parchment-dark px-5 py-3">
+                <p className="font-mono text-xs text-ink-muted">
+                  * En períodos de receso académico el horario puede variar. Consulta el portal institucional.
+                </p>
+              </div>
             </div>
           </section>
 
           {/* Contacto */}
-          <section>
-            <h2 className="font-display text-xl font-semibold text-ink mb-6">Contacto</h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="card flex items-start gap-3 p-5">
-                <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-amber-book" />
-                <div>
-                  <p className="font-body text-sm font-medium text-ink">Ubicación</p>
-                  <p className="font-body text-sm text-ink-muted">Edificio A, piso 2<br />Campus UCC, Bogotá</p>
+          <section id="contacto">
+            <span className="section-label">Estamos aquí para ayudarte</span>
+            <h2 className="heading-md mt-2 mb-8 text-ink">Contacto</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="card p-6 space-y-4">
+                <div className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-amber-book" />
+                  <div>
+                    <p className="font-body text-sm font-medium text-ink">Dirección</p>
+                    <p className="font-mono text-xs text-ink-muted">
+                      Calle 21 #4-66, Montería, Córdoba<br />
+                      Universidad Cooperativa de Colombia<br />
+                      Bloque Biblioteca, piso 2
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Phone className="mt-0.5 h-4 w-4 shrink-0 text-amber-book" />
+                  <div>
+                    <p className="font-body text-sm font-medium text-ink">Teléfono</p>
+                    <p className="font-mono text-xs text-ink-muted">(604) 788 8888 ext. 5200</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <Mail className="mt-0.5 h-4 w-4 shrink-0 text-amber-book" />
+                  <div>
+                    <p className="font-body text-sm font-medium text-ink">Correo</p>
+                    <p className="font-mono text-xs text-ink-muted">biblioteca.monteria@ucc.edu.co</p>
+                  </div>
                 </div>
               </div>
-              <div className="card flex items-start gap-3 p-5">
-                <Phone className="mt-0.5 h-5 w-5 shrink-0 text-amber-book" />
+              <div className="card flex flex-col items-center justify-center gap-4 p-6 text-center">
+                <BookOpen className="h-10 w-10 text-ink/20" />
                 <div>
-                  <p className="font-body text-sm font-medium text-ink">Teléfono</p>
-                  <p className="font-body text-sm text-ink-muted">+57 (601) 327 8888<br />Ext. 1200</p>
+                  <p className="font-display text-sm font-semibold text-ink">¿Primera vez en la biblioteca?</p>
+                  <p className="mt-1 font-body text-xs text-ink-muted">
+                    Regístrate como socio para acceder a todos los servicios de préstamo y reserva en línea.
+                  </p>
                 </div>
-              </div>
-              <div className="card flex items-start gap-3 p-5">
-                <Mail className="mt-0.5 h-5 w-5 shrink-0 text-amber-book" />
-                <div>
-                  <p className="font-body text-sm font-medium text-ink">Email</p>
-                  <p className="font-body text-sm text-ink-muted">biblioteca@ucc.edu.co</p>
-                </div>
+                <Link href="/register" className="btn-amber text-sm px-5 py-2">
+                  Registrarme gratis
+                </Link>
               </div>
             </div>
           </section>
+
         </div>
       </div>
+      <Footer />
     </>
   );
 }
