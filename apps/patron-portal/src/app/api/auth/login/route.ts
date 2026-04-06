@@ -16,6 +16,7 @@ export async function POST(req: NextRequest) {
       role: resultado.role,
       sub: resultado.sub,
       fullName: resultado.fullName,
+      cardNumber: resultado.cardNumber,
     });
 
     // Guardar token en cookie HTTP-only para SSR
@@ -25,7 +26,12 @@ export async function POST(req: NextRequest) {
       maxAge: 86400,
       path: '/',
     });
-    res.cookies.set('bf_user', JSON.stringify({ sub: resultado.sub, role: resultado.role, fullName: resultado.fullName }), {
+    res.cookies.set('bf_user', JSON.stringify({ 
+      id: resultado.sub, 
+      role: resultado.role, 
+      fullName: resultado.fullName,
+      cardNumber: resultado.cardNumber
+    }), {
       httpOnly: false,
       sameSite: 'lax',
       maxAge: 86400,

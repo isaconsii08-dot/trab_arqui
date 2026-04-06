@@ -55,28 +55,44 @@ const ESTADO_STYLES: Record<string, { label: string; cls: string }> = {
   entregada:  { label: 'Entregada',  cls: 'bg-surface-raised text-text-muted border-surface-border' },
 };
 
-function useLookup<T>(type: 'patron' | 'item', query: string, delay = 500) {
-  const [result, setResult] = useState<T | null>(null);
+function useLookup<T>(type: 'patron' | 'item', query: string, delay = 400) {
+  const [results, setResults] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    if (!query || query.length < 3) { setResult(null); return; }
+    const q = query.trim();
+    if (!q || q.length < 3) { setResults([]); return; }
 
     timerRef.current = setTimeout(() => {
       setLoading(true);
-      fetch(`/api/circulacion/lookup?type=${type}&q=${encodeURIComponent(query)}`)
+      fetch(`/api/circulacion/lookup?type=${type}&q=${encodeURIComponent(q)}`)
         .then((r) => r.json())
-        .then((data: T | null) => setResult(data ?? null))
-        .catch(() => setResult(null))
+        .then((data: any) => {
+          // Si el API devuelve un objeto con un campo 'data' (como el patron-service)
+          if (data && data.data && Array.isArray(data.data)) {
+            setResults(data.data);
+          } else if (Array.isArray(data)) {
+            setResults(data);
+          } else if (data && typeof data === 'object') {
+            // Un solo resultado
+            setResults([data]);
+          } else {
+            setResults([]);
+          }
+        })
+        .catch((err) => {
+          console.error(`Lookup error for ${type}:`, err);
+          setResults([]);
+        })
         .finally(() => setLoading(false));
     }, delay);
 
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [query, type, delay]);
 
-  return { result, loading };
+  return { results, loading };
 }
 
 export default function CirculationPage() {
@@ -88,6 +104,7 @@ export default function CirculationPage() {
 
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [pendienteCount, setPendienteCount] = useState(0);
+  const [prestamosActivos, setPrestamosActivos] = useState(0);
 
   const loanForm = useForm<LoanForm>();
   const returnForm = useForm<ReturnForm>();
@@ -97,25 +114,62 @@ export default function CirculationPage() {
   const loanCarnet  = loanForm.watch('patronCardNumber') ?? '';
   const returnBarcode = returnForm.watch('itemBarcode') ?? '';
 
-  const { result: loanItem, loading: loadingLoanItem }     = useLookup<ItemInfo>('item', loanBarcode);
-  const { result: loanPatron, loading: loadingLoanPatron } = useLookup<PatronInfo>('patron', loanCarnet);
-  const { result: returnItem, loading: loadingReturnItem } = useLookup<ItemInfo>('item', returnBarcode);
+  const { results: loanItemResults, loading: loadingLoanItem }     = useLookup<ItemInfo>('item', loanBarcode);
+  const { results: loanPatronResults, loading: loadingLoanPatron } = useLookup<PatronInfo>('patron', loanCarnet);
+  const { results: returnItemResults, loading: loadingReturnItem } = useLookup<ItemInfo>('item', returnBarcode);
+
+  // Seleccionados manualmente (para no mostrar el dropdown si ya se eligió uno)
+  const [selectedLoanItem, setSelectedLoanItem] = useState<ItemInfo | null>(null);
+  const [selectedLoanPatron, setSelectedLoanPatron] = useState<PatronInfo | null>(null);
+  const [selectedReturnItem, setSelectedReturnItem] = useState<ItemInfo | null>(null);
+
+  // Limpiar seleccionados al cambiar de pestaña o resetear
+  useEffect(() => {
+    if (!loanBarcode) setSelectedLoanItem(null);
+  }, [loanBarcode]);
+  useEffect(() => {
+    if (!loanCarnet) setSelectedLoanPatron(null);
+  }, [loanCarnet]);
+  useEffect(() => {
+    if (!returnBarcode) setSelectedReturnItem(null);
+  }, [returnBarcode]);
+
+  // Cargar estadísticas reales
+  const cargarStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/circulacion/stats');
+      if (res.ok) {
+        const data = await res.json();
+        setPrestamosActivos(data.prestamosActivos ?? 0);
+      }
+    } catch (err) {
+      console.error('Error al cargar stats:', err);
+    }
+  }, []);
 
   const cargarSolicitudes = useCallback(() => {
     fetch('/api/prestamos')
-      .then((r) => r.json())
-      .then((data: Solicitud[]) => {
-        setSolicitudes(data);
-        setPendienteCount(data.filter((s) => s.estado === 'pendiente').length);
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => {
+        const arr = Array.isArray(data) ? data : [];
+        setSolicitudes(arr);
+        setPendienteCount(arr.filter((s: Solicitud) => s.estado === 'pendiente').length);
       })
-      .catch(() => {});
+      .catch(() => {
+        setSolicitudes([]);
+        setPendienteCount(0);
+      });
   }, []);
 
   useEffect(() => {
     cargarSolicitudes();
-    const interval = setInterval(cargarSolicitudes, 8000);
+    cargarStats();
+    const interval = setInterval(() => {
+      cargarSolicitudes();
+      cargarStats();
+    }, 8000);
     return () => clearInterval(interval);
-  }, [cargarSolicitudes]);
+  }, [cargarSolicitudes, cargarStats]);
 
   const cambiarEstado = async (id: string, estado: Solicitud['estado']) => {
     await fetch(`/api/prestamos/${id}`, {
@@ -275,77 +329,123 @@ export default function CirculationPage() {
             {activeTab === 'loan' ? (
               <form onSubmit={loanForm.handleSubmit(handleLoan)} className="space-y-4">
                 {/* Campo: código de barras del ejemplar */}
-                <div>
+                <div className="relative">
                   <label className="mb-1.5 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-text-muted">
                     <Scan className="h-3 w-3" />
-                    Código de barras del ejemplar
+                    Ejemplar (Barcode o Título)
                   </label>
                   <input
                     {...loanForm.register('itemBarcode', { required: true })}
                     className="input-dark"
-                    placeholder="Escanear o escribir código..."
+                    placeholder="Buscar por título o escanear..."
                     autoFocus
                     autoComplete="off"
                   />
-                  {/* Live item preview */}
-                  {loanBarcode.length >= 3 && (
-                    <div className="mt-1.5 rounded-sm border border-surface-border bg-surface-raised/60 px-3 py-2">
-                      {loadingLoanItem ? (
-                        <span className="flex items-center gap-1.5 font-mono text-xs text-text-muted">
-                          <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
-                        </span>
-                      ) : loanItem ? (
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-body text-xs font-medium text-text-primary truncate max-w-[200px]">
-                              {loanItem.title ?? loanItem.barcode}
-                            </p>
-                            <p className="font-mono text-xs text-text-muted">{loanItem.location}</p>
+                  
+                  {/* Sugerencias de ejemplares */}
+                  {!selectedLoanItem && loanItemResults.length > 0 && (
+                    <div className="absolute left-0 top-full z-10 mt-1 w-full rounded-sm border border-surface-border bg-surface-card shadow-lg">
+                      {loanItemResults.map((item) => (
+                        <button
+                          key={item.barcode}
+                          type="button"
+                          onClick={() => {
+                            loanForm.setValue('itemBarcode', item.barcode);
+                            setSelectedLoanItem(item);
+                          }}
+                          className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-surface-raised"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-body text-xs font-medium text-text-primary">{item.title || 'Sin título'}</p>
+                            <p className="font-mono text-[10px] text-text-muted">{item.barcode} · {item.location}</p>
                           </div>
-                          <span className={`font-mono text-xs ${loanItem.status === 'available' ? 'text-accent-green' : 'text-accent-amber'}`}>
-                            {loanItem.status === 'available' ? 'Disponible' : loanItem.status === 'loaned' ? 'Prestado' : loanItem.status}
+                          <span className={`font-mono text-[10px] ${item.status === 'available' ? 'text-accent-green' : 'text-accent-amber'}`}>
+                            {item.status}
                           </span>
-                        </div>
-                      ) : (
-                        <span className="font-mono text-xs text-accent-red">Ejemplar no encontrado</span>
-                      )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Live item preview (seleccionado o único) */}
+                  {(selectedLoanItem || (loanItemResults.length === 1 && loanBarcode === loanItemResults[0].barcode)) && (
+                    <div className="mt-1.5 rounded-sm border border-accent-amber/20 bg-accent-amber/5 px-3 py-2">
+                      {(() => {
+                        const item = selectedLoanItem || loanItemResults[0];
+                        return (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-body text-xs font-medium text-text-primary truncate max-w-[200px]">
+                                {item.title ?? item.barcode}
+                              </p>
+                              <p className="font-mono text-xs text-text-muted">{item.location}</p>
+                            </div>
+                            <span className={`font-mono text-xs ${item.status === 'available' ? 'text-accent-green' : 'text-accent-amber'}`}>
+                              {item.status === 'available' ? 'Disponible' : item.status}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
 
                 {/* Campo: carnet del socio */}
-                <div>
+                <div className="relative">
                   <label className="mb-1.5 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-text-muted">
                     <User className="h-3 w-3" />
-                    Carnet del socio
+                    Socio (Carnet o Nombre)
                   </label>
                   <input
                     {...loanForm.register('patronCardNumber', { required: true })}
                     className="input-dark"
-                    placeholder="Nº de carnet del socio..."
+                    placeholder="Buscar por nombre o carnet..."
                     autoComplete="off"
                   />
-                  {/* Live patron preview */}
-                  {loanCarnet.length >= 3 && (
-                    <div className="mt-1.5 rounded-sm border border-surface-border bg-surface-raised/60 px-3 py-2">
-                      {loadingLoanPatron ? (
-                        <span className="flex items-center gap-1.5 font-mono text-xs text-text-muted">
-                          <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
-                        </span>
-                      ) : loanPatron ? (
-                        <div className="flex items-center justify-between">
+
+                  {/* Sugerencias de socios */}
+                  {!selectedLoanPatron && loanPatronResults.length > 0 && (
+                    <div className="absolute left-0 top-full z-10 mt-1 w-full rounded-sm border border-surface-border bg-surface-card shadow-lg">
+                      {loanPatronResults.map((patron) => (
+                        <button
+                          key={patron.id}
+                          type="button"
+                          onClick={() => {
+                            loanForm.setValue('patronCardNumber', patron.cardNumber);
+                            setSelectedLoanPatron(patron);
+                          }}
+                          className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-surface-raised"
+                        >
                           <div>
-                            <p className="font-body text-xs font-medium text-text-primary">{loanPatron.fullName}</p>
-                            <p className="font-mono text-xs text-text-muted">{loanPatron.cardNumber}</p>
+                            <p className="font-body text-xs font-medium text-text-primary">{patron.fullName}</p>
+                            <p className="font-mono text-[10px] text-text-muted">{patron.cardNumber}</p>
                           </div>
-                          <span className={`font-mono text-xs ${loanPatron.status === 'active' ? 'text-accent-green' : 'text-accent-red'}`}>
-                            {loanPatron.status === 'active' ? 'Activo' : loanPatron.status === 'suspended' ? 'Suspendido' : loanPatron.status}
-                            {loanPatron.pendingFinesTotal > 0 && <> · {copFmt(loanPatron.pendingFinesTotal)}</>}
+                          <span className={`font-mono text-[10px] ${patron.status === 'active' ? 'text-accent-green' : 'text-accent-red'}`}>
+                            {patron.status}
                           </span>
-                        </div>
-                      ) : (
-                        <span className="font-mono text-xs text-accent-red">Socio no encontrado</span>
-                      )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Live patron preview (seleccionado o único) */}
+                  {(selectedLoanPatron || (loanPatronResults.length === 1 && loanCarnet === loanPatronResults[0].cardNumber)) && (
+                    <div className="mt-1.5 rounded-sm border border-accent-amber/20 bg-accent-amber/5 px-3 py-2">
+                      {(() => {
+                        const patron = selectedLoanPatron || loanPatronResults[0];
+                        return (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-body text-xs font-medium text-text-primary">{patron.fullName}</p>
+                              <p className="font-mono text-xs text-text-muted">{patron.cardNumber}</p>
+                            </div>
+                            <span className={`font-mono text-xs ${patron.status === 'active' ? 'text-accent-green' : 'text-accent-red'}`}>
+                              {patron.status}
+                              {patron.pendingFinesTotal > 0 && <> · {copFmt(patron.pendingFinesTotal)}</>}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
@@ -366,40 +466,63 @@ export default function CirculationPage() {
               </form>
             ) : (
               <form onSubmit={returnForm.handleSubmit(handleReturn)} className="space-y-4">
-                <div>
+                <div className="relative">
                   <label className="mb-1.5 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-text-muted">
                     <Scan className="h-3 w-3" />
-                    Código de barras del ejemplar
+                    Ejemplar (Barcode o Título)
                   </label>
                   <input
                     {...returnForm.register('itemBarcode', { required: true })}
                     className="input-dark"
-                    placeholder="Escanear o escribir código..."
+                    placeholder="Buscar por título o escanear..."
                     autoFocus
                     autoComplete="off"
                   />
-                  {/* Live item preview for return */}
-                  {returnBarcode.length >= 3 && (
-                    <div className="mt-1.5 rounded-sm border border-surface-border bg-surface-raised/60 px-3 py-2">
-                      {loadingReturnItem ? (
-                        <span className="flex items-center gap-1.5 font-mono text-xs text-text-muted">
-                          <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
-                        </span>
-                      ) : returnItem ? (
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="font-body text-xs font-medium text-text-primary truncate max-w-[200px]">
-                              {returnItem.title ?? returnItem.barcode}
-                            </p>
-                            <p className="font-mono text-xs text-text-muted">{returnItem.location}</p>
+                  
+                  {/* Sugerencias de ejemplares para devolución */}
+                  {!selectedReturnItem && returnItemResults.length > 0 && (
+                    <div className="absolute left-0 top-full z-10 mt-1 w-full rounded-sm border border-surface-border bg-surface-card shadow-lg">
+                      {returnItemResults.map((item) => (
+                        <button
+                          key={item.barcode}
+                          type="button"
+                          onClick={() => {
+                            returnForm.setValue('itemBarcode', item.barcode);
+                            setSelectedReturnItem(item);
+                          }}
+                          className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-surface-raised"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate font-body text-xs font-medium text-text-primary">{item.title || 'Sin título'}</p>
+                            <p className="font-mono text-[10px] text-text-muted">{item.barcode} · {item.location}</p>
                           </div>
-                          <span className={`font-mono text-xs ${returnItem.status === 'loaned' ? 'text-accent-amber' : 'text-text-muted'}`}>
-                            {returnItem.status === 'loaned' ? 'En préstamo' : returnItem.status === 'available' ? 'Ya disponible' : returnItem.status}
+                          <span className={`font-mono text-[10px] ${item.status === 'loaned' ? 'text-accent-amber' : 'text-text-muted'}`}>
+                            {item.status === 'loaned' ? 'En préstamo' : item.status}
                           </span>
-                        </div>
-                      ) : (
-                        <span className="font-mono text-xs text-accent-red">Ejemplar no encontrado</span>
-                      )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Live item preview para devolución */}
+                  {(selectedReturnItem || (returnItemResults.length === 1 && returnBarcode === returnItemResults[0].barcode)) && (
+                    <div className="mt-1.5 rounded-sm border border-surface-border bg-surface-raised/60 px-3 py-2">
+                      {(() => {
+                        const item = selectedReturnItem || returnItemResults[0];
+                        return (
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-body text-xs font-medium text-text-primary truncate max-w-[200px]">
+                                {item.title ?? item.barcode}
+                              </p>
+                              <p className="font-mono text-xs text-text-muted">{item.location}</p>
+                            </div>
+                            <span className={`font-mono text-xs ${item.status === 'loaned' ? 'text-accent-amber' : 'text-text-muted'}`}>
+                              {item.status === 'loaned' ? 'En préstamo' : item.status === 'available' ? 'Ya disponible' : item.status}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   )}
                 </div>

@@ -3,10 +3,10 @@
  * Solo se usan en Server Components o rutas API de Next.js.
  */
 
-const PATRON_URL   = process.env.PATRON_SERVICE_URL   ?? 'http://localhost:3001';
-const CATALOG_URL  = process.env.CATALOG_SERVICE_URL  ?? 'http://localhost:3002';
-const HOLDINGS_URL = process.env.HOLDINGS_SERVICE_URL ?? 'http://localhost:3003';
-const CIRC_URL     = process.env.CIRC_SERVICE_URL     ?? 'http://localhost:3004';
+const PATRON_URL   = process.env.PATRON_SERVICE_URL   ?? 'http://127.0.0.1:3001';
+const CATALOG_URL  = process.env.CATALOG_SERVICE_URL  ?? 'http://127.0.0.1:3002';
+const HOLDINGS_URL = process.env.HOLDINGS_SERVICE_URL ?? 'http://127.0.0.1:3003';
+const CIRC_URL     = process.env.CIRC_SERVICE_URL     ?? 'http://127.0.0.1:3004';
 
 // Credenciales del servicio (bibliotecario de turno)
 let tokenCache: { value: string; staffId: string; libraryId: string; expira: number } | null = null;
@@ -35,13 +35,16 @@ export async function obtenerCredencialesServicio(): Promise<{ token: string; st
     libraryId = payload.libraryId ?? 'lib-001';
   } catch { /* usar valor por defecto */ }
 
+  // Asegurarnos de que staffId sea un UUID válido (formato)
+  const staffId = data.user.id || '00000000-0000-0000-0000-000000000001';
+
   tokenCache = {
     value: data.accessToken,
-    staffId: data.user.id,
+    staffId,
     libraryId,
     expira: Date.now() + 23 * 60 * 60 * 1000,
   };
-  return { token: data.accessToken, staffId: data.user.id, libraryId };
+  return { token: data.accessToken, staffId, libraryId };
 }
 
 export async function obtenerTokenServicio(): Promise<string> {

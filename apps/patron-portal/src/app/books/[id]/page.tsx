@@ -70,10 +70,12 @@ export default async function BookDetailPage({ params }: Props) {
                 <p className="mt-1 font-mono text-xs text-ink-muted">
                   {ejemplares.disponibles} de {ejemplares.total} ejemplar{ejemplares.total !== 1 ? 'es' : ''} disponible{ejemplares.disponibles !== 1 ? 's' : ''}
                 </p>
+                {disponible && (
+                  <p className="mt-3 font-body text-xs text-ink-muted italic">
+                    Selecciona un ejemplar abajo para solicitarlo.
+                  </p>
+                )}
               </div>
-
-              {/* Botón de préstamo — client component que detecta sesión */}
-              {disponible && <LoanButton bookId={id} bookTitle={libro.title} />}
             </div>
 
             {/* Detalles */}
@@ -129,16 +131,35 @@ export default async function BookDetailPage({ params }: Props) {
                   <div className="space-y-2">
                     {(ejemplares.items as Array<{ barcode: string; location: string; status: string; callNumber?: string }>).map((ej) => (
                       <div key={ej.barcode} className="flex items-center justify-between rounded-sm border border-ink/8 bg-white px-4 py-3">
-                        <div>
-                          <span className="font-mono text-xs text-ink">{ej.barcode}</span>
-                          <span className="ml-3 font-body text-xs text-ink-muted">{ej.location}</span>
-                          {ej.callNumber && (
-                            <span className="ml-3 font-mono text-xs text-ink-muted">{ej.callNumber}</span>
-                          )}
+                        <div className="flex-1 min-w-0 mr-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs font-semibold text-ink">{ej.barcode}</span>
+                            <span className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${ej.status === 'available' ? 'bg-emerald-pale text-emerald-library' : 'bg-rust/10 text-rust'}`}>
+                              {ej.status === 'available' ? 'Disponible' : 'Prestado'}
+                            </span>
+                          </div>
+                          <div className="mt-1 flex items-center gap-3">
+                            <span className="font-body text-xs text-ink-muted flex items-center gap-1">
+                              <Building className="h-3 w-3" /> {ej.location}
+                            </span>
+                            {ej.callNumber && (
+                              <span className="font-mono text-[10px] text-ink-muted bg-parchment-dark px-1.5 py-0.5 rounded">
+                                {ej.callNumber}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <span className={`rounded-full px-2 py-0.5 font-mono text-xs ${ej.status === 'available' ? 'bg-emerald-pale text-emerald-library' : 'bg-rust/10 text-rust'}`}>
-                          {ej.status === 'available' ? 'Disponible' : 'Prestado'}
-                        </span>
+                        
+                        {ej.status === 'available' && (
+                          <div className="shrink-0">
+                            <LoanButton 
+                              bookId={id} 
+                              bookTitle={libro.title} 
+                              itemBarcode={ej.barcode} 
+                              variant="inline" 
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

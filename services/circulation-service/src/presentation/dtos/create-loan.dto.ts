@@ -13,7 +13,8 @@ export class CreateLoanDto {
   patronCardNumber: string;
 
   @ApiProperty({ example: 'staff-uuid-here' })
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   staffId: string;
 
   @ApiProperty({ example: 'lib-001' })

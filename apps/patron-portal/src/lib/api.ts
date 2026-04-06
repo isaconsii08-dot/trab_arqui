@@ -3,10 +3,10 @@
  * Usadas desde componentes del servidor (Server Components) y rutas API.
  */
 
-const CATALOG_URL  = process.env.CATALOG_SERVICE_URL  ?? 'http://localhost:3002';
-const PATRON_URL   = process.env.PATRON_SERVICE_URL   ?? 'http://localhost:3001';
-const CIRC_URL     = process.env.CIRC_SERVICE_URL     ?? 'http://localhost:3004';
-const HOLDINGS_URL = process.env.HOLDINGS_SERVICE_URL ?? 'http://localhost:3003';
+const CATALOG_URL  = process.env.CATALOG_SERVICE_URL  ?? 'http://127.0.0.1:3002';
+const PATRON_URL   = process.env.PATRON_SERVICE_URL   ?? 'http://127.0.0.1:3001';
+const CIRC_URL     = process.env.CIRC_SERVICE_URL     ?? 'http://127.0.0.1:3004';
+const HOLDINGS_URL = process.env.HOLDINGS_SERVICE_URL ?? 'http://127.0.0.1:3003';
 
 export interface LibroResumen {
   id: string;
@@ -118,6 +118,7 @@ export async function autenticar(email: string, password: string) {
     sub: data.user.id,
     role: data.user.role,
     fullName: data.user.fullName,
+    cardNumber: data.user.cardNumber,
   };
 }
 

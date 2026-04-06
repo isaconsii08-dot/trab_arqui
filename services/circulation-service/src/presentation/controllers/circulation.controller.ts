@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Inject,
   Param,
@@ -34,12 +35,24 @@ export class CirculationController {
 
   @Post('loans')
   @HttpCode(HttpStatus.CREATED)
-  @Roles('administrator', 'librarian')
+  @Roles('administrator', 'librarian', 'patron')
   @ApiOperation({ summary: 'Registrar préstamo (activa el Saga)' })
   @ApiResponse({ status: 201, description: 'Préstamo creado correctamente' })
   @ApiResponse({ status: 422, description: 'Socio suspendido o material no disponible' })
   async createLoan(@Body() dto: CreateLoanDto) {
-    return this.createLoanSaga.execute(dto);
+    try {
+      return await this.createLoanSaga.execute(dto);
+    } catch (err: any) {
+      let mensaje = err.message;
+      if (mensaje.includes('not available') && mensaje.includes('loaned')) {
+        mensaje = `El ejemplar ${dto.itemBarcode} ya está prestado.`;
+      } else if (mensaje.includes('not found')) {
+        mensaje = `No se encontró el ejemplar o el socio.`;
+      } else if (mensaje.includes('suspended')) {
+        mensaje = `El socio está suspendido y no puede realizar préstamos.`;
+      }
+      throw new HttpException(mensaje, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
   }
 
   @Post('returns')
@@ -48,7 +61,15 @@ export class CirculationController {
   @ApiOperation({ summary: 'Registrar devolución por código de barras' })
   @ApiResponse({ status: 200, description: 'Material devuelto correctamente' })
   async returnItem(@Body() dto: ReturnItemDto) {
-    return this.returnItemSaga.execute(dto);
+    try {
+      return await this.returnItemSaga.execute(dto);
+    } catch (err: any) {
+      let mensaje = err.message;
+      if (mensaje.includes('not found')) {
+        mensaje = `El ejemplar ${dto.itemBarcode} no tiene un préstamo activo.`;
+      }
+      throw new HttpException(mensaje, HttpStatus.UNPROCESSABLE_ENTITY);
+    }
   }
 
   @Get('loans/patron/:patronId')

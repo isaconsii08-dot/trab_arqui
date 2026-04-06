@@ -7,20 +7,24 @@ import { BookOpen, CheckCircle, X, LogIn, Loader2 } from 'lucide-react';
 interface LoanButtonProps {
   bookId: string;
   bookTitle: string;
+  itemBarcode?: string; // Nuevo: permitir elegir ejemplar específico
+  variant?: 'full' | 'inline'; // Nuevo: para diseño compacto en la lista de ejemplares
 }
 
 interface UserCookie {
   fullName?: string;
   id?: string;
+  cardNumber?: string;
 }
 
-export default function LoanButton({ bookId, bookTitle }: LoanButtonProps) {
+export default function LoanButton({ bookId, bookTitle, itemBarcode, variant = 'full' }: LoanButtonProps) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [userId, setUserId] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
   const [solicitado, setSolicitado] = useState(false);
   const [enviando, setEnviando] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     const userCookie = document.cookie.split('; ').find((r) => r.startsWith('bf_user='));
@@ -31,61 +35,86 @@ export default function LoanButton({ bookId, bookTitle }: LoanButtonProps) {
         ) as UserCookie;
         setUserName(u.fullName?.split(' ')[0] ?? 'Socio');
         setUserId(u.id ?? '');
+        setCardNumber(u.cardNumber ?? '');
         setIsLoggedIn(true);
       } catch { /* ignorar */ }
     }
   }, []);
 
   const solicitarPrestamo = async () => {
+    if (!cardNumber) {
+      setToast({ message: 'No se encontró tu número de carnet. Reintenta el login.', type: 'error' });
+      return;
+    }
+
     setEnviando(true);
     try {
-      await fetch('/api/prestamos', {
+      const res = await fetch('/api/prestamos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookId, bookTitle, userId, userName }),
+        body: JSON.stringify({ bookId, bookTitle, userId, userName, cardNumber, itemBarcode }),
       });
-    } catch { /* la solicitud se registra igual en UI */ }
-    setSolicitado(true);
-    setEnviando(false);
-    setToast(
-      `Solicitud registrada, ${userName}. Preséntate al mostrador de préstamos con tu carnet para retirar el material.`,
-    );
-    setTimeout(() => setToast(null), 7000);
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || 'Error al procesar el préstamo');
+      }
+
+      setSolicitado(true);
+      setToast({
+        message: `¡Préstamo concedido! El libro "${bookTitle}" ya es tuyo hasta el ${new Date(data.dueDate).toLocaleDateString()}.`,
+        type: 'success'
+      });
+    } catch (err: any) {
+      setToast({ message: err.message || 'Error de conexión', type: 'error' });
+    } finally {
+      setEnviando(false);
+      setTimeout(() => setToast(null), 8000);
+    }
   };
+
+  const buttonClass = variant === 'full' 
+    ? "btn-amber w-full justify-center" 
+    : "btn-amber px-3 py-1 text-xs justify-center";
 
   return (
     <>
       {isLoggedIn ? (
         solicitado ? (
-          <div className="flex items-center gap-2 rounded-sm border border-emerald-library/30 bg-emerald-pale px-4 py-3 font-body text-sm text-emerald-library">
-            <CheckCircle className="h-4 w-4 shrink-0" />
-            <span>Solicitud enviada — espera confirmación en el mostrador</span>
+          <div className={`flex items-center gap-2 rounded-sm border border-emerald-library/30 bg-emerald-pale font-body text-emerald-library ${variant === 'full' ? 'px-4 py-3 text-sm' : 'px-2 py-1 text-xs'}`}>
+            <CheckCircle className={variant === 'full' ? "h-4 w-4 shrink-0" : "h-3 w-3 shrink-0"} />
+            <span>{variant === 'full' ? 'Préstamo activo — ya puedes pasar por el libro' : 'Concedido'}</span>
           </div>
         ) : (
           <button
             onClick={solicitarPrestamo}
             disabled={enviando}
-            className="btn-amber w-full justify-center"
+            className={buttonClass}
           >
             {enviando
-              ? <Loader2 className="h-4 w-4 animate-spin" />
-              : <BookOpen className="h-4 w-4" />}
-            {enviando ? 'Enviando...' : 'Solicitar préstamo'}
+              ? <Loader2 className={variant === 'full' ? "h-4 w-4 animate-spin" : "h-3 w-3 animate-spin"} />
+              : <BookOpen className={variant === 'full' ? "h-4 w-4" : "h-3 w-3"} />}
+            {enviando ? 'Procesando...' : (variant === 'full' ? 'Solicitar préstamo' : 'Pedir este')}
           </button>
         )
       ) : (
         <Link
           href={`/login?redirect=/books/${bookId}`}
-          className="btn-amber w-full justify-center"
+          className={buttonClass}
         >
-          <LogIn className="h-4 w-4" /> Inicia sesión para solicitar
+          <LogIn className={variant === 'full' ? "h-4 w-4" : "h-3 w-3"} /> {variant === 'full' ? 'Inicia sesión para solicitar' : 'Inicia sesión'}
         </Link>
       )}
 
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 flex max-w-sm items-start gap-3 rounded-sm border border-emerald-library/30 bg-emerald-library/10 px-5 py-3 shadow-lg font-body text-sm text-emerald-library">
-          <CheckCircle className="mt-0.5 h-4 w-4 shrink-0" />
-          <span className="flex-1">{toast}</span>
+        <div className={`fixed bottom-6 right-6 z-50 flex max-w-sm items-start gap-3 rounded-sm border px-5 py-3 shadow-lg font-body text-sm ${
+          toast.type === 'success'
+            ? 'border-emerald-library/30 bg-emerald-library/10 text-emerald-library'
+            : 'border-red-800/30 bg-red-50 text-red-800'
+        }`}>
+          <CheckCircle className={`mt-0.5 h-4 w-4 shrink-0 ${toast.type === 'error' ? 'hidden' : ''}`} />
+          <span className="flex-1">{toast.message}</span>
           <button onClick={() => setToast(null)} className="opacity-60 hover:opacity-100">
             <X className="h-3.5 w-3.5" />
           </button>

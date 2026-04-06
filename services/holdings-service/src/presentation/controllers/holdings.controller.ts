@@ -59,14 +59,50 @@ export class HoldingsController {
   @ApiOperation({ summary: 'Listar ejemplares con filtros' })
   @ApiQuery({ name: 'recordId', required: false })
   @ApiQuery({ name: 'status', required: false })
+  @ApiQuery({ name: 'query', required: false })
   async listItems(
     @Query('recordId') recordId?: string,
     @Query('status') status?: string,
+    @Query('query') query?: string,
   ) {
-    const where: Record<string, unknown> = {};
+    const where: any = {};
     if (recordId) where['recordId'] = recordId;
     if (status) where['status'] = status;
+    if (query) {
+      where['OR'] = [
+        { barcode:    { contains: query, mode: 'insensitive' } },
+        { location:   { contains: query, mode: 'insensitive' } },
+        { callNumber: { contains: query, mode: 'insensitive' } },
+      ];
+    }
     const items = await this.prisma.item.findMany({ where, orderBy: { barcode: 'asc' } });
+    
+    // Enriquecer con títulos del catálogo
+    if (items.length > 0) {
+      const recordIds = [...new Set(items.map(i => i.recordId))];
+      // Nota: En un entorno real llamaríamos al microservicio de catálogo.
+      // Por ahora, como el holdings-service es simple, simulamos/asumimos que el cliente de la intranet
+      // ya tiene el título o lo pedimos al catálogo. Para ser rápidos, haremos un fetch al catálogo.
+      try {
+        const CATALOG_URL = 'http://127.0.0.1:3002';
+        const titles: Record<string, string> = {};
+        await Promise.all(recordIds.map(async (id) => {
+          const res = await fetch(`${CATALOG_URL}/api/v1/catalog/${id}`);
+          if (res.ok) {
+            const data = await res.json() as any;
+            titles[id] = data.title;
+          }
+        }));
+        
+        return { 
+          data: items.map(i => ({ ...i, title: titles[i.recordId] || 'Libro en catálogo' })), 
+          total: items.length 
+        };
+      } catch {
+        return { data: items, total: items.length };
+      }
+    }
+
     return { data: items, total: items.length };
   }
 
@@ -105,8 +141,11 @@ export class HoldingsController {
   @ApiOperation({ summary: 'Reservar ejemplar para préstamo (usa Circulation)' })
   async reserveItem(@Param('barcode') barcode: string) {
     const item = await this.prisma.item.findUnique({ where: { barcode } });
-    if (!item || item.status !== 'available') {
-      return { error: 'Ejemplar no disponible', barcode, status: item?.status ?? 'not_found' };
+    if (!item) {
+      throw new HttpException('Ejemplar no encontrado', HttpStatus.NOT_FOUND);
+    }
+    if (item.status !== 'available') {
+      throw new HttpException(`Ejemplar no disponible (estado: ${item.status})`, HttpStatus.BAD_REQUEST);
     }
     const updated = await this.prisma.item.update({
       where: { barcode },

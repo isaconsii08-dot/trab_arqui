@@ -48,7 +48,12 @@ export class CreateLoanSaga {
 
     // ── Step 2: Reserve item (optimistic lock via atomic status update) ───
     const item = await this.holdingsClient.reserveItem(command.itemBarcode);
-    if (!item) throw new ItemNotFoundError(command.itemBarcode);
+    if (!item) {
+      // Intentamos ver si es que no existe o está prestado
+      const checkItem = await this.holdingsClient.getItemByBarcode(command.itemBarcode);
+      if (!checkItem) throw new ItemNotFoundError(command.itemBarcode);
+      throw new ItemNotAvailableError(command.itemBarcode, checkItem.status);
+    }
 
     this.logger.log(`[SAGA] Item ${command.itemBarcode} reserved`);
 
@@ -95,6 +100,6 @@ export class CreateLoanSaga {
     }
 
     this.logger.log(`[SAGA COMPLETE] Loan ${loan.id} created`);
-    return LoanMapper.toDto(loan, command.itemBarcode, item.title ?? 'Unknown');
+    return LoanMapper.toDto(loan, command.itemBarcode, item.title || 'Título no disponible');
   }
 }

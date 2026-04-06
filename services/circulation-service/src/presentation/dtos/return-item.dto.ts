@@ -8,6 +8,7 @@ export class ReturnItemDto {
   itemBarcode: string;
 
   @ApiProperty({ example: 'staff-uuid-here' })
-  @IsUUID()
+  @IsString()
+  @IsNotEmpty()
   staffId: string;
 }
