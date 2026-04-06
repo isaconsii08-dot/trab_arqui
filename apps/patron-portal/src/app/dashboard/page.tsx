@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Clock, BookOpen, AlertTriangle, RefreshCw, CreditCard, X, CheckCircle, RotateCcw } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface Prestamo {
   id: string;
@@ -39,6 +40,7 @@ function Toast({ msg, tipo, onClose }: { msg: string; tipo: 'ok' | 'err'; onClos
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
   const [usuario, setUsuario] = useState<{ sub: string; role: string; fullName: string } | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -68,6 +70,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const userCookie = document.cookie.split('; ').find((r) => r.startsWith('bf_user='));
+    const hasToken = document.cookie.split('; ').some((r) => r.startsWith('bf_token='));
+    if (!hasToken) { router.replace('/login?redirect=/dashboard'); return; }
     const hasSession = !!userCookie;
     if (userCookie) {
       try {

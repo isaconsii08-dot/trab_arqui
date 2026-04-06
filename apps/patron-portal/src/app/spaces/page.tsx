@@ -1,6 +1,6 @@
 'use client';
 
-import { MapPin, Clock, Users, Wifi, X, CheckCircle, CalendarCheck, AlertTriangle, RefreshCw } from 'lucide-react';
+import { MapPin, Clock, Users, Wifi, X, CheckCircle, CalendarCheck, AlertTriangle, RefreshCw, BookOpen } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -99,11 +99,15 @@ interface EstadoSalas {
 
 // ─── Hook de sesión de usuario ────────────────────────────────────────────────
 
-function useSession(): { userName: string; sessionId: string } {
+function useSession(): { userName: string; sessionId: string; isLoggedIn: boolean } {
   const [sessionId, setSessionId] = useState('');
   const [userName, setUserName] = useState('Visitante');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    const hasToken = document.cookie.split('; ').some((r) => r.startsWith('bf_token='));
+    setIsLoggedIn(hasToken);
+
     // Obtener o generar sessionId persistente en localStorage
     let sid = localStorage.getItem('bf_session_id');
     if (!sid) {
@@ -122,13 +126,13 @@ function useSession(): { userName: string; sessionId: string } {
     }
   }, []);
 
-  return { userName, sessionId };
+  return { userName, sessionId, isLoggedIn };
 }
 
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 export default function SpacesPage() {
-  const { userName, sessionId } = useSession();
+  const { userName, sessionId, isLoggedIn } = useSession();
   const [estado, setEstado] = useState<EstadoSalas>({ reservas: [], ocupadas: [], desactivadas: [], horaActual: new Date().getHours(), fecha: '' });
   const [salaModal, setSalaModal] = useState<typeof SALAS[0] | null>(null);
   const [startHour, setStartHour] = useState(10);
@@ -266,6 +270,21 @@ export default function SpacesPage() {
             </button>
           </div>
 
+          {/* Muro de autenticación */}
+          {!isLoggedIn && sessionId && (
+            <div className="mb-6 rounded-sm border border-amber-book/30 bg-amber-book/5 p-8 text-center">
+              <BookOpen className="mx-auto mb-3 h-8 w-8 text-amber-book/50" />
+              <p className="font-display text-base font-semibold text-ink">Inicia sesión para reservar</p>
+              <p className="mt-1 font-body text-sm text-ink-muted">
+                Necesitas una cuenta de socio para reservar salas y espacios.
+              </p>
+              <div className="mt-4 flex justify-center gap-3">
+                <a href="/login?redirect=/spaces" className="btn-amber text-sm px-5 py-2">Iniciar sesión</a>
+                <a href="/register" className="btn-secondary text-sm px-5 py-2">Registrarme</a>
+              </div>
+            </div>
+          )}
+
           {/* Mis reservas activas */}
           {misReservas.length > 0 && (
             <div className="mb-6 rounded-sm border border-emerald-library/20 bg-emerald-library/5 p-4">
@@ -333,7 +352,7 @@ export default function SpacesPage() {
               }
 
               return (
-                <div key={sala.id} className={`card p-5 ${(otraPersonaOcupa || desactivada) ? 'opacity-75' : ''}`}>
+                <div key={sala.id} className={`card flex flex-col p-5 ${(otraPersonaOcupa || desactivada) ? 'opacity-75' : ''}`}>
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <h2 className="font-display text-base font-semibold text-ink leading-snug">{sala.nombre}</h2>
                     <span className={`shrink-0 rounded-sm px-2 py-0.5 font-mono text-xs font-medium ${estadoColor}`}>
@@ -372,8 +391,15 @@ export default function SpacesPage() {
                     </div>
                   )}
 
-                  <div className="mt-4">
-                    {desactivada ? (
+                  <div className="mt-auto pt-4">
+                    {!isLoggedIn ? (
+                      <a
+                        href="/login?redirect=/spaces"
+                        className="flex w-full items-center justify-center rounded-sm border border-amber-book/30 py-2 font-mono text-xs text-amber-book hover:bg-amber-book/5"
+                      >
+                        Inicia sesión para reservar
+                      </a>
+                    ) : desactivada ? (
                       <div className="w-full rounded-sm bg-ink/5 py-2 text-center font-mono text-xs text-ink-muted">
                         Temporalmente no disponible
                       </div>

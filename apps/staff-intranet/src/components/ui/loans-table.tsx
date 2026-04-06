@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Clock, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface Loan {
   id: string;
@@ -17,6 +18,7 @@ interface Loan {
 const PAGE_SIZE = 8;
 
 export function LoansTable({ loans }: { loans: Loan[] }) {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const totalPages = Math.ceil(loans.length / PAGE_SIZE);
   const slice = loans.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -43,11 +45,16 @@ export function LoansTable({ loans }: { loans: Loan[] }) {
         </thead>
         <tbody>
           {slice.map((loan) => (
-            <tr key={loan.id} className="table-row">
+            <tr
+              key={loan.id}
+              className="table-row cursor-pointer hover:bg-surface-raised/60"
+              onClick={() => router.push(`/patrons/${loan.patronId}`)}
+              title={`Ver perfil de ${loan.patronName ?? loan.patronId}`}
+            >
               <td className="max-w-[180px] truncate text-text-secondary text-xs">
                 {loan.itemTitle || loan.itemBarcode || loan.itemId}
               </td>
-              <td className="max-w-[160px] truncate text-text-secondary">
+              <td className="max-w-[160px] truncate text-text-secondary font-medium">
                 {loan.patronName ?? loan.patronId}
               </td>
               <td className="font-mono text-xs text-text-muted">

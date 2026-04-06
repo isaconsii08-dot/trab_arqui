@@ -22,6 +22,7 @@ export default function LoanButton({ bookId, bookTitle, itemBarcode, variant = '
   const [userName, setUserName] = useState('');
   const [userId, setUserId] = useState('');
   const [cardNumber, setCardNumber] = useState('');
+  const storageKey = `loan_requested_${bookId}_${itemBarcode ?? 'any'}`;
   const [solicitado, setSolicitado] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -37,9 +38,13 @@ export default function LoanButton({ bookId, bookTitle, itemBarcode, variant = '
         setUserId(u.id ?? '');
         setCardNumber(u.cardNumber ?? '');
         setIsLoggedIn(true);
+        // Verificar si ya fue solicitado (localStorage o préstamos activos)
+        if (localStorage.getItem(storageKey) === '1') {
+          setSolicitado(true);
+        }
       } catch { /* ignorar */ }
     }
-  }, []);
+  }, [storageKey]);
 
   const solicitarPrestamo = async () => {
     if (!cardNumber) {
@@ -62,6 +67,7 @@ export default function LoanButton({ bookId, bookTitle, itemBarcode, variant = '
       }
 
       setSolicitado(true);
+      localStorage.setItem(storageKey, '1');
       setToast({
         message: `¡Préstamo concedido! El libro "${bookTitle}" ya es tuyo hasta el ${new Date(data.dueDate).toLocaleDateString()}.`,
         type: 'success'

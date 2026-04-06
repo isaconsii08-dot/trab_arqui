@@ -70,11 +70,6 @@ export default async function BookDetailPage({ params }: Props) {
                 <p className="mt-1 font-mono text-xs text-ink-muted">
                   {ejemplares.disponibles} de {ejemplares.total} ejemplar{ejemplares.total !== 1 ? 'es' : ''} disponible{ejemplares.disponibles !== 1 ? 's' : ''}
                 </p>
-                {disponible && (
-                  <p className="mt-3 font-body text-xs text-ink-muted italic">
-                    Selecciona un ejemplar abajo para solicitarlo.
-                  </p>
-                )}
               </div>
             </div>
 

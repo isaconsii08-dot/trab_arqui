@@ -2,13 +2,16 @@ import Navbar from '@/components/layout/navbar';
 import Footer from '@/components/layout/footer';
 import Link from 'next/link';
 import { BookOpen, MapPin, Phone, Mail, Clock, Users, Library, Award } from 'lucide-react';
+import { cookies } from 'next/headers';
 
 export const metadata = {
   title: 'La biblioteca – BiblioFlow',
   description: 'Biblioteca Campus Montería, Universidad Cooperativa de Colombia.',
 };
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const cookieStore = await cookies();
+  const isLoggedIn = !!cookieStore.get('bf_token')?.value;
   return (
     <>
       <Navbar />
@@ -175,9 +178,8 @@ export default function AboutPage() {
                   <div>
                     <p className="font-body text-sm font-medium text-ink">Dirección</p>
                     <p className="font-mono text-xs text-ink-muted">
-                      Calle 21 #4-66, Montería, Córdoba<br />
-                      Universidad Cooperativa de Colombia<br />
-                      Bloque Biblioteca, piso 2
+                      Cl. 52 #6-79, Montería, Córdoba<br />
+                      Universidad Cooperativa de Colombia
                     </p>
                   </div>
                 </div>
@@ -185,7 +187,7 @@ export default function AboutPage() {
                   <Phone className="mt-0.5 h-4 w-4 shrink-0 text-amber-book" />
                   <div>
                     <p className="font-body text-sm font-medium text-ink">Teléfono</p>
-                    <p className="font-mono text-xs text-ink-muted">(604) 788 8888 ext. 5200</p>
+                    <p className="font-mono text-xs text-ink-muted">300 9137823</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -196,18 +198,20 @@ export default function AboutPage() {
                   </div>
                 </div>
               </div>
-              <div className="card flex flex-col items-center justify-center gap-4 p-6 text-center">
-                <BookOpen className="h-10 w-10 text-ink/20" />
-                <div>
-                  <p className="font-display text-sm font-semibold text-ink">¿Primera vez en la biblioteca?</p>
-                  <p className="mt-1 font-body text-xs text-ink-muted">
-                    Regístrate como socio para acceder a todos los servicios de préstamo y reserva en línea.
-                  </p>
+              {!isLoggedIn && (
+                <div className="card flex flex-col items-center justify-center gap-4 p-6 text-center">
+                  <BookOpen className="h-10 w-10 text-ink/20" />
+                  <div>
+                    <p className="font-display text-sm font-semibold text-ink">¿Primera vez en la biblioteca?</p>
+                    <p className="mt-1 font-body text-xs text-ink-muted">
+                      Regístrate como socio para acceder a todos los servicios de préstamo y reserva en línea.
+                    </p>
+                  </div>
+                  <Link href="/register" className="btn-amber text-sm px-5 py-2">
+                    Registrarme gratis
+                  </Link>
                 </div>
-                <Link href="/register" className="btn-amber text-sm px-5 py-2">
-                  Registrarme gratis
-                </Link>
-              </div>
+              )}
             </div>
           </section>
 
