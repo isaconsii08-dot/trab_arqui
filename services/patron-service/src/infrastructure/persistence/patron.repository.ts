@@ -45,17 +45,28 @@ export class PrismaPatronRepository implements IPatronRepository {
     libraryId: string,
     page: number,
     limit: number,
+    query?: string,
   ): Promise<{ data: Patron[]; total: number }> {
     const skip = (page - 1) * limit;
+    const where = query
+      ? {
+          libraryId,
+          OR: [
+            { fullName:   { contains: query, mode: 'insensitive' as const } },
+            { email:      { contains: query, mode: 'insensitive' as const } },
+            { cardNumber: { contains: query, mode: 'insensitive' as const } },
+          ],
+        }
+      : { libraryId };
     const [records, total] = await this.prisma.$transaction([
       this.prisma.patron.findMany({
-        where: { libraryId },
+        where,
         include: { fines: { where: { status: 'pending' } } },
         skip,
         take: limit,
         orderBy: { fullName: 'asc' },
       }),
-      this.prisma.patron.count({ where: { libraryId } }),
+      this.prisma.patron.count({ where }),
     ]);
     return { data: records.map((r) => this.toDomain(r)), total };
   }

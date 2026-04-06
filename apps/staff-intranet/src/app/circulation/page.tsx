@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { BookOpen, RefreshCw, Scan, CheckCircle, XCircle, ArrowLeft, Inbox, Clock, ThumbsUp, ThumbsDown, Package } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { BookOpen, RefreshCw, Scan, CheckCircle, XCircle, ArrowLeft, Inbox, Clock, ThumbsUp, ThumbsDown, Package, User, Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 
 type LoanForm = { itemBarcode: string; patronCardNumber: string };
@@ -29,6 +29,22 @@ interface Solicitud {
   notas?: string;
 }
 
+interface PatronInfo {
+  id: string;
+  fullName: string;
+  cardNumber: string;
+  status: string;
+  pendingFinesTotal: number;
+}
+
+interface ItemInfo {
+  id: string;
+  barcode: string;
+  status: string;
+  location: string;
+  title?: string;
+}
+
 const copFmt = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
@@ -38,6 +54,30 @@ const ESTADO_STYLES: Record<string, { label: string; cls: string }> = {
   rechazada:  { label: 'Rechazada',  cls: 'bg-accent-red/15 text-accent-red border-accent-red/20' },
   entregada:  { label: 'Entregada',  cls: 'bg-surface-raised text-text-muted border-surface-border' },
 };
+
+function useLookup<T>(type: 'patron' | 'item', query: string, delay = 500) {
+  const [result, setResult] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!query || query.length < 3) { setResult(null); return; }
+
+    timerRef.current = setTimeout(() => {
+      setLoading(true);
+      fetch(`/api/circulacion/lookup?type=${type}&q=${encodeURIComponent(query)}`)
+        .then((r) => r.json())
+        .then((data: T | null) => setResult(data ?? null))
+        .catch(() => setResult(null))
+        .finally(() => setLoading(false));
+    }, delay);
+
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [query, type, delay]);
+
+  return { result, loading };
+}
 
 export default function CirculationPage() {
   const [activeTab, setActiveTab] = useState<'loan' | 'return' | 'solicitudes'>('loan');
@@ -51,6 +91,15 @@ export default function CirculationPage() {
 
   const loanForm = useForm<LoanForm>();
   const returnForm = useForm<ReturnForm>();
+
+  // Live lookup values
+  const loanBarcode = loanForm.watch('itemBarcode') ?? '';
+  const loanCarnet  = loanForm.watch('patronCardNumber') ?? '';
+  const returnBarcode = returnForm.watch('itemBarcode') ?? '';
+
+  const { result: loanItem, loading: loadingLoanItem }     = useLookup<ItemInfo>('item', loanBarcode);
+  const { result: loanPatron, loading: loadingLoanPatron } = useLookup<PatronInfo>('patron', loanCarnet);
+  const { result: returnItem, loading: loadingReturnItem } = useLookup<ItemInfo>('item', returnBarcode);
 
   const cargarSolicitudes = useCallback(() => {
     fetch('/api/prestamos')
@@ -225,6 +274,7 @@ export default function CirculationPage() {
           <div className="surface-card p-6">
             {activeTab === 'loan' ? (
               <form onSubmit={loanForm.handleSubmit(handleLoan)} className="space-y-4">
+                {/* Campo: código de barras del ejemplar */}
                 <div>
                   <label className="mb-1.5 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-text-muted">
                     <Scan className="h-3 w-3" />
@@ -235,18 +285,69 @@ export default function CirculationPage() {
                     className="input-dark"
                     placeholder="Escanear o escribir código..."
                     autoFocus
+                    autoComplete="off"
                   />
+                  {/* Live item preview */}
+                  {loanBarcode.length >= 3 && (
+                    <div className="mt-1.5 rounded-sm border border-surface-border bg-surface-raised/60 px-3 py-2">
+                      {loadingLoanItem ? (
+                        <span className="flex items-center gap-1.5 font-mono text-xs text-text-muted">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
+                        </span>
+                      ) : loanItem ? (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-body text-xs font-medium text-text-primary truncate max-w-[200px]">
+                              {loanItem.title ?? loanItem.barcode}
+                            </p>
+                            <p className="font-mono text-xs text-text-muted">{loanItem.location}</p>
+                          </div>
+                          <span className={`font-mono text-xs ${loanItem.status === 'available' ? 'text-accent-green' : 'text-accent-amber'}`}>
+                            {loanItem.status === 'available' ? 'Disponible' : loanItem.status === 'loaned' ? 'Prestado' : loanItem.status}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-mono text-xs text-accent-red">Ejemplar no encontrado</span>
+                      )}
+                    </div>
+                  )}
                 </div>
+
+                {/* Campo: carnet del socio */}
                 <div>
                   <label className="mb-1.5 flex items-center gap-2 font-mono text-xs uppercase tracking-wider text-text-muted">
-                    <Scan className="h-3 w-3" />
+                    <User className="h-3 w-3" />
                     Carnet del socio
                   </label>
                   <input
                     {...loanForm.register('patronCardNumber', { required: true })}
                     className="input-dark"
                     placeholder="Nº de carnet del socio..."
+                    autoComplete="off"
                   />
+                  {/* Live patron preview */}
+                  {loanCarnet.length >= 3 && (
+                    <div className="mt-1.5 rounded-sm border border-surface-border bg-surface-raised/60 px-3 py-2">
+                      {loadingLoanPatron ? (
+                        <span className="flex items-center gap-1.5 font-mono text-xs text-text-muted">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
+                        </span>
+                      ) : loanPatron ? (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-body text-xs font-medium text-text-primary">{loanPatron.fullName}</p>
+                            <p className="font-mono text-xs text-text-muted">{loanPatron.cardNumber}</p>
+                          </div>
+                          <span className={`font-mono text-xs ${loanPatron.status === 'active' ? 'text-accent-green' : 'text-accent-red'}`}>
+                            {loanPatron.status === 'active' ? 'Activo' : loanPatron.status === 'suspended' ? 'Suspendido' : loanPatron.status}
+                            {loanPatron.pendingFinesTotal > 0 && <> · {copFmt(loanPatron.pendingFinesTotal)}</>}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-mono text-xs text-accent-red">Socio no encontrado</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {loanError && (
@@ -275,7 +376,32 @@ export default function CirculationPage() {
                     className="input-dark"
                     placeholder="Escanear o escribir código..."
                     autoFocus
+                    autoComplete="off"
                   />
+                  {/* Live item preview for return */}
+                  {returnBarcode.length >= 3 && (
+                    <div className="mt-1.5 rounded-sm border border-surface-border bg-surface-raised/60 px-3 py-2">
+                      {loadingReturnItem ? (
+                        <span className="flex items-center gap-1.5 font-mono text-xs text-text-muted">
+                          <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
+                        </span>
+                      ) : returnItem ? (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-body text-xs font-medium text-text-primary truncate max-w-[200px]">
+                              {returnItem.title ?? returnItem.barcode}
+                            </p>
+                            <p className="font-mono text-xs text-text-muted">{returnItem.location}</p>
+                          </div>
+                          <span className={`font-mono text-xs ${returnItem.status === 'loaned' ? 'text-accent-amber' : 'text-text-muted'}`}>
+                            {returnItem.status === 'loaned' ? 'En préstamo' : returnItem.status === 'available' ? 'Ya disponible' : returnItem.status}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-mono text-xs text-accent-red">Ejemplar no encontrado</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {returnError && (

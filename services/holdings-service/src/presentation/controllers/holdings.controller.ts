@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  HttpException,
   Param,
   Patch,
   Post,
@@ -75,15 +76,28 @@ export class HoldingsController {
   async createItem(
     @Body() body: { barcode: string; recordId: string; libraryId: string; location?: string; callNumber?: string },
   ) {
-    return this.prisma.item.create({
-      data: {
-        barcode: body.barcode,
-        recordId: body.recordId,
-        libraryId: body.libraryId ?? 'lib-001',
-        location: body.location ?? 'Sala General',
-        callNumber: body.callNumber ?? null,
-      },
-    });
+    try {
+      return await this.prisma.item.create({
+        data: {
+          barcode: body.barcode,
+          recordId: body.recordId,
+          libraryId: body.libraryId ?? 'lib-001',
+          location: body.location ?? 'Sala General',
+          callNumber: body.callNumber || null,
+        },
+      });
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        throw new HttpException(
+          `El código de barras "${body.barcode}" ya existe`,
+          HttpStatus.CONFLICT,
+        );
+      }
+      throw new HttpException(
+        err?.message ?? 'Error al crear el ejemplar',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Patch('items/:barcode/reserve')

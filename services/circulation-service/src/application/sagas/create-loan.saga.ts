@@ -57,7 +57,7 @@ export class CreateLoanSaga {
     try {
       loan = Loan.create({
         id: uuidv4(),
-        itemId: item.id,
+        itemId: command.itemBarcode,   // store barcode, consistent with seed
         patronId: patron.id,
         libraryId: command.libraryId,
         staffId: command.staffId,

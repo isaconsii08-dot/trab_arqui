@@ -5,8 +5,6 @@ import { BookOpen, ArrowLeft, Clock, CheckCircle, AlertTriangle } from 'lucide-r
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
 
-const CIRC_URL = process.env.NEXT_PUBLIC_CIRC_URL ?? 'http://localhost:3004';
-
 interface Prestamo {
   id: string;
   itemId: string;
@@ -45,11 +43,9 @@ export default function HistorialPage() {
   async function cargarHistorial(p: number) {
     setCargando(true);
     try {
-      const tokenCookie = document.cookie.split('; ').find((r) => r.startsWith('bf_token='));
-      const userCookie  = document.cookie.split('; ').find((r) => r.startsWith('bf_user='));
-
-      if (!tokenCookie || !userCookie) {
-        // Sin sesión: mostrar historial del socio de demo vía endpoint de historial
+      const hasCookie = document.cookie.includes('bf_token=');
+      if (!hasCookie) {
+        // Sin sesión: demo
         const res = await fetch('/api/prestamos-demo');
         if (res.ok) {
           const data = await res.json() as { data: Prestamo[] };
@@ -59,14 +55,8 @@ export default function HistorialPage() {
         return;
       }
 
-      const token = decodeURIComponent(tokenCookie.split('=').slice(1).join('='));
-      const user  = JSON.parse(decodeURIComponent(userCookie.split('=').slice(1).join('='))) as { sub: string };
-
-      const res = await fetch(
-        `${CIRC_URL}/api/v1/circulation/loans/patron/${user.sub}?page=${p}&limit=${limit}`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-
+      // Usar ruta server-side (evita CORS y expira-token)
+      const res = await fetch(`/api/historial-prestamos?page=${p}&limit=${limit}`);
       if (res.ok) {
         const data = await res.json() as { data: Prestamo[]; total: number };
         setPrestamos(data.data ?? []);

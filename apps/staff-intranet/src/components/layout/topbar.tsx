@@ -12,11 +12,11 @@ export default function TopBar() {
     e.preventDefault();
     const q = query.trim();
     if (!q) return;
-    // Intentar detectar si es carnet o barcode de ejemplar, si no → buscar socio
-    if (/^EJ\d/.test(q)) {
-      router.push(`/catalog?query=${encodeURIComponent(q)}`);
-    } else {
+    // Carnet: LIB-XXXX → socios; todo lo demás (título, ISBN, barcode) → catálogo
+    if (/^LIB-/i.test(q)) {
       router.push(`/patrons?query=${encodeURIComponent(q)}`);
+    } else {
+      router.push(`/catalog?query=${encodeURIComponent(q)}`);
     }
   };
 

@@ -54,12 +54,14 @@ export class PatronController {
   @ApiQuery({ name: 'libraryId', required: false })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
+  @ApiQuery({ name: 'query', required: false })
   async listPatrons(
     @Query('libraryId') libraryId = 'lib-001',
     @Query('page') page = 1,
     @Query('limit') limit = 20,
+    @Query('query') query?: string,
   ) {
-    const result = await this.patronRepo.findAllByLibrary(libraryId, Number(page), Number(limit));
+    const result = await this.patronRepo.findAllByLibrary(libraryId, Number(page), Number(limit), query);
     return {
       data: result.data.map(PatronMapper.toDto),
       total: result.total,
@@ -94,8 +96,6 @@ export class PatronController {
   }
 
   @Get('card/:cardNumber')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
   async getByCardNumber(@Param('cardNumber') cardNumber: string) {
     const patron = await this.patronRepo.findByCardNumber(cardNumber);
     if (!patron) return null;
