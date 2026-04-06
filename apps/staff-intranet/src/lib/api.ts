@@ -189,11 +189,29 @@ export async function obtenerPrestamosActivos(): Promise<LoanConDetalle[]> {
     ),
   );
 
-  return loans.map((l) => ({
-    ...l,
-    patronName: patronMap[l.patronId] ?? l.patronId,
-    recordId: holdingsMap[l.itemBarcode]?.recordId,
-  }));
+  // Enriquecer con títulos del catálogo
+  const uniqueRecordIds = [...new Set(Object.values(holdingsMap).map((h) => h.recordId))];
+  const catalogTitles: Record<string, string> = {};
+  await Promise.all(
+    uniqueRecordIds.map((id) =>
+      fetch(`${CATALOG_URL}/api/v1/catalog/${id}`, { cache: 'no-store' })
+        .then((r) => r.ok ? r.json() : null)
+        .then((data: { title?: string } | null) => {
+          if (data?.title) catalogTitles[id] = data.title;
+        })
+        .catch(() => {}),
+    ),
+  );
+
+  return loans.map((l) => {
+    const recordId = holdingsMap[l.itemBarcode]?.recordId;
+    return {
+      ...l,
+      patronName: patronMap[l.patronId] ?? l.patronId,
+      recordId,
+      itemTitle: (recordId && catalogTitles[recordId]) ? catalogTitles[recordId] : (l.itemTitle || l.itemBarcode),
+    };
+  });
 }
 
 // Kept for backward compat (dashboard)

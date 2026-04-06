@@ -3,14 +3,24 @@ import {
   Users,
   AlertTriangle,
   RefreshCw,
-  Clock,
-  CheckCircle,
   Inbox,
 } from 'lucide-react';
 import Link from 'next/link';
 import { obtenerEstadisticas, obtenerPrestamosActivos, listarCatalogo, type LoanConDetalle } from '@/lib/api';
+import { LoansTable } from '@/components/ui/loans-table';
 
 export const dynamic = 'force-dynamic';
+
+interface Loan {
+  id: string;
+  itemId: string;
+  itemBarcode: string;
+  itemTitle: string;
+  patronId: string;
+  patronName?: string;
+  dueDate: string;
+  status: string;
+}
 
 interface CatalogRecord {
   id: string;
@@ -123,49 +133,7 @@ export default async function DashboardPage() {
             </a>
           </div>
 
-          {loans.length === 0 ? (
-            <div className="flex flex-col items-center py-10 text-center">
-              <CheckCircle className="mb-2 h-8 w-8 text-accent-green/40" />
-              <p className="font-mono text-xs text-text-muted">Sin préstamos activos</p>
-            </div>
-          ) : (
-            <table className="data-table w-full">
-              <thead>
-                <tr>
-                  <th>Ejemplar</th>
-                  <th>Socio</th>
-                  <th>Vence</th>
-                  <th>Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loans.slice(0, 10).map((loan) => (
-                  <tr key={loan.id} className="table-row">
-                    <td className="font-mono text-xs text-text-muted">
-                      {loan.itemBarcode || loan.itemId}
-                    </td>
-                    <td className="max-w-[160px] truncate text-text-secondary">
-                      {loan.patronName ?? loan.patronId}
-                    </td>
-                    <td className="font-mono text-xs text-text-muted">
-                      {new Date(loan.dueDate).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: '2-digit' })}
-                    </td>
-                    <td>
-                      {loan.status === 'overdue' ? (
-                        <span className="badge badge-red">
-                          <Clock className="mr-1 h-2.5 w-2.5" />Vencido
-                        </span>
-                      ) : (
-                        <span className="badge badge-green">
-                          <CheckCircle className="mr-1 h-2.5 w-2.5" />Activo
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+          <LoansTable loans={loans as Loan[]} />
         </div>
 
         {/* Títulos recientes del catálogo */}

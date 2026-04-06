@@ -1,4 +1,4 @@
-import { Search, UserPlus, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Search, UserPlus, CheckCircle, XCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { listarSocios } from '@/lib/api';
 
@@ -15,7 +15,7 @@ export default async function PatronsPage({ searchParams }: PageProps) {
   const page = Math.max(1, parseInt(params.page ?? '1', 10));
   const query = params.query ?? '';
 
-  const resultado = await listarSocios(page, 20, query).catch(() => ({
+  const resultado = await listarSocios(page, 8, query).catch(() => ({
     data: [] as Array<{
       id: string; cardNumber: string; fullName: string; email: string;
       status: string; phone: string | null; pendingFinesTotal: number;
@@ -128,19 +128,36 @@ export default async function PatronsPage({ searchParams }: PageProps) {
       {totalPages > 1 && (
         <div className="flex items-center justify-between">
           <span className="font-mono text-xs text-text-muted">
-            Página {page} de {totalPages}
+            Página {page} de {totalPages} · {resultado.total} socios
           </span>
-          <div className="flex gap-2">
-            {page > 1 && (
-              <Link href={`/patrons?page=${page - 1}${query ? `&query=${encodeURIComponent(query)}` : ''}`} className="btn-ghost text-sm">
-                ← Anterior
+          <div className="flex items-center gap-1">
+            <Link
+              href={`/patrons?page=${page - 1}${query ? `&query=${encodeURIComponent(query)}` : ''}`}
+              aria-disabled={page === 1}
+              className={`flex h-7 w-7 items-center justify-center rounded-sm border border-surface-border text-text-muted hover:bg-surface-raised ${page === 1 ? 'pointer-events-none opacity-30' : ''}`}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </Link>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <Link
+                key={p}
+                href={`/patrons?page=${p}${query ? `&query=${encodeURIComponent(query)}` : ''}`}
+                className={`flex h-7 w-7 items-center justify-center rounded-sm border font-mono text-xs transition-colors ${
+                  p === page
+                    ? 'border-accent-green bg-accent-green/10 text-accent-green'
+                    : 'border-surface-border text-text-muted hover:bg-surface-raised'
+                }`}
+              >
+                {p}
               </Link>
-            )}
-            {page < totalPages && (
-              <Link href={`/patrons?page=${page + 1}${query ? `&query=${encodeURIComponent(query)}` : ''}`} className="btn-ghost text-sm">
-                Siguiente →
-              </Link>
-            )}
+            ))}
+            <Link
+              href={`/patrons?page=${page + 1}${query ? `&query=${encodeURIComponent(query)}` : ''}`}
+              aria-disabled={page === totalPages}
+              className={`flex h-7 w-7 items-center justify-center rounded-sm border border-surface-border text-text-muted hover:bg-surface-raised ${page === totalPages ? 'pointer-events-none opacity-30' : ''}`}
+            >
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
         </div>
       )}

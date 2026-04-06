@@ -16,6 +16,7 @@ interface Prestamo {
   fineAmount: number;
   itemBarcode: string;
   itemTitle: string;
+  coverImageUrl?: string | null;
 }
 
 const copFmt = (n: number) =>
@@ -106,7 +107,9 @@ export default function HistorialPage() {
                 return (
                   <div key={prestamo.id} className="card flex items-center gap-4 p-4">
                     <div className="relative h-14 w-10 shrink-0 overflow-hidden rounded-sm bg-parchment-dark flex items-center justify-center">
-                      <BookOpen className="h-5 w-5 text-ink/20" />
+                      {prestamo.coverImageUrl
+                        ? <img src={prestamo.coverImageUrl} alt={prestamo.itemTitle} className="h-full w-full object-cover" />
+                        : <BookOpen className="h-5 w-5 text-ink/20" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="truncate font-body text-sm font-medium text-ink">

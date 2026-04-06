@@ -47,6 +47,14 @@ export class PrismaLoanRepository implements ILoanRepository {
     return { data: records.map((r) => this.toDomain(r)), total };
   }
 
+  async findAllActiveLoans(): Promise<Loan[]> {
+    const records = await this.prisma.loan.findMany({
+      where: { status: { in: ['active', 'overdue'] } },
+      orderBy: { dueDate: 'asc' },
+    });
+    return records.map((r) => this.toDomain(r));
+  }
+
   async findOverdueLoans(): Promise<Loan[]> {
     const records = await this.prisma.loan.findMany({
       where: { status: 'overdue' },

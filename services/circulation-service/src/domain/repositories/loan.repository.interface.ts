@@ -5,6 +5,7 @@ export interface ILoanRepository {
   findActiveLoanByItemBarcode(barcode: string): Promise<Loan | null>;
   findActiveLoansByPatron(patronId: string): Promise<Loan[]>;
   findLoansByPatron(patronId: string, page: number, limit: number): Promise<{ data: Loan[]; total: number }>;
+  findAllActiveLoans(): Promise<Loan[]>;
   findOverdueLoans(): Promise<Loan[]>;
   save(loan: Loan): Promise<Loan>;
   countActiveByPatron(patronId: string): Promise<number>;

@@ -100,21 +100,21 @@ export class CirculationController {
       const loans = await this.loanRepo.findActiveLoansByPatron(patronId);
       return { data: loans.map((l) => LoanMapper.toDto(l)), total: loans.length };
     }
-    const overdue = await this.loanRepo.findOverdueLoans();
-    return { data: overdue.map((l) => LoanMapper.toDto(l)), total: overdue.length };
+    const loans = await this.loanRepo.findAllActiveLoans();
+    return { data: loans.map((l) => LoanMapper.toDto(l)), total: loans.length };
   }
 
   @Get('stats')
   @Roles('administrator', 'librarian', 'assistant')
   @ApiOperation({ summary: 'Estadísticas de circulación del día' })
   async getStats() {
-    // Préstamos vencidos en tiempo real
-    const overdue = await this.loanRepo.findOverdueLoans();
+    const [allActive, overdue] = await Promise.all([
+      this.loanRepo.findAllActiveLoans(),
+      this.loanRepo.findOverdueLoans(),
+    ]);
     return {
+      prestamosActivos: allActive.length,
       prestamosVencidos: overdue.length,
-      // Estas métricas se llenarían con un repositorio de eventos de dominio
-      // Por ahora devolvemos las que podemos calcular desde el estado actual
-      prestamosActivos: 0,
     };
   }
 }
