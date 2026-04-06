@@ -48,6 +48,23 @@ interface ItemInfo {
 const copFmt = (n: number) =>
   new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
 
+const ITEM_STATUS: Record<string, { label: string; color: string }> = {
+  available:   { label: 'Disponible',   color: 'text-accent-green' },
+  loaned:      { label: 'En préstamo',  color: 'text-accent-amber' },
+  reserved:    { label: 'Reservado',    color: 'text-accent-amber' },
+  maintenance: { label: 'Mantenimiento',color: 'text-text-muted'   },
+  lost:        { label: 'Perdido',      color: 'text-accent-red'   },
+  unavailable: { label: 'No disponible',color: 'text-text-muted'   },
+};
+const PATRON_STATUS: Record<string, { label: string; color: string }> = {
+  active:    { label: 'Activo',     color: 'text-accent-green' },
+  suspended: { label: 'Suspendido', color: 'text-accent-red'   },
+  expired:   { label: 'Expirado',   color: 'text-accent-amber' },
+  blocked:   { label: 'Bloqueado',  color: 'text-accent-red'   },
+};
+const itemStatus  = (s: string) => ITEM_STATUS[s]   ?? { label: s, color: 'text-text-muted' };
+const patronStatus = (s: string) => PATRON_STATUS[s] ?? { label: s, color: 'text-text-muted' };
+
 const ESTADO_STYLES: Record<string, { label: string; cls: string }> = {
   pendiente:  { label: 'Pendiente',  cls: 'bg-accent-amber/15 text-accent-amber border-accent-amber/20' },
   aprobada:   { label: 'Aprobada',   cls: 'bg-accent-green/15 text-accent-green border-accent-green/20' },
@@ -359,8 +376,8 @@ export default function CirculationPage() {
                             <p className="truncate font-body text-xs font-medium text-text-primary">{item.title || 'Sin título'}</p>
                             <p className="font-mono text-[10px] text-text-muted">{item.barcode} · {item.location}</p>
                           </div>
-                          <span className={`font-mono text-[10px] ${item.status === 'available' ? 'text-accent-green' : 'text-accent-amber'}`}>
-                            {item.status}
+                          <span className={`font-mono text-[10px] ${itemStatus(item.status).color}`}>
+                            {itemStatus(item.status).label}
                           </span>
                         </button>
                       ))}
@@ -380,8 +397,8 @@ export default function CirculationPage() {
                               </p>
                               <p className="font-mono text-xs text-text-muted">{item.location}</p>
                             </div>
-                            <span className={`font-mono text-xs ${item.status === 'available' ? 'text-accent-green' : 'text-accent-amber'}`}>
-                              {item.status === 'available' ? 'Disponible' : item.status}
+                            <span className={`font-mono text-xs ${itemStatus(item.status).color}`}>
+                              {itemStatus(item.status).label}
                             </span>
                           </div>
                         );
@@ -420,8 +437,8 @@ export default function CirculationPage() {
                             <p className="font-body text-xs font-medium text-text-primary">{patron.fullName}</p>
                             <p className="font-mono text-[10px] text-text-muted">{patron.cardNumber}</p>
                           </div>
-                          <span className={`font-mono text-[10px] ${patron.status === 'active' ? 'text-accent-green' : 'text-accent-red'}`}>
-                            {patron.status}
+                          <span className={`font-mono text-[10px] ${patronStatus(patron.status).color}`}>
+                            {patronStatus(patron.status).label}
                           </span>
                         </button>
                       ))}
@@ -439,8 +456,8 @@ export default function CirculationPage() {
                               <p className="font-body text-xs font-medium text-text-primary">{patron.fullName}</p>
                               <p className="font-mono text-xs text-text-muted">{patron.cardNumber}</p>
                             </div>
-                            <span className={`font-mono text-xs ${patron.status === 'active' ? 'text-accent-green' : 'text-accent-red'}`}>
-                              {patron.status}
+                            <span className={`font-mono text-xs ${patronStatus(patron.status).color}`}>
+                              {patronStatus(patron.status).label}
                               {patron.pendingFinesTotal > 0 && <> · {copFmt(patron.pendingFinesTotal)}</>}
                             </span>
                           </div>
@@ -496,8 +513,8 @@ export default function CirculationPage() {
                             <p className="truncate font-body text-xs font-medium text-text-primary">{item.title || 'Sin título'}</p>
                             <p className="font-mono text-[10px] text-text-muted">{item.barcode} · {item.location}</p>
                           </div>
-                          <span className={`font-mono text-[10px] ${item.status === 'loaned' ? 'text-accent-amber' : 'text-text-muted'}`}>
-                            {item.status === 'loaned' ? 'En préstamo' : item.status}
+                          <span className={`font-mono text-[10px] ${itemStatus(item.status).color}`}>
+                            {itemStatus(item.status).label}
                           </span>
                         </button>
                       ))}
@@ -517,8 +534,8 @@ export default function CirculationPage() {
                               </p>
                               <p className="font-mono text-xs text-text-muted">{item.location}</p>
                             </div>
-                            <span className={`font-mono text-xs ${item.status === 'loaned' ? 'text-accent-amber' : 'text-text-muted'}`}>
-                              {item.status === 'loaned' ? 'En préstamo' : item.status === 'available' ? 'Ya disponible' : item.status}
+                            <span className={`font-mono text-xs ${itemStatus(item.status).color}`}>
+                              {itemStatus(item.status).label}
                             </span>
                           </div>
                         );
