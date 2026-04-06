@@ -1,4 +1,5 @@
 import { BookOpen, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RefreshButton } from '@/components/ui/refresh-button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { listarCatalogo } from '@/lib/api';
@@ -44,10 +45,13 @@ export default async function CatalogPage({ searchParams }: PageProps) {
             {resultado.total.toLocaleString()} materiales registrados
           </p>
         </div>
-        <Link href="/catalog/new" className="btn-green">
-          <BookOpen className="h-4 w-4" />
-          Añadir material
-        </Link>
+        <div className="flex items-center gap-2">
+          <RefreshButton />
+          <Link href="/catalog/new" className="btn-green">
+            <BookOpen className="h-4 w-4" />
+            Añadir material
+          </Link>
+        </div>
       </div>
 
       {/* Búsqueda */}

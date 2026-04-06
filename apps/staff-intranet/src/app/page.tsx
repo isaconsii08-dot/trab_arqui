@@ -8,6 +8,7 @@ import {
 import Link from 'next/link';
 import { obtenerEstadisticas, obtenerPrestamosActivos, listarCatalogo, type LoanConDetalle } from '@/lib/api';
 import { LoansTable } from '@/components/ui/loans-table';
+import { RefreshButton } from '@/components/ui/refresh-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,9 +95,12 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Encabezado */}
-      <div>
-        <h1 className="font-display text-xl font-semibold text-text-primary">Dashboard operacional</h1>
-        <p className="mt-0.5 font-mono text-xs capitalize text-text-muted">{today}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-display text-xl font-semibold text-text-primary">Dashboard operacional</h1>
+          <p className="mt-0.5 font-mono text-xs capitalize text-text-muted">{today}</p>
+        </div>
+        <RefreshButton />
       </div>
 
       {/* Estadísticas */}

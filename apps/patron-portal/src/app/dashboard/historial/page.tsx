@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BookOpen, ArrowLeft, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
+import { BookOpen, ArrowLeft, Clock, CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
 
@@ -32,6 +32,7 @@ const estadoLabel: Record<string, { label: string; color: string; icon: React.El
 export default function HistorialPage() {
   const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [refrescando, setRefrescando] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const limit = 20;
@@ -79,10 +80,18 @@ export default function HistorialPage() {
             <Link href="/dashboard" className="text-ink-muted hover:text-ink">
               <ArrowLeft className="h-5 w-5" />
             </Link>
-            <div>
+            <div className="flex-1">
               <span className="section-label">Portal del socio</span>
               <h1 className="heading-md mt-1 text-ink">Historial de préstamos</h1>
             </div>
+            <button
+              onClick={() => { setRefrescando(true); cargarHistorial(page).finally(() => setRefrescando(false)); }}
+              disabled={refrescando || cargando}
+              className="flex items-center gap-1 rounded-sm border border-ink/10 px-2.5 py-1 font-mono text-xs text-ink-muted hover:bg-parchment-dark hover:text-ink transition-colors disabled:opacity-50"
+            >
+              <RotateCcw className={`h-3 w-3 ${refrescando ? 'animate-spin' : ''}`} />
+              Actualizar
+            </button>
           </div>
 
           {cargando ? (

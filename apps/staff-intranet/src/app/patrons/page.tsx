@@ -1,4 +1,5 @@
 import { Search, UserPlus, CheckCircle, XCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { RefreshButton } from '@/components/ui/refresh-button';
 import Link from 'next/link';
 import { listarSocios } from '@/lib/api';
 
@@ -37,10 +38,13 @@ export default async function PatronsPage({ searchParams }: PageProps) {
             {query && ` — resultados para "${query}"`}
           </p>
         </div>
-        <Link href="/patrons/new" className="btn-green">
-          <UserPlus className="h-4 w-4" />
-          Nuevo socio
-        </Link>
+        <div className="flex items-center gap-2">
+          <RefreshButton />
+          <Link href="/patrons/new" className="btn-green">
+            <UserPlus className="h-4 w-4" />
+            Nuevo socio
+          </Link>
+        </div>
       </div>
 
       {/* Barra de búsqueda */}

@@ -1,6 +1,7 @@
 import { Users, BookOpen, AlertTriangle, TrendingUp } from 'lucide-react';
 import { obtenerEstadisticas, listarCatalogo } from '@/lib/api';
 import AnalyticsCharts from './charts';
+import { RefreshButton } from '@/components/ui/refresh-button';
 
 export default async function AnalyticsPage() {
   const [estadisticas, catalogData] = await Promise.all([
@@ -42,9 +43,12 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-xl font-semibold text-text-primary">Estadísticas</h1>
-        <p className="font-mono text-xs text-text-muted">Métricas generales del sistema en tiempo real</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-display text-xl font-semibold text-text-primary">Estadísticas</h1>
+          <p className="font-mono text-xs text-text-muted">Métricas generales del sistema en tiempo real</p>
+        </div>
+        <RefreshButton />
       </div>
 
       {/* KPIs */}

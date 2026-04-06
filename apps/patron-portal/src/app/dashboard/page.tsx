@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Clock, BookOpen, AlertTriangle, RefreshCw, CreditCard, X, CheckCircle } from 'lucide-react';
+import { Clock, BookOpen, AlertTriangle, RefreshCw, CreditCard, X, CheckCircle, RotateCcw } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
 
@@ -44,9 +44,22 @@ export default function DashboardPage() {
   const [cargando, setCargando] = useState(true);
   const [toast, setToast] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
   const [renovando, setRenovando] = useState<string | null>(null);
+  const [refrescando, setRefrescando] = useState(false);
   const [modalPago, setModalPago] = useState(false);
   const [pagando, setPagando] = useState(false);
   const [cardNum, setCardNum] = useState('');
+
+  function recargar() {
+    setRefrescando(true);
+    fetch('/api/mis-prestamos')
+      .then((r) => r.json())
+      .then((data: { data: Prestamo[] }) => {
+        const todos = data.data ?? [];
+        setPrestamos(todos.filter((l) => l.status === 'active' || l.status === 'overdue'));
+      })
+      .catch(() => {})
+      .finally(() => setRefrescando(false));
+  }
 
   const mostrarToast = (msg: string, tipo: 'ok' | 'err') => {
     setToast({ msg, tipo });
@@ -129,10 +142,20 @@ export default function DashboardPage() {
           <div className="mb-10">
             <span className="section-label">Portal del socio</span>
             <h1 className="heading-md mt-2 text-ink">Mi cuenta</h1>
-            <p className="mt-1 font-body text-sm text-ink-muted">
-              Bienvenido, <span className="font-medium text-ink">{nombreSocio}</span>
-              {!usuario && <span className="ml-2 rounded-full bg-amber-book/10 px-2 py-0.5 font-mono text-xs text-amber-book">Vista de demo</span>}
-            </p>
+            <div className="mt-2 flex items-center gap-3">
+              <p className="font-body text-sm text-ink-muted">
+                Bienvenido, <span className="font-medium text-ink">{nombreSocio}</span>
+                {!usuario && <span className="ml-2 rounded-full bg-amber-book/10 px-2 py-0.5 font-mono text-xs text-amber-book">Vista de demo</span>}
+              </p>
+              <button
+                onClick={recargar}
+                disabled={refrescando}
+                className="flex items-center gap-1 rounded-sm border border-ink/10 px-2.5 py-1 font-mono text-xs text-ink-muted hover:bg-parchment-dark hover:text-ink transition-colors disabled:opacity-50"
+              >
+                <RotateCcw className={`h-3 w-3 ${refrescando ? 'animate-spin' : ''}`} />
+                Actualizar
+              </button>
+            </div>
           </div>
 
           {/* Alerta vencidos */}
