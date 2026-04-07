@@ -150,16 +150,18 @@ export default async function DashboardPage() {
           </div>
           <ul className="divide-y divide-surface-border">
             {topTitulos.map((item, i) => (
-              <li key={item.id} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-raised/50 transition-colors">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-surface-raised font-mono text-xs text-text-muted">
-                  {i + 1}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <p className="truncate font-body text-sm text-text-primary">{item.title}</p>
-                  {item.authors?.[0] && (
-                    <p className="truncate font-mono text-xs text-text-muted">{item.authors[0].name}</p>
-                  )}
-                </div>
+              <li key={item.id}>
+                <Link href={`/catalog/${item.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-surface-raised/50 transition-colors">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-surface-raised font-mono text-xs text-text-muted">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate font-body text-sm text-text-primary">{item.title}</p>
+                    {item.authors?.[0] && (
+                      <p className="truncate font-mono text-xs text-text-muted">{item.authors[0].name}</p>
+                    )}
+                  </div>
+                </Link>
               </li>
             ))}
             {topTitulos.length === 0 && (
