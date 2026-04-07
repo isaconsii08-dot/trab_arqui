@@ -120,7 +120,18 @@ export class Loan {
   }
 
   updateDueDate(newDueDate: Date): Loan {
-    return new Loan({ ...this.props, dueDate: newDueDate, status: 'active' });
+    const now = new Date();
+    const isOverdue = now > newDueDate;
+    const daysLate = isOverdue
+      ? Math.ceil((now.getTime() - newDueDate.getTime()) / (1000 * 60 * 60 * 24))
+      : 0;
+    const fineAmount = daysLate * 1000;
+    return new Loan({
+      ...this.props,
+      dueDate: newDueDate,
+      status: isOverdue ? 'overdue' : 'active',
+      fineAmount,
+    });
   }
 
   forceClose(): Loan {
