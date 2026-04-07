@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -48,16 +49,14 @@ export default function Sidebar() {
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r border-surface-border bg-surface-card">
       {/* Logo */}
       <div className="flex h-14 items-center border-b border-surface-border px-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-accent-green/15">
-            <BookOpen className="h-3.5 w-3.5 text-accent-green" />
-          </div>
-          <div>
-            <span className="font-display text-sm font-semibold text-text-primary">
-              Biblio<span className="text-accent-green">Flow</span>
-            </span>
-          </div>
-        </div>
+        <Image
+          src="/LogoBiblioFlow.png"
+          alt="BiblioFlow"
+          width={120}
+          height={25}
+          className="h-6 w-auto brightness-0 invert"
+          priority
+        />
       </div>
 
       {/* Navigation */}

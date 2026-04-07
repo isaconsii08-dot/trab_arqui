@@ -30,6 +30,7 @@ model BibliographicRecord {
   coverImageUrl   String?      @map("cover_image_url")
   materialType    MaterialType @default(book) @map("material_type")
   libraryId       String       @map("library_id")
+  isActive        Boolean      @default(true)  @map("is_active")
   esIndexed       Boolean      @default(false) @map("es_indexed")
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")

@@ -22,7 +22,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
 
   async findByIsbn(isbn: string): Promise<BibliographicRecord | null> {
     const r = await this.prisma.bibliographicRecord.findFirst({
-      where: { isbn },
+      where: { isbn, isActive: true },
       include: {
         recordAuthors: { include: { author: true } },
         recordSubjects: { include: { subject: true } },
@@ -72,7 +72,8 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       });
     }
 
-    const where = andConditions.length > 0 ? { AND: andConditions } : {};
+    andConditions.push({ isActive: true });
+    const where = { AND: andConditions };
 
     const page = Number(filters.page ?? 1);
     const limit = Number(filters.limit ?? 20);
@@ -210,7 +211,10 @@ export class PrismaCatalogRepository implements ICatalogRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.bibliographicRecord.delete({ where: { id } });
+    await this.prisma.bibliographicRecord.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 
   private toDomain(r: any): BibliographicRecord {

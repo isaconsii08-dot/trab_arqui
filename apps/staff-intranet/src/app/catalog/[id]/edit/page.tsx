@@ -357,7 +357,7 @@ export default function EditCatalogPage() {
               onClick={() => setConfirmarEliminar(true)}
               className="ml-auto flex items-center gap-1.5 font-mono text-xs text-accent-red hover:underline"
             >
-              <Trash2 className="h-3.5 w-3.5" /> Eliminar registro
+              <Trash2 className="h-3.5 w-3.5" /> Desactivar registro
             </button>
           </div>
         </form>
@@ -367,9 +367,9 @@ export default function EditCatalogPage() {
       {confirmarEliminar && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
           <div className="surface-card w-full max-w-sm p-6 space-y-4">
-            <h2 className="font-display text-base font-semibold text-text-primary">¿Eliminar este registro?</h2>
+            <h2 className="font-display text-base font-semibold text-text-primary">¿Desactivar este registro?</h2>
             <p className="font-mono text-xs text-text-muted">
-              Esta acción no se puede deshacer. Se eliminarán el registro y todos sus datos asociados.
+              El libro dejará de aparecer en el catálogo pero se conservará el historial de préstamos e imágenes.
             </p>
             <div className="flex gap-3">
               <button
@@ -378,7 +378,7 @@ export default function EditCatalogPage() {
                 className="flex items-center gap-1.5 rounded-sm bg-accent-red px-4 py-2 font-mono text-xs text-white hover:opacity-90 disabled:opacity-50"
               >
                 {eliminando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                {eliminando ? 'Eliminando...' : 'Sí, eliminar'}
+                {eliminando ? 'Desactivando...' : 'Sí, desactivar'}
               </button>
               <button
                 onClick={() => setConfirmarEliminar(false)}

@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
-import { BookOpen, Menu, X, User, Search, LogOut, LayoutDashboard } from 'lucide-react';
+import { Menu, X, User, Search, LogOut, LayoutDashboard } from 'lucide-react';
 
 interface Session {
   sub: string;
@@ -42,13 +43,15 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 border-b border-parchment-dark/50 bg-parchment/90 backdrop-blur-md">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-ink transition-colors group-hover:bg-ink-light">
-            <BookOpen className="h-4 w-4 text-parchment" />
-          </div>
-          <span className="font-display text-lg font-semibold text-ink">
-            Biblio<span className="text-amber-book">Flow</span>
-          </span>
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/LogoBiblioFlow.png"
+            alt="BiblioFlow"
+            width={140}
+            height={30}
+            className="h-8 w-auto"
+            priority
+          />
         </Link>
 
         {/* Desktop nav */}
