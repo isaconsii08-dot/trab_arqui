@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { BookOpen, MapPin, Phone, Mail, Clock } from 'lucide-react';
+import Image from 'next/image';
+import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 
 export default function Footer() {
   return (
@@ -34,16 +35,15 @@ export default function Footer() {
         <div className="grid gap-8 md:grid-cols-4">
           {/* Brand */}
           <div className="md:col-span-2">
-            <Link href="/" className="mb-4 inline-flex items-center gap-2.5">
-              <div
-                className="flex h-7 w-7 items-center justify-center rounded-sm"
-                style={{ backgroundColor: 'rgba(237,207,196,0.15)' }}
-              >
-                <BookOpen className="h-3.5 w-3.5" style={{ color: '#E8A882' }} />
-              </div>
-              <span className="font-display text-base font-semibold" style={{ color: '#EDCFC4' }}>
-                Biblio<span style={{ color: '#E8A882' }}>Flow</span>
-              </span>
+            <Link href="/" className="mb-4 inline-flex items-center">
+              <Image
+                src="/LogoBiblioFlow.png"
+                alt="BiblioFlow"
+                width={110}
+                height={23}
+                className="h-6 w-auto brightness-0"
+                style={{ filter: 'brightness(0) invert(1)', opacity: 0.55 }}
+              />
             </Link>
             <p className="mb-4 max-w-xs text-sm leading-relaxed" style={{ color: 'rgba(237,207,196,0.45)' }}>
               Sistema integral de gestión bibliotecaria de la Universidad Cooperativa

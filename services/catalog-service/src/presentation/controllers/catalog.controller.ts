@@ -8,6 +8,7 @@ import {
   Inject,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Put,
   Query,
@@ -136,10 +137,22 @@ export class CatalogController {
   @Roles('administrator', 'librarian')
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Eliminar un registro bibliográfico (personal)' })
+  @ApiOperation({ summary: 'Desactivar un registro bibliográfico (personal)' })
   async remove(@Param('id') id: string): Promise<void> {
     const existing = await this.catalogRepo.findById(id);
     if (!existing) throw new NotFoundException('Registro no encontrado');
     await this.catalogRepo.delete(id);
+  }
+
+  @Patch(':id/activate')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('administrator', 'librarian')
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Reactivar un registro bibliográfico desactivado (personal)' })
+  async reactivate(@Param('id') id: string): Promise<void> {
+    const existing = await this.catalogRepo.findById(id);
+    if (!existing) throw new NotFoundException('Registro no encontrado');
+    await this.catalogRepo.activate(id);
   }
 }

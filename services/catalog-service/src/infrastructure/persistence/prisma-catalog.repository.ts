@@ -72,7 +72,8 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       });
     }
 
-    andConditions.push({ isActive: true });
+    const showInactive = filters.inactive === true || (filters.inactive as unknown) === 'true' || (filters.inactive as unknown) === '1';
+    andConditions.push({ isActive: !showInactive });
     const where = { AND: andConditions };
 
     const page = Number(filters.page ?? 1);
@@ -214,6 +215,13 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     await this.prisma.bibliographicRecord.update({
       where: { id },
       data: { isActive: false },
+    });
+  }
+
+  async activate(id: string): Promise<void> {
+    await this.prisma.bibliographicRecord.update({
+      where: { id },
+      data: { isActive: true },
     });
   }
 

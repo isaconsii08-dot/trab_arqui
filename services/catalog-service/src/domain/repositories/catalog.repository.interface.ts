@@ -18,6 +18,7 @@ export interface ICatalogRepository {
     subjectTerms: string[],
   ): Promise<BibliographicRecord>;
   delete(id: string): Promise<void>;
+  activate(id: string): Promise<void>;
 }
 
 export const CATALOG_REPOSITORY = Symbol('ICatalogRepository');

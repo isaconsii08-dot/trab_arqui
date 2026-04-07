@@ -2,7 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Loader2, RotateCcw } from 'lucide-react';
+import { useState } from 'react';
 
 interface CatalogRecord {
   id: string;
@@ -18,8 +19,20 @@ interface CatalogRecord {
   availableItems: number;
 }
 
-export function CatalogTableRows({ libros }: { libros: CatalogRecord[] }) {
+export function CatalogTableRows({ libros, mostrarInactivos = false }: { libros: CatalogRecord[]; mostrarInactivos?: boolean }) {
   const router = useRouter();
+  const [reactivando, setReactivando] = useState<string | null>(null);
+
+  const handleReactivar = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setReactivando(id);
+    try {
+      await fetch(`/api/catalogo/${id}`, { method: 'PATCH' });
+      router.refresh();
+    } finally {
+      setReactivando(null);
+    }
+  };
 
   return (
     <>
@@ -65,7 +78,20 @@ export function CatalogTableRows({ libros }: { libros: CatalogRecord[] }) {
             </span>
           </td>
           <td>
-            <span className="font-mono text-xs text-accent-green">Ver →</span>
+            {mostrarInactivos ? (
+              <button
+                onClick={(e) => handleReactivar(e, libro.id)}
+                disabled={reactivando === libro.id}
+                className="flex items-center gap-1 font-mono text-xs text-accent-green hover:underline disabled:opacity-50"
+              >
+                {reactivando === libro.id
+                  ? <Loader2 className="h-3 w-3 animate-spin" />
+                  : <RotateCcw className="h-3 w-3" />}
+                Reactivar
+              </button>
+            ) : (
+              <span className="font-mono text-xs text-accent-green">Ver →</span>
+            )}
           </td>
         </tr>
       ))}

@@ -47,9 +47,9 @@ export default function Navbar() {
           <Image
             src="/LogoBiblioFlow.png"
             alt="BiblioFlow"
-            width={140}
-            height={30}
-            className="h-8 w-auto"
+            width={110}
+            height={23}
+            className="h-6 w-auto"
             priority
           />
         </Link>

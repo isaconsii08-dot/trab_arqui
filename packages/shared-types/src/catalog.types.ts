@@ -43,6 +43,7 @@ export interface SearchFilters {
   yearTo?: number;
   materialType?: MaterialType;
   available?: boolean;
+  inactive?: boolean;
   page?: number;
   limit?: number;
 }

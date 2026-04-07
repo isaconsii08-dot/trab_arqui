@@ -48,7 +48,7 @@ export default function Sidebar() {
   return (
     <aside className="flex h-screen w-56 shrink-0 flex-col border-r border-surface-border bg-surface-card">
       {/* Logo */}
-      <div className="flex h-14 items-center border-b border-surface-border px-4">
+      <div className="flex h-14 items-center justify-center border-b border-surface-border px-4">
         <Image
           src="/LogoBiblioFlow.png"
           alt="BiblioFlow"

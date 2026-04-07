@@ -1,11 +1,11 @@
-import { BookOpen, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, Search, ChevronLeft, ChevronRight, EyeOff, Eye } from 'lucide-react';
 import { RefreshButton } from '@/components/ui/refresh-button';
 import { CatalogTableRows } from '@/components/ui/catalog-table-rows';
 import Link from 'next/link';
 import { listarCatalogo } from '@/lib/api';
 
 interface PageProps {
-  searchParams: Promise<{ page?: string; query?: string }>;
+  searchParams: Promise<{ page?: string; query?: string; inactive?: string }>;
 }
 
 interface CatalogRecord {
@@ -26,11 +26,13 @@ export default async function CatalogPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? '1', 10));
   const query = params.query ?? '';
+  const mostrarInactivos = params.inactive === '1';
 
   const resultado = await listarCatalogo({
     limit: 8,
     page,
     ...(query ? { query } : {}),
+    ...(mostrarInactivos ? { inactive: 1 } : {}),
   }).catch(() => ({ data: [] as CatalogRecord[], total: 0 }));
 
   const libros = resultado.data as CatalogRecord[];
@@ -47,6 +49,13 @@ export default async function CatalogPage({ searchParams }: PageProps) {
         </div>
         <div className="flex items-center gap-2">
           <RefreshButton />
+          <Link
+            href={mostrarInactivos ? `/catalog${query ? `?query=${encodeURIComponent(query)}` : ''}` : `/catalog?inactive=1${query ? `&query=${encodeURIComponent(query)}` : ''}`}
+            className="btn-ghost text-sm"
+          >
+            {mostrarInactivos ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {mostrarInactivos ? 'Inactivos' : 'Inactivos'}
+          </Link>
           <Link href="/catalog/new" className="btn-green">
             <BookOpen className="h-4 w-4" />
             Añadir material
@@ -93,7 +102,7 @@ export default async function CatalogPage({ searchParams }: PageProps) {
               </tr>
             </thead>
             <tbody>
-              <CatalogTableRows libros={libros} />
+              <CatalogTableRows libros={libros} mostrarInactivos={mostrarInactivos} />
             </tbody>
           </table>
         </div>

@@ -26,6 +26,7 @@ interface CatalogRecord {
   coverImageUrl: string | null;
   uniformTitle: string | null;
   edition: string | null;
+  isActive: boolean;
   authors: Array<{ id: string; name: string; role: string }>;
   subjects: Array<{ id: string; term: string }>;
 }
@@ -37,6 +38,8 @@ export default function EditCatalogPage() {
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [eliminando, setEliminando] = useState(false);
+  const [reactivando, setReactivando] = useState(false);
+  const [isActive, setIsActive] = useState(true);
   const [confirmarEliminar, setConfirmarEliminar] = useState(false);
   const [error, setError] = useState('');
 
@@ -66,6 +69,7 @@ export default function EditCatalogPage() {
           uniformTitle: data.uniformTitle ?? '',
           edition: data.edition ?? '',
         });
+        setIsActive(data.isActive ?? true);
         setAuthors(data.authors?.map((a) => a.name) ?? ['']);
         setSubjects(data.subjects?.map((s) => s.term) ?? ['']);
       })
@@ -145,7 +149,7 @@ export default function EditCatalogPage() {
         router.push('/catalog');
       } else {
         const data = await res.json() as { message?: string };
-        setError(data.message ?? 'Error al eliminar');
+        setError(data.message ?? 'Error al desactivar');
         setConfirmarEliminar(false);
       }
     } catch {
@@ -153,6 +157,23 @@ export default function EditCatalogPage() {
       setConfirmarEliminar(false);
     } finally {
       setEliminando(false);
+    }
+  };
+
+  const handleReactivar = async () => {
+    setReactivando(true);
+    try {
+      const res = await fetch(`/api/catalogo/${id}`, { method: 'PATCH' });
+      if (res.ok || res.status === 204) {
+        setIsActive(true);
+      } else {
+        const data = await res.json() as { message?: string };
+        setError(data.message ?? 'Error al reactivar');
+      }
+    } catch {
+      setError('No se pudo conectar con el servidor');
+    } finally {
+      setReactivando(false);
     }
   };
 
@@ -175,6 +196,12 @@ export default function EditCatalogPage() {
           <p className="font-mono text-xs text-text-muted">{id}</p>
         </div>
       </div>
+
+      {!isActive && (
+        <div className="rounded-sm border border-accent-amber/30 bg-accent-amber/8 px-4 py-3 font-mono text-xs text-accent-amber">
+          Este registro está <strong>desactivado</strong> y no aparece en el catálogo público.
+        </div>
+      )}
 
       <div className="surface-card p-6">
         {error && (
@@ -352,13 +379,25 @@ export default function EditCatalogPage() {
               {guardando ? 'Guardando...' : 'Guardar cambios'}
             </button>
             <Link href={`/catalog/${id}`} className="btn-ghost">Cancelar</Link>
-            <button
-              type="button"
-              onClick={() => setConfirmarEliminar(true)}
-              className="ml-auto flex items-center gap-1.5 font-mono text-xs text-accent-red hover:underline"
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Desactivar registro
-            </button>
+            {isActive ? (
+              <button
+                type="button"
+                onClick={() => setConfirmarEliminar(true)}
+                className="ml-auto flex items-center gap-1.5 font-mono text-xs text-accent-red hover:underline"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Desactivar registro
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleReactivar}
+                disabled={reactivando}
+                className="ml-auto flex items-center gap-1.5 font-mono text-xs text-accent-green hover:underline disabled:opacity-50"
+              >
+                {reactivando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BookOpen className="h-3.5 w-3.5" />}
+                {reactivando ? 'Reactivando...' : 'Reactivar registro'}
+              </button>
+            )}
           </div>
         </form>
       </div>

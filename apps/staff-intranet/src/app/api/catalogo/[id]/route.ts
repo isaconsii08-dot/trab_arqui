@@ -48,3 +48,19 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     return NextResponse.json({ message: err instanceof Error ? err.message : 'Error interno' }, { status: 500 });
   }
 }
+
+export async function PATCH(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const { token } = await obtenerCredencialesServicio();
+    const res = await fetch(`${CATALOG_URL}/api/v1/catalog/${id}/activate`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.status === 204) return new NextResponse(null, { status: 204 });
+    const data = await res.json() as unknown;
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    return NextResponse.json({ message: err instanceof Error ? err.message : 'Error interno' }, { status: 500 });
+  }
+}
