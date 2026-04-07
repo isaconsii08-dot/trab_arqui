@@ -18,9 +18,9 @@ export function RefreshButton({ className }: { className?: string }) {
     <button
       onClick={handleRefresh}
       title="Actualizar datos"
-      className={`flex items-center gap-1.5 rounded-sm border border-surface-border px-2.5 py-1.5 font-mono text-xs text-text-muted hover:bg-surface-raised hover:text-text-primary transition-colors ${className ?? ''}`}
+      className={`btn-ghost text-sm ${className ?? ''}`}
     >
-      <RefreshCw className={`h-3.5 w-3.5 ${spinning ? 'animate-spin' : ''}`} />
+      <RefreshCw className={`h-4 w-4 ${spinning ? 'animate-spin' : ''}`} />
       Actualizar
     </button>
   );

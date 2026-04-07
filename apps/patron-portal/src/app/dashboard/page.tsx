@@ -154,9 +154,9 @@ export default function DashboardPage() {
               <button
                 onClick={recargar}
                 disabled={refrescando}
-                className="flex items-center gap-1 rounded-sm border border-ink/10 px-2.5 py-1 font-mono text-xs text-ink-muted hover:bg-parchment-dark hover:text-ink transition-colors disabled:opacity-50"
+                className="btn-secondary disabled:opacity-50"
               >
-                <RotateCcw className={`h-3 w-3 ${refrescando ? 'animate-spin' : ''}`} />
+                <RotateCcw className={`h-4 w-4 ${refrescando ? 'animate-spin' : ''}`} />
                 Actualizar
               </button>
             </div>
