@@ -83,7 +83,7 @@ export class Loan {
       const daysLate = Math.ceil(
         (now.getTime() - this.props.dueDate.getTime()) / (1000 * 60 * 60 * 24),
       );
-      fineAmount = daysLate * 0.5; // €0.50 per day overdue
+      fineAmount = daysLate * 1000; // $1.000 COP por día de retraso
     }
 
     const updatedLoan = new Loan({

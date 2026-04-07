@@ -63,7 +63,7 @@ export class ReturnItemSaga {
     };
     await this.eventPublisher.publish(EVENTS.LOAN_RETURNED, event);
 
-    this.logger.log(`[SAGA COMPLETE] Return processed, fine=€${fineAmount.toFixed(2)}`);
+    this.logger.log(`[SAGA COMPLETE] Return processed, fine=$${fineAmount} COP`);
     return LoanMapper.toDto(saved, command.itemBarcode, '');
   }
 }
