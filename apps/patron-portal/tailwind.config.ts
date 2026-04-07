@@ -30,6 +30,14 @@ const config: Config = {
           DEFAULT: '#8B3A3A',
           light: '#A84D4D',
         },
+        terracotta: {
+          DEFAULT: '#C1614A',
+          dark: '#8B3A27',
+          deep: '#6B2A1A',
+          light: '#D4845A',
+          pale: '#EDCFC4',
+          warm: '#E8A882',
+        },
       },
       fontFamily: {
         display: ['var(--font-playfair)', 'Georgia', 'serif'],

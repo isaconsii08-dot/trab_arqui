@@ -3,6 +3,7 @@
 import { MapPin, Clock, Users, Wifi, X, CheckCircle, CalendarCheck, AlertTriangle, RefreshCw, BookOpen } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import { useState, useEffect, useCallback } from 'react';
+import { LoadingModal } from '@/components/ui/skeleton';
 
 // ─── Datos base de salas (todas disponibles a priori) ─────────────────────────
 
@@ -137,6 +138,7 @@ export default function SpacesPage() {
   const [salaModal, setSalaModal] = useState<typeof SALAS[0] | null>(null);
   const [startHour, setStartHour] = useState(10);
   const [duracion, setDuracion] = useState(2);
+  const [cargandoInicial, setCargandoInicial] = useState(true);
   const [reservando, setReservando] = useState(false);
   const [errorModal, setErrorModal] = useState('');
   const [toast, setToast] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
@@ -151,12 +153,17 @@ export default function SpacesPage() {
 
   const cargarEstado = useCallback(async () => {
     try {
-      const res = await fetch('/api/salas', { cache: 'no-store' });
+      const [res] = await Promise.all([
+        fetch('/api/salas', { cache: 'no-store' }),
+        cargandoInicial ? new Promise((r) => setTimeout(r, 500)) : Promise.resolve(),
+      ]);
       if (res.ok) {
         const data = await res.json() as EstadoSalas;
         setEstado(data);
       }
-    } catch { /* ignorar */ }
+    } catch { /* ignorar */ } finally {
+      setCargandoInicial(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -318,7 +325,29 @@ export default function SpacesPage() {
           )}
 
           {/* Tarjetas de salas */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {cargandoInicial && (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {SALAS.map((s) => (
+                <div key={s.id} className="card flex flex-col p-5 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="skeleton h-4 w-40 rounded-sm" />
+                    <div className="skeleton h-5 w-20 rounded-sm" />
+                  </div>
+                  <div className="skeleton h-3 w-full rounded-sm" />
+                  <div className="skeleton h-3 w-5/6 rounded-sm" />
+                  <div className="space-y-2 pt-2">
+                    <div className="skeleton h-3 w-1/2 rounded-sm" />
+                    <div className="skeleton h-3 w-1/3 rounded-sm" />
+                    <div className="skeleton h-3 w-2/5 rounded-sm" />
+                  </div>
+                  <div className="mt-auto pt-4">
+                    <div className="skeleton h-9 w-full rounded-sm" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className={`grid gap-4 sm:grid-cols-2 lg:grid-cols-3 ${cargandoInicial ? 'hidden' : ''}`}>
             {SALAS.map((sala) => {
               const enUsoAhora = estado.ocupadas.includes(sala.id);
               const desactivada = estado.desactivadas.includes(sala.id);
@@ -439,6 +468,8 @@ export default function SpacesPage() {
         </div>
       </div>
 
+      {reservando && <LoadingModal label="Reservando tu espacio..." />}
+
       {/* ─── Modal de reserva ────────────────────────────────────────────────── */}
       {salaModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
@@ -537,12 +568,7 @@ export default function SpacesPage() {
               disabled={reservando || !slotDisponible(salaModal.id, startHour, duracion)}
               className="btn-amber mt-5 w-full justify-center disabled:opacity-50"
             >
-              {reservando ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Reservando...
-                </span>
-              ) : !slotDisponible(salaModal.id, startHour, duracion) ? (
+              {reservando ? 'Confirmar reserva' : !slotDisponible(salaModal.id, startHour, duracion) ? (
                 'Horario no disponible'
               ) : (
                 'Confirmar reserva'

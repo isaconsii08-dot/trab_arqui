@@ -5,6 +5,7 @@ import { Clock, BookOpen, AlertTriangle, RefreshCw, CreditCard, X, CheckCircle, 
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { SkeletonLoanCard } from '@/components/ui/skeleton';
 
 interface Prestamo {
   id: string;
@@ -81,15 +82,15 @@ export default function DashboardPage() {
     }
 
     // Llamada única al API route server-side que lee las cookies y busca préstamos
-    fetch('/api/mis-prestamos')
-      .then((r) => r.json())
-      .then((data: { data: Prestamo[] }) => {
+    Promise.all([
+      fetch('/api/mis-prestamos').then((r) => r.json()) as Promise<{ data: Prestamo[] }>,
+      new Promise((r) => setTimeout(r, 500)),
+    ])
+      .then(([data]) => {
         const todos = data.data ?? [];
         if (hasSession) {
-          // Sesión activa: mostrar préstamos reales (puede ser lista vacía)
           setPrestamos(todos.filter((l) => l.status === 'active' || l.status === 'overdue'));
         } else {
-          // Sin sesión: mostrar demo
           return fetch('/api/prestamos-demo')
             .then((r) => r.json())
             .then((d: { data: Prestamo[] }) => setPrestamos(d.data ?? []));
@@ -216,7 +217,7 @@ export default function DashboardPage() {
 
             {cargando ? (
               <div className="space-y-3">
-                {[1, 2].map((n) => <div key={n} className="card h-24 animate-pulse bg-parchment-dark" />)}
+                {[1, 2].map((n) => <SkeletonLoanCard key={n} />)}
               </div>
             ) : prestamos.length === 0 ? (
               <div className="card flex flex-col items-center py-12 text-center">

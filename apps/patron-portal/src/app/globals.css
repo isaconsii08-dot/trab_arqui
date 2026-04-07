@@ -147,3 +147,17 @@ body {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
 }
+
+/* ─── Terracotta interactive helpers ────────────────────────────────────── */
+.footer-link {
+  color: rgba(237, 207, 196, 0.4);
+  transition: color 0.2s;
+}
+.footer-link:hover { color: rgba(237, 207, 196, 0.85); }
+
+.service-card {
+  background-color: rgba(237, 207, 196, 0.04);
+  border: 1px solid rgba(237, 207, 196, 0.07);
+  transition: background-color 0.2s;
+}
+.service-card:hover { background-color: rgba(193, 97, 74, 0.12); }

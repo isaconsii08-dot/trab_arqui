@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type');
   const q = searchParams.get('q')?.trim() ?? '';
+  const forReturn = searchParams.get('forReturn') === '1';
 
   if (!q || q.length < 2) return NextResponse.json([]);
 
@@ -82,11 +83,18 @@ export async function GET(req: NextRequest) {
           };
           const items = itemsData.items ?? [];
 
-          // Ordenar: disponibles primero, máximo 3 por libro
-          const sorted = [...items].sort((a, b) =>
-            a.status === 'available' ? -1 : b.status === 'available' ? 1 : 0,
-          );
-          for (const it of sorted.slice(0, 3)) {
+          // Para devolución: mostrar solo los prestados, priorizándolos.
+          // Para préstamo: disponibles primero.
+          const sorted = [...items].sort((a, b) => {
+            if (forReturn) {
+              return a.status === 'loaned' ? -1 : b.status === 'loaned' ? 1 : 0;
+            }
+            return a.status === 'available' ? -1 : b.status === 'available' ? 1 : 0;
+          });
+          const filtered = forReturn
+            ? sorted.filter((it) => it.status === 'loaned')
+            : sorted;
+          for (const it of filtered.slice(0, 3)) {
             results.push({ ...it, title: libro.title });
           }
         }),

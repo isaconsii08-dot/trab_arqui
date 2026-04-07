@@ -5,6 +5,8 @@ import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BookOpen, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
 
+import { LoadingModal } from '@/components/ui/skeleton';
+
 function LoginForm() {
   const searchParams = useSearchParams();
   const registered = searchParams.get('registered') === '1';
@@ -40,32 +42,57 @@ function LoginForm() {
   };
 
   return (
+    <>
+    {isLoading && <LoadingModal label="Iniciando sesión..." />}
     <div className="flex min-h-screen">
-      {/* Panel decorativo */}
-      <div className="relative hidden flex-1 overflow-hidden bg-ink lg:block">
+      {/* Panel decorativo — terracota papel */}
+      <div
+        className="relative hidden flex-1 overflow-hidden lg:block"
+        style={{ backgroundColor: '#6B2A1A' }}
+      >
+        {/* Grain noise del papel */}
         <div
-          className="absolute inset-0 opacity-5"
+          className="pointer-events-none absolute inset-0"
           style={{
-            backgroundImage: 'linear-gradient(rgba(245,239,224,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(245,239,224,0.4) 1px, transparent 1px)',
-            backgroundSize: '40px 40px',
+            opacity: 0.1,
+            backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+            backgroundSize: '256px 256px',
           }}
         />
-        <div className="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-emerald-library/20 to-transparent" />
-        <div className="relative flex h-full flex-col justify-between p-12">
+        {/* Líneas de papel */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: 'repeating-linear-gradient(transparent, transparent 39px, rgba(237,207,196,0.08) 39px, rgba(237,207,196,0.08) 40px)',
+          }}
+        />
+        {/* Manchas de tinta / blobs */}
+        <div className="absolute -top-20 -left-20 h-80 w-80 rounded-full opacity-30 blur-[100px]" style={{ backgroundColor: '#C1614A' }} />
+        <div className="absolute bottom-0 right-0 h-96 w-96 translate-x-1/3 translate-y-1/3 rounded-full opacity-20 blur-[120px]" style={{ backgroundColor: '#8B3A27' }} />
+        {/* Borde rasgado derecho */}
+        <div className="absolute right-0 top-0 bottom-0 z-10 w-8 overflow-hidden">
+          <svg viewBox="0 0 32 800" preserveAspectRatio="none" className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M32,0 L20,0 C22,60 18,100 24,160 C28,200 16,240 20,300 C24,360 30,380 22,440 C16,490 26,530 20,590 C14,640 28,680 24,740 C20,780 18,800 32,800 Z"
+              fill="#F5EFE0"
+            />
+          </svg>
+        </div>
+        <div className="relative flex h-full flex-col justify-between p-12 pr-16">
           <Link href="/" className="inline-flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-amber-book/20">
-              <BookOpen className="h-4 w-4 text-amber-book" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-sm" style={{ backgroundColor: 'rgba(237,207,196,0.2)' }}>
+              <BookOpen className="h-4 w-4" style={{ color: '#EDCFC4' }} />
             </div>
-            <span className="font-display text-lg font-semibold text-parchment">
-              Biblio<span className="text-amber-book">Flow</span>
+            <span className="font-display text-lg font-semibold" style={{ color: '#EDCFC4' }}>
+              Biblio<span style={{ color: '#E8A882' }}>Flow</span>
             </span>
           </Link>
           <div>
             <blockquote className="mb-8">
-              <p className="font-display text-2xl italic leading-relaxed text-parchment/80">
+              <p className="font-display text-2xl italic leading-relaxed" style={{ color: 'rgba(237,207,196,0.85)' }}>
                 &ldquo;Una biblioteca es un hospital para la mente&rdquo;
               </p>
-              <footer className="mt-3 font-mono text-xs text-parchment/40">— Proverbio anónimo</footer>
+              <footer className="mt-3 font-mono text-xs" style={{ color: 'rgba(237,207,196,0.45)' }}>— Proverbio anónimo</footer>
             </blockquote>
           </div>
         </div>
@@ -146,14 +173,7 @@ function LoginForm() {
               disabled={isLoading}
               className="btn-amber w-full justify-center disabled:opacity-60"
             >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                  Iniciando sesión...
-                </span>
-              ) : (
-                <>Acceder <ArrowRight className="h-4 w-4" /></>
-              )}
+              Acceder <ArrowRight className="h-4 w-4" />
             </button>
           </form>
 
@@ -170,6 +190,7 @@ function LoginForm() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

@@ -18,25 +18,43 @@ export default async function AboutPage() {
       <div className="min-h-screen bg-parchment">
 
         {/* Hero */}
-        <section className="relative overflow-hidden bg-ink py-20">
+        <section className="relative overflow-hidden py-20" style={{ backgroundColor: '#EDD9BE' }}>
+          {/* Grain */}
           <div
-            className="absolute inset-0 opacity-5"
+            className="pointer-events-none absolute inset-0"
             style={{
-              backgroundImage: 'linear-gradient(rgba(245,239,224,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(245,239,224,0.4) 1px, transparent 1px)',
-              backgroundSize: '40px 40px',
+              opacity: 0.07,
+              backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+              backgroundSize: '256px 256px',
             }}
           />
+          {/* Líneas papel */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              backgroundImage: 'repeating-linear-gradient(transparent, transparent 39px, rgba(139,58,39,0.06) 39px, rgba(139,58,39,0.06) 40px)',
+            }}
+          />
+          {/* Blobs */}
+          <div className="absolute -right-16 top-0 h-72 w-72 rounded-full opacity-20 blur-[100px]" style={{ backgroundColor: '#C1614A' }} />
+          <div className="absolute -left-10 bottom-0 h-56 w-56 rounded-full opacity-15 blur-[80px]" style={{ backgroundColor: '#C8860A' }} />
+          {/* Borde rasgado inferior */}
+          <div className="absolute bottom-0 left-0 right-0 overflow-hidden" style={{ height: '32px' }}>
+            <svg viewBox="0 0 1440 32" preserveAspectRatio="none" className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+              <path d="M0,32 L0,16 C80,10 120,22 200,16 C280,10 320,4 400,12 C480,20 500,28 580,22 C660,16 680,6 760,14 C840,22 860,30 940,24 C1020,18 1040,8 1120,14 C1200,20 1240,26 1320,20 C1380,16 1420,10 1440,16 L1440,32 Z" fill="#F5EFE0" />
+            </svg>
+          </div>
           <div className="relative mx-auto max-w-4xl px-6 text-center">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-sm bg-amber-book/15">
-              <Library className="h-8 w-8 text-amber-book" />
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-sm" style={{ backgroundColor: 'rgba(193,97,74,0.15)' }}>
+              <Library className="h-8 w-8" style={{ color: '#C1614A' }} />
             </div>
-            <span className="font-mono text-xs uppercase tracking-[0.25em] text-amber-book">
+            <span className="font-mono text-xs uppercase tracking-[0.25em]" style={{ color: '#8B3A27' }}>
               Universidad Cooperativa de Colombia
             </span>
-            <h1 className="mt-3 font-display text-4xl font-semibold text-parchment">
+            <h1 className="mt-3 font-display text-4xl font-semibold" style={{ color: '#3B1F14' }}>
               Biblioteca Campus Montería
             </h1>
-            <p className="mt-4 font-body text-lg leading-relaxed text-parchment/60">
+            <p className="mt-4 font-body text-lg leading-relaxed" style={{ color: 'rgba(59,31,20,0.6)' }}>
               Un espacio de conocimiento al servicio de la comunidad universitaria
               del Campus Montería.
             </p>

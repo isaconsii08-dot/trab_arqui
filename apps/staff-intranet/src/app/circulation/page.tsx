@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { BookOpen, RefreshCw, Scan, CheckCircle, XCircle, ArrowLeft, Inbox, Clock, ThumbsUp, ThumbsDown, Package, User, Loader2 } from 'lucide-react';
+import { BookOpen, RefreshCw, Scan, CheckCircle, XCircle, ArrowLeft, Inbox, Clock, ThumbsUp, ThumbsDown, Package, User, Loader2, Library, AlertTriangle, Search, RotateCcw } from 'lucide-react';
+import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 
 type LoanForm = { itemBarcode: string; patronCardNumber: string };
@@ -27,6 +28,25 @@ interface Solicitud {
   estado: 'pendiente' | 'aprobada' | 'rechazada' | 'entregada';
   creadaEn: string;
   notas?: string;
+}
+
+interface PrestamoActivo {
+  id: string;
+  itemBarcode: string;
+  itemTitle: string;
+  itemAuthors: string;
+  itemLocation: string;
+  coverImageUrl: string | null;
+  patronId: string;
+  patronName: string;
+  patronCardNumber: string;
+  patronStatus: string;
+  loanDate: string;
+  dueDate: string;
+  status: string;
+  renewedCount: number;
+  fineAmount: number;
+  recordId?: string;
 }
 
 interface PatronInfo {
@@ -72,7 +92,7 @@ const ESTADO_STYLES: Record<string, { label: string; cls: string }> = {
   entregada:  { label: 'Entregada',  cls: 'bg-surface-raised text-text-muted border-surface-border' },
 };
 
-function useLookup<T>(type: 'patron' | 'item', query: string, delay = 400) {
+function useLookup<T>(type: 'patron' | 'item', query: string, delay = 400, forReturn = false) {
   const [results, setResults] = useState<T[]>([]);
   const [loading, setLoading] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -84,7 +104,7 @@ function useLookup<T>(type: 'patron' | 'item', query: string, delay = 400) {
 
     timerRef.current = setTimeout(() => {
       setLoading(true);
-      fetch(`/api/circulacion/lookup?type=${type}&q=${encodeURIComponent(q)}`)
+      fetch(`/api/circulacion/lookup?type=${type}&q=${encodeURIComponent(q)}${forReturn ? '&forReturn=1' : ''}`)
         .then((r) => r.json())
         .then((data: any) => {
           // Si el API devuelve un objeto con un campo 'data' (como el patron-service)
@@ -113,7 +133,12 @@ function useLookup<T>(type: 'patron' | 'item', query: string, delay = 400) {
 }
 
 export default function CirculationPage() {
-  const [activeTab, setActiveTab] = useState<'loan' | 'return' | 'solicitudes'>('loan');
+  const [activeTab, setActiveTab] = useState<'loan' | 'return' | 'solicitudes' | 'prestamos'>('loan');
+  const [prestamosActivos, setPrestamosActivos] = useState<PrestamoActivo[]>([]);
+  const [prestamosQuery, setPrestamosQuery] = useState('');
+  const [cargandoPrestamos, setCargandoPrestamos] = useState(false);
+  const [accionEnCurso, setAccionEnCurso] = useState<Record<string, 'return' | 'renew'>>({});
+  const [accionMsg, setAccionMsg] = useState<Record<string, { ok: boolean; msg: string }>>({});
   const [loanOk, setLoanOk] = useState<LoanResult | null>(null);
   const [loanError, setLoanError] = useState<string | null>(null);
   const [returnOk, setReturnOk] = useState<ReturnResult | null>(null);
@@ -121,7 +146,7 @@ export default function CirculationPage() {
 
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [pendienteCount, setPendienteCount] = useState(0);
-  const [prestamosActivos, setPrestamosActivos] = useState(0);
+  const [countPrestamosActivos, setCountPrestamosActivos] = useState(0);
 
   const loanForm = useForm<LoanForm>();
   const returnForm = useForm<ReturnForm>();
@@ -133,7 +158,7 @@ export default function CirculationPage() {
 
   const { results: loanItemResults, loading: loadingLoanItem }     = useLookup<ItemInfo>('item', loanBarcode);
   const { results: loanPatronResults, loading: loadingLoanPatron } = useLookup<PatronInfo>('patron', loanCarnet);
-  const { results: returnItemResults, loading: loadingReturnItem } = useLookup<ItemInfo>('item', returnBarcode);
+  const { results: returnItemResults, loading: loadingReturnItem } = useLookup<ItemInfo>('item', returnBarcode, 400, true);
 
   // Seleccionados manualmente (para no mostrar el dropdown si ya se eligió uno)
   const [selectedLoanItem, setSelectedLoanItem] = useState<ItemInfo | null>(null);
@@ -157,7 +182,7 @@ export default function CirculationPage() {
       const res = await fetch('/api/circulacion/stats');
       if (res.ok) {
         const data = await res.json();
-        setPrestamosActivos(data.prestamosActivos ?? 0);
+        setCountPrestamosActivos(data.prestamosActivos ?? 0);
       }
     } catch (err) {
       console.error('Error al cargar stats:', err);
@@ -187,6 +212,77 @@ export default function CirculationPage() {
     }, 8000);
     return () => clearInterval(interval);
   }, [cargarSolicitudes, cargarStats]);
+
+  const handleReturnInline = async (loanId: string, barcode: string) => {
+    setAccionEnCurso((prev) => ({ ...prev, [loanId]: 'return' }));
+    try {
+      const res = await fetch('/api/circulacion/return', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemBarcode: barcode }),
+      });
+      const data = await res.json() as { message?: string; fineAmount?: number };
+      const ok = res.ok;
+      const msg = ok
+        ? `Devolución registrada${data.fineAmount ? ` · Multa: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(data.fineAmount)}` : ''}`
+        : (data.message ?? 'Error al registrar devolución');
+      setAccionMsg((prev) => ({ ...prev, [loanId]: { ok, msg } }));
+      if (ok) setPrestamosActivos((prev) => prev.filter((p) => p.id !== loanId));
+    } catch {
+      setAccionMsg((prev) => ({ ...prev, [loanId]: { ok: false, msg: 'Error de conexión' } }));
+    } finally {
+      setAccionEnCurso((prev) => { const n = { ...prev }; delete n[loanId]; return n; });
+    }
+  };
+
+  const handleRenewInline = async (loanId: string, barcode: string, patronCardNumber: string) => {
+    setAccionEnCurso((prev) => ({ ...prev, [loanId]: 'renew' }));
+    try {
+      // Devolver primero, luego crear nuevo préstamo
+      const retRes = await fetch('/api/circulacion/return', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemBarcode: barcode }),
+      });
+      if (!retRes.ok) {
+        const d = await retRes.json() as { message?: string };
+        throw new Error(d.message ?? 'Error al devolver para renovar');
+      }
+      const loanRes = await fetch('/api/circulacion/loan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemBarcode: barcode, patronCardNumber }),
+      });
+      const loanData = await loanRes.json() as { dueDate?: string; message?: string };
+      if (!loanRes.ok) throw new Error(loanData.message ?? 'Error al registrar renovación');
+      const nuevaFecha = loanData.dueDate ? new Date(loanData.dueDate).toLocaleDateString('es-CO') : '';
+      setAccionMsg((prev) => ({ ...prev, [loanId]: { ok: true, msg: `Renovado${nuevaFecha ? ` · Vence ${nuevaFecha}` : ''}` } }));
+      // Actualizar la fecha de vencimiento en la lista
+      setPrestamosActivos((prev) =>
+        prev.map((p) => p.id === loanId && loanData.dueDate ? { ...p, dueDate: loanData.dueDate!, status: 'active' } : p),
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error';
+      setAccionMsg((prev) => ({ ...prev, [loanId]: { ok: false, msg } }));
+    } finally {
+      setAccionEnCurso((prev) => { const n = { ...prev }; delete n[loanId]; return n; });
+      setTimeout(() => setAccionMsg((prev) => { const n = { ...prev }; delete n[loanId]; return n; }), 5000);
+    }
+  };
+
+  const cargarPrestamosTab = useCallback(async () => {
+    setCargandoPrestamos(true);
+    try {
+      const res = await fetch('/api/circulacion/prestamos');
+      if (res.ok) setPrestamosActivos(await res.json());
+    } catch { /* ignorar */ } finally {
+      setCargandoPrestamos(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'prestamos') cargarPrestamosTab();
+  }, [activeTab, cargarPrestamosTab]);
 
   const cambiarEstado = async (id: string, estado: Solicitud['estado']) => {
     await fetch(`/api/prestamos/${id}`, {
@@ -252,6 +348,7 @@ export default function CirculationPage() {
           { key: 'loan',        icon: BookOpen,  label: 'Préstamo'    },
           { key: 'return',      icon: RefreshCw, label: 'Devolución'  },
           { key: 'solicitudes', icon: Inbox,     label: 'Solicitudes' },
+          { key: 'prestamos',   icon: Library,   label: 'Préstamos activos' },
         ] as const).map((tab) => {
           const Icon = tab.icon;
           return (
@@ -269,6 +366,11 @@ export default function CirculationPage() {
               {tab.key === 'solicitudes' && pendienteCount > 0 && (
                 <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-amber px-1 font-mono text-[10px] font-bold text-white">
                   {pendienteCount}
+                </span>
+              )}
+              {tab.key === 'prestamos' && countPrestamosActivos > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-blue px-1 font-mono text-[10px] font-bold text-white">
+                  {countPrestamosActivos}
                 </span>
               )}
             </button>
@@ -338,8 +440,187 @@ export default function CirculationPage() {
         </div>
       )}
 
+      {/* ── PRÉSTAMOS ACTIVOS ── */}
+      {activeTab === 'prestamos' && (() => {
+        const copFmtTab = (n: number) =>
+          new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n);
+
+        const q = prestamosQuery.toLowerCase().trim();
+        const filtrados = q
+          ? prestamosActivos.filter(
+              (p) =>
+                p.itemTitle.toLowerCase().includes(q) ||
+                p.patronName.toLowerCase().includes(q) ||
+                p.patronCardNumber.toLowerCase().includes(q) ||
+                p.itemBarcode.toLowerCase().includes(q),
+            )
+          : prestamosActivos;
+
+        return (
+          <div className="space-y-4">
+            {/* Toolbar */}
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+                <input
+                  type="search"
+                  value={prestamosQuery}
+                  onChange={(e) => setPrestamosQuery(e.target.value)}
+                  placeholder="Buscar por título, socio o código..."
+                  className="input-dark w-full pl-8 py-2 text-sm"
+                />
+              </div>
+              <button
+                onClick={cargarPrestamosTab}
+                disabled={cargandoPrestamos}
+                className="btn-ghost flex items-center gap-1.5 text-sm"
+              >
+                <RotateCcw className={`h-3.5 w-3.5 ${cargandoPrestamos ? 'animate-spin' : ''}`} />
+                Actualizar
+              </button>
+              <span className="font-mono text-xs text-text-muted">
+                {filtrados.length} préstamo{filtrados.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {cargandoPrestamos ? (
+              <div className="flex flex-col items-center py-16 text-center">
+                <Loader2 className="mb-3 h-8 w-8 animate-spin text-text-muted/30" />
+                <p className="font-mono text-xs text-text-muted">Cargando préstamos...</p>
+              </div>
+            ) : filtrados.length === 0 ? (
+              <div className="surface-card flex flex-col items-center py-16 text-center">
+                <Library className="mb-3 h-10 w-10 text-text-muted/20" />
+                <p className="font-mono text-xs text-text-muted">
+                  {prestamosQuery ? 'Sin resultados para esa búsqueda' : 'No hay préstamos activos'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {filtrados.map((p) => {
+                  const vencido = p.status === 'overdue';
+                  const diasVence = Math.ceil(
+                    (new Date(p.dueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+                  );
+                  return (
+                    <div
+                      key={p.id}
+                      className={`surface-card overflow-hidden flex flex-col ${vencido ? 'ring-1 ring-accent-red/30' : ''}`}
+                    >
+                      {/* Header con portada + info del libro */}
+                      <div className="flex gap-3 p-4 border-b border-surface-border">
+                        <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-sm bg-surface-raised">
+                          {p.coverImageUrl ? (
+                            <Image
+                              src={p.coverImageUrl}
+                              alt={p.itemTitle}
+                              fill
+                              className="object-cover"
+                              sizes="56px"
+                            />
+                          ) : (
+                            <BookOpen className="absolute inset-0 m-auto h-5 w-5 text-text-muted/30" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="line-clamp-2 font-body text-sm font-medium text-text-primary leading-snug">
+                            {p.itemTitle}
+                          </p>
+                          {p.itemAuthors && (
+                            <p className="mt-0.5 truncate font-mono text-xs text-text-muted">{p.itemAuthors}</p>
+                          )}
+                          <p className="mt-1 font-mono text-[10px] text-text-muted">{p.itemBarcode}</p>
+                          {p.itemLocation && (
+                            <p className="font-mono text-[10px] text-text-muted">{p.itemLocation}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Info del socio */}
+                      <div className="flex items-center gap-2 border-b border-surface-border px-4 py-2.5">
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-surface-raised">
+                          <User className="h-3.5 w-3.5 text-text-muted" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-body text-xs font-medium text-text-primary">{p.patronName}</p>
+                          <p className="font-mono text-[10px] text-text-muted">{p.patronCardNumber}</p>
+                        </div>
+                        <span className={`shrink-0 font-mono text-[10px] ${p.patronStatus === 'active' ? 'text-accent-green' : 'text-accent-red'}`}>
+                          {p.patronStatus === 'active' ? 'Activo' : p.patronStatus}
+                        </span>
+                      </div>
+
+                      {/* Fechas + estado */}
+                      <div className="grid grid-cols-2 gap-2 px-4 py-3 text-xs">
+                        <div>
+                          <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Prestado</p>
+                          <p className="font-mono text-xs text-text-secondary">
+                            {new Date(p.loanDate).toLocaleDateString('es-CO')}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Vence</p>
+                          <p className={`font-mono text-xs font-medium ${vencido ? 'text-accent-red' : diasVence <= 3 ? 'text-accent-amber' : 'text-text-secondary'}`}>
+                            {new Date(p.dueDate).toLocaleDateString('es-CO')}
+                            {vencido && ' · Vencido'}
+                            {!vencido && diasVence <= 3 && ` · ${diasVence}d`}
+                          </p>
+                        </div>
+                        {p.renewedCount > 0 && (
+                          <div>
+                            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Renovaciones</p>
+                            <p className="font-mono text-xs text-text-secondary">{p.renewedCount}</p>
+                          </div>
+                        )}
+                        {p.fineAmount > 0 && (
+                          <div>
+                            <p className="font-mono text-[10px] uppercase tracking-wider text-text-muted">Multa</p>
+                            <p className="font-mono text-xs font-medium text-accent-red">{copFmtTab(p.fineAmount)}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Acciones */}
+                      <div className="mt-auto flex flex-col gap-2 border-t border-surface-border p-3">
+                        {accionMsg[p.id] && (
+                          <p className={`rounded-sm px-2 py-1 font-mono text-[10px] ${accionMsg[p.id].ok ? 'bg-accent-green/10 text-accent-green' : 'bg-accent-red/10 text-accent-red'}`}>
+                            {accionMsg[p.id].msg}
+                          </p>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            disabled={!!accionEnCurso[p.id]}
+                            onClick={() => handleReturnInline(p.id, p.itemBarcode)}
+                            className="flex flex-1 items-center justify-center gap-1.5 rounded-sm border border-surface-border px-3 py-1.5 font-mono text-xs text-text-secondary hover:bg-surface-raised hover:text-text-primary transition-colors disabled:opacity-40"
+                          >
+                            {accionEnCurso[p.id] === 'return'
+                              ? <Loader2 className="h-3 w-3 animate-spin" />
+                              : <RefreshCw className="h-3 w-3" />}
+                            Devolución
+                          </button>
+                          <button
+                            disabled={!!accionEnCurso[p.id]}
+                            onClick={() => handleRenewInline(p.id, p.itemBarcode, p.patronCardNumber)}
+                            className="flex items-center gap-1.5 rounded-sm border border-accent-green/30 px-3 py-1.5 font-mono text-xs text-accent-green hover:bg-accent-green/8 transition-colors disabled:opacity-40"
+                          >
+                            {accionEnCurso[p.id] === 'renew'
+                              ? <Loader2 className="h-3 w-3 animate-spin" />
+                              : <BookOpen className="h-3 w-3" />}
+                            Renovar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* ── PRÉSTAMO / DEVOLUCIÓN ── */}
-      {activeTab !== 'solicitudes' && (
+      {activeTab !== 'solicitudes' && activeTab !== 'prestamos' && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Panel de formulario */}
           <div className="surface-card p-6">
@@ -360,7 +641,7 @@ export default function CirculationPage() {
                   />
                   
                   {/* Sugerencias de ejemplares */}
-                  {!selectedLoanItem && loanItemResults.length > 0 && (
+                  {!selectedLoanItem && loanItemResults.length > 0 && !(loanItemResults.length === 1 && loanBarcode === loanItemResults[0]?.barcode) && (
                     <div className="absolute left-0 top-full z-10 mt-1 w-full rounded-sm border border-surface-border bg-surface-card shadow-lg">
                       {loanItemResults.map((item) => (
                         <button
@@ -497,7 +778,7 @@ export default function CirculationPage() {
                   />
                   
                   {/* Sugerencias de ejemplares para devolución */}
-                  {!selectedReturnItem && returnItemResults.length > 0 && (
+                  {!selectedReturnItem && returnItemResults.length > 0 && !(returnItemResults.length === 1 && returnBarcode === returnItemResults[0]?.barcode) && (
                     <div className="absolute left-0 top-full z-10 mt-1 w-full rounded-sm border border-surface-border bg-surface-card shadow-lg">
                       {returnItemResults.map((item) => (
                         <button

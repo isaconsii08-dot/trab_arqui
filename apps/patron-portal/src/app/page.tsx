@@ -17,6 +17,14 @@ const categorias = [
 export default async function HomePage() {
   const cookieStore = await cookies();
   const isLoggedIn = !!cookieStore.get('bf_token')?.value;
+  let firstName = '';
+  try {
+    const raw = cookieStore.get('bf_user')?.value;
+    if (raw) {
+      const user = JSON.parse(decodeURIComponent(raw)) as { fullName?: string };
+      firstName = user.fullName?.split(' ')[0] ?? '';
+    }
+  } catch { /* ignorar */ }
 
   // Portada: últimos 8 libros ingresados
   const destacados = await buscarCatalogo({ limit: 8, page: 1 });
@@ -38,34 +46,54 @@ export default async function HomePage() {
       <Navbar />
 
       {/* ─── Hero ─────────────────────────────────────────────────────────────── */}
-      <section className="relative min-h-[92vh] overflow-hidden bg-ink">
+      <section className="relative min-h-[92vh] overflow-hidden" style={{ backgroundColor: '#EDD9BE' }}>
+        {/* Paper grain noise — más intenso que el global */}
         <div
-          className="absolute inset-0 opacity-5"
+          className="pointer-events-none absolute inset-0 z-0"
           style={{
-            backgroundImage: 'linear-gradient(rgba(245,239,224,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(245,239,224,0.5) 1px, transparent 1px)',
-            backgroundSize: '60px 60px',
+            opacity: 0.07,
+            backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+            backgroundSize: '256px 256px',
           }}
         />
-        <div className="absolute bottom-0 right-0 h-96 w-96 -translate-x-1/4 translate-y-1/4 rounded-full bg-emerald-library/20 blur-[100px]" />
-        <div className="absolute left-1/4 top-1/3 h-64 w-64 rounded-full bg-amber-book/10 blur-[80px]" />
 
-        <div className="relative mx-auto flex min-h-[92vh] max-w-7xl flex-col items-center justify-center px-6 py-24 text-center">
+        {/* Blobs suaves terracota/ámbar */}
+        <div className="absolute -left-24 top-1/4 h-[28rem] w-[28rem] rounded-full opacity-25 blur-[120px]" style={{ backgroundColor: '#C1614A' }} />
+        <div className="absolute right-0 top-0 h-80 w-80 translate-x-1/3 -translate-y-1/4 rounded-full opacity-20 blur-[100px]" style={{ backgroundColor: '#C8860A' }} />
+        <div className="absolute bottom-1/4 right-1/4 h-64 w-64 rounded-full opacity-15 blur-[90px]" style={{ backgroundColor: '#8B3A27' }} />
+
+        {/* Líneas de papel horizontales sutiles */}
+        <div
+          className="pointer-events-none absolute inset-0 z-0"
+          style={{
+            backgroundImage: 'repeating-linear-gradient(transparent, transparent 39px, rgba(139,58,39,0.06) 39px, rgba(139,58,39,0.06) 40px)',
+            backgroundSize: '100% 40px',
+          }}
+        />
+
+        <div className="relative z-10 mx-auto flex min-h-[92vh] max-w-7xl flex-col items-center justify-center px-6 py-24 text-center">
           <div className="animate-in mb-8 inline-flex items-center gap-3" style={{ '--delay': '0ms' } as React.CSSProperties}>
-            <span className="h-px w-12 bg-amber-book" />
-            <span className="font-mono text-xs uppercase tracking-[0.25em] text-amber-book">
+            <span className="h-px w-12" style={{ backgroundColor: '#C1614A' }} />
+            <span className="font-mono text-xs uppercase tracking-[0.25em]" style={{ color: '#8B3A27' }}>
               Sistema de Gestión Bibliotecaria
             </span>
-            <span className="h-px w-12 bg-amber-book" />
+            <span className="h-px w-12" style={{ backgroundColor: '#C1614A' }} />
           </div>
 
-          <h1 className="animate-in heading-xl mb-6 text-parchment" style={{ '--delay': '100ms' } as React.CSSProperties}>
+          <h1
+            className="animate-in heading-xl mb-6"
+            style={{ '--delay': '100ms', color: '#3B1F14' } as React.CSSProperties}
+          >
             Descubre el{' '}
-            <em className="italic text-amber-book">conocimiento</em>
+            <em className="italic" style={{ color: '#C1614A' }}>conocimiento</em>
             <br />
             que buscas
           </h1>
 
-          <p className="animate-in mb-12 max-w-2xl text-lg leading-relaxed text-parchment/60" style={{ '--delay': '200ms' } as React.CSSProperties}>
+          <p
+            className="animate-in mb-12 max-w-2xl text-lg leading-relaxed"
+            style={{ '--delay': '200ms', color: 'rgba(59,31,20,0.6)' } as React.CSSProperties}
+          >
             Accede al catálogo completo de tu biblioteca, gestiona tus préstamos
             y reserva espacios de estudio, todo desde un solo lugar.
           </p>
@@ -74,22 +102,31 @@ export default async function HomePage() {
             <SearchBar variant="hero" />
           </div>
 
-          <div className="animate-in mt-16 flex flex-wrap items-center justify-center gap-12" style={{ '--delay': '400ms' } as React.CSSProperties}>
+          <div
+            className="animate-in mt-16 flex flex-wrap items-center justify-center gap-12"
+            style={{ '--delay': '400ms' } as React.CSSProperties}
+          >
             {[
               { value: totalRegistros.toLocaleString('es-CO'), label: 'Títulos en catálogo' },
               { value: '65', label: 'Ejemplares disponibles' },
               { value: '12', label: 'Socios activos' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="font-display text-3xl font-semibold text-amber-book">{stat.value}</div>
-                <div className="mt-1 font-body text-sm text-parchment/50">{stat.label}</div>
+                <div className="font-display text-3xl font-semibold" style={{ color: '#C1614A' }}>{stat.value}</div>
+                <div className="mt-1 font-body text-sm" style={{ color: 'rgba(59,31,20,0.5)' }}>{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <div className="h-10 w-px bg-parchment/20" />
+        {/* Borde inferior rasgado — transición hacia parchment */}
+        <div className="absolute bottom-0 left-0 right-0 z-10 overflow-hidden" style={{ height: '60px' }}>
+          <svg viewBox="0 0 1440 60" preserveAspectRatio="none" className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M0,60 L0,28 C60,22 80,38 140,30 C200,22 220,10 280,18 C340,26 360,38 420,32 C480,26 500,12 560,20 C620,28 640,42 700,36 C760,30 780,16 840,22 C900,28 920,44 980,38 C1040,32 1060,18 1120,24 C1180,30 1200,46 1260,40 C1320,34 1360,20 1440,28 L1440,60 Z"
+              fill="#F5EFE0"
+            />
+          </svg>
         </div>
       </section>
 
@@ -178,45 +215,112 @@ export default async function HomePage() {
       </section>
 
       {/* ─── Servicios ────────────────────────────────────────────────────────── */}
-      <section className="bg-ink py-16">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid gap-8 md:grid-cols-3">
+      <section className="relative overflow-hidden py-16" style={{ backgroundColor: '#2A1208' }}>
+        {/* Grain */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            opacity: 0.07,
+            backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+            backgroundSize: '256px 256px',
+          }}
+        />
+        {/* Líneas de papel */}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: 'repeating-linear-gradient(transparent, transparent 39px, rgba(193,97,74,0.04) 39px, rgba(193,97,74,0.04) 40px)',
+          }}
+        />
+        {/* Blob terracota tenue */}
+        <div
+          className="absolute right-0 top-0 h-64 w-64 translate-x-1/3 -translate-y-1/3 rounded-full blur-[100px]"
+          style={{ backgroundColor: '#C1614A', opacity: 0.12 }}
+        />
+        <div className="relative mx-auto max-w-7xl px-6">
+          <div className="mb-10 text-center">
+            <span className="font-mono text-xs uppercase tracking-[0.2em]" style={{ color: '#C1614A' }}>
+              ¿Qué puedes hacer?
+            </span>
+            <h2 className="font-display mt-2 text-2xl font-semibold md:text-3xl" style={{ color: '#EDCFC4' }}>
+              Todo desde un solo lugar
+            </h2>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
             {[
               {
                 icon: Clock,
                 title: 'Préstamos y devoluciones',
                 desc: 'Consulta el estado de tus préstamos activos, fechas de devolución y renuévalos en línea.',
+                href: '/dashboard',
               },
               {
                 icon: MapPin,
                 title: 'Reserva de espacios',
-                desc: 'Reserva salas de estudio individual o colectivo con disponibilidad en tiempo real.',
+                desc: 'Reserva salas de estudio individual o grupal con disponibilidad en tiempo real.',
+                href: '/spaces',
               },
               {
                 icon: BookMarked,
                 title: 'Historial de lectura',
-                desc: 'Accede a tu historial completo y sugerencias personalizadas según tus lecturas.',
+                desc: 'Accede a tu historial completo de préstamos y explora el catálogo completo.',
+                href: '/dashboard/historial',
               },
             ].map((svc) => {
               const Icon = svc.icon;
               return (
-                <div key={svc.title} className="flex gap-4">
-                  <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-amber-book/10">
-                    <Icon className="h-5 w-5 text-amber-book" />
+                <Link
+                  key={svc.title}
+                  href={svc.href}
+                  className="service-card group flex gap-4 rounded-sm p-5"
+                >
+                  <div
+                    className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-sm"
+                    style={{ backgroundColor: 'rgba(193,97,74,0.15)' }}
+                  >
+                    <Icon className="h-5 w-5" style={{ color: '#C1614A' }} />
                   </div>
                   <div>
-                    <h3 className="font-display text-base font-semibold text-parchment">{svc.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-parchment/50">{svc.desc}</p>
+                    <h3 className="font-display text-base font-semibold" style={{ color: '#EDCFC4' }}>{svc.title}</h3>
+                    <p className="mt-1 text-sm leading-relaxed" style={{ color: 'rgba(237,207,196,0.5)' }}>{svc.desc}</p>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
         </div>
       </section>
 
-      {/* ─── CTA — solo visible si no está autenticado ───────────────────────── */}
-      {!isLoggedIn && (
+      {/* ─── CTA ────────────────────────────────────────────────────────────── */}
+      {isLoggedIn ? (
+        <section className="bg-parchment py-24">
+          <div className="mx-auto max-w-3xl px-6 text-center">
+            <div className="divider-ornament mb-8">
+              <span className="font-mono text-xs uppercase tracking-[0.2em] text-ink-muted">
+                Portal del socio
+              </span>
+            </div>
+            <h2 className="heading-md mb-4 text-ink">
+              Bienvenido{firstName ? `, ${firstName}` : ''} 👋
+            </h2>
+            <p className="mb-3 font-display text-xl italic text-terracotta">
+              Tu próxima gran lectura te espera.
+            </p>
+            <p className="mb-10 text-ink-muted">
+              Revisa tus préstamos activos, explora nuevos títulos en el catálogo
+              o reserva tu espacio favorito.
+            </p>
+            <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <Link href="/search" className="btn-amber">
+                Explorar catálogo <ArrowRight className="h-4 w-4" />
+              </Link>
+              <Link href="/dashboard" className="btn-secondary">
+                Ver mis préstamos
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : (
         <section className="bg-parchment py-24">
           <div className="mx-auto max-w-3xl px-6 text-center">
             <div className="divider-ornament mb-8">

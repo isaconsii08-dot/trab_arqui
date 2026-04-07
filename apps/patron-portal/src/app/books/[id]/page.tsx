@@ -7,6 +7,8 @@ import BookCover from '@/components/ui/book-cover';
 import LoanButton from './loan-button';
 import { obtenerLibro, obtenerEjemplaresLibro } from '@/lib/api';
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
   params: Promise<{ id: string }>;
 }
@@ -26,7 +28,8 @@ export default async function BookDetailPage({ params }: Props) {
   const [libro, ejemplares] = await Promise.all([
     obtenerLibro(id),
     obtenerEjemplaresLibro(id),
-  ]);
+    new Promise((r) => setTimeout(r, 500)),
+  ]).then(([l, e]) => [l, e] as const);
 
   if (!libro) notFound();
 

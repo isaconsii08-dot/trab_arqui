@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { BookOpen, ArrowLeft, Clock, CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
+import { SkeletonLoanCard } from '@/components/ui/skeleton';
 
 interface Prestamo {
   id: string;
@@ -46,23 +47,16 @@ export default function HistorialPage() {
     setCargando(true);
     try {
       const hasCookie = document.cookie.includes('bf_token=');
-      if (!hasCookie) {
-        // Sin sesión: demo
-        const res = await fetch('/api/prestamos-demo');
-        if (res.ok) {
-          const data = await res.json() as { data: Prestamo[] };
-          setPrestamos(data.data ?? []);
-          setTotal(data.data?.length ?? 0);
-        }
-        return;
-      }
-
-      // Usar ruta server-side (evita CORS y expira-token)
-      const res = await fetch(`/api/historial-prestamos?page=${p}&limit=${limit}`);
+      const [res] = await Promise.all([
+        hasCookie
+          ? fetch(`/api/historial-prestamos?page=${p}&limit=${limit}`)
+          : fetch('/api/prestamos-demo'),
+        new Promise((r) => setTimeout(r, 500)),
+      ]);
       if (res.ok) {
-        const data = await res.json() as { data: Prestamo[]; total: number };
+        const data = await res.json() as { data: Prestamo[]; total?: number };
         setPrestamos(data.data ?? []);
-        setTotal(data.total ?? 0);
+        setTotal(data.total ?? data.data?.length ?? 0);
       }
     } catch { /* ignorar */ } finally {
       setCargando(false);
@@ -96,9 +90,7 @@ export default function HistorialPage() {
 
           {cargando ? (
             <div className="space-y-3">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="card h-20 animate-pulse bg-parchment-dark" />
-              ))}
+              {[1, 2, 3].map((n) => <SkeletonLoanCard key={n} />)}
             </div>
           ) : prestamos.length === 0 ? (
             <div className="card flex flex-col items-center py-16 text-center">
