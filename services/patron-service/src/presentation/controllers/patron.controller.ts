@@ -12,6 +12,7 @@ import {
   Post,
   Query,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RegisterPatronUseCase } from '../../application/use-cases/register-patron.use-case';
@@ -23,12 +24,19 @@ import { CurrentUser } from '../decorators/current-user.decorator';
 import { TokenPayload } from '@biblioflow/shared-types';
 import { IPatronRepository, PATRON_REPOSITORY } from '../../domain/repositories/patron.repository.interface';
 import { PatronMapper } from '../../application/mappers/patron.mapper';
-import { IsOptional, IsString, IsIn } from 'class-validator';
+import { IsOptional, IsString, IsIn, IsNumber, Min } from 'class-validator';
+import { PrismaService } from '../../infrastructure/prisma/prisma.service';
 
 class PatchPatronDto {
   @IsOptional() @IsString() phone?: string;
   @IsOptional() @IsString() address?: string;
   @IsOptional() @IsString() @IsIn(['active', 'suspended', 'expired', 'blocked']) status?: string;
+}
+
+class CreateFineDto {
+  @IsString() loanId!: string;
+  @IsNumber() @Min(0.01) amount!: number;
+  @IsOptional() @IsString() reason?: string;
 }
 
 @ApiTags('Patrons')
@@ -37,6 +45,7 @@ export class PatronController {
   constructor(
     private readonly registerPatron: RegisterPatronUseCase,
     @Inject(PATRON_REPOSITORY) private readonly patronRepo: IPatronRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post()
@@ -140,5 +149,50 @@ export class PatronController {
   @ApiOperation({ summary: 'Eliminar socio (admin)' })
   async deletePatron(@Param('id') id: string) {
     await this.patronRepo.delete(id);
+  }
+
+  // ── Multas ────────────────────────────────────────────────────────────────
+
+  @Post(':id/fines')
+  @ApiOperation({ summary: 'Registrar multa para un socio (interno desde circulation-service)' })
+  async createFine(@Param('id') id: string, @Body() dto: CreateFineDto) {
+    const patron = await this.patronRepo.findById(id);
+    if (!patron) throw new NotFoundException('Socio no encontrado');
+    const fine = await this.prisma.fine.create({
+      data: {
+        patronId: id,
+        loanId: dto.loanId,
+        amount: dto.amount,
+        reason: dto.reason ?? 'Devolución tardía',
+        status: 'pending',
+      },
+    });
+    return fine;
+  }
+
+  @Get(':id/fines')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Obtener multas pendientes del socio' })
+  async getFines(@Param('id') id: string) {
+    const fines = await this.prisma.fine.findMany({
+      where: { patronId: id, status: 'pending' },
+      orderBy: { createdAt: 'desc' },
+    });
+    const total = fines.reduce((s, f) => s + Number(f.amount), 0);
+    return { fines, total };
+  }
+
+  @Post(':id/fines/pay-all')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Pagar todas las multas pendientes del socio' })
+  async payAllFines(@Param('id') id: string) {
+    const result = await this.prisma.fine.updateMany({
+      where: { patronId: id, status: 'pending' },
+      data: { status: 'paid', paidAt: new Date() },
+    });
+    if (result.count === 0) throw new BadRequestException('No hay multas pendientes');
+    return { paid: result.count };
   }
 }

@@ -51,6 +51,7 @@ export default function DashboardPage() {
   const [modalPago, setModalPago] = useState(false);
   const [pagando, setPagando] = useState(false);
   const [cardNum, setCardNum] = useState('');
+  const [multaReal, setMultaReal] = useState(0);
 
   function recargar() {
     setRefrescando(true);
@@ -84,10 +85,12 @@ export default function DashboardPage() {
     // Llamada única al API route server-side que lee las cookies y busca préstamos
     Promise.all([
       fetch('/api/mis-prestamos').then((r) => r.json()) as Promise<{ data: Prestamo[] }>,
+      fetch('/api/multas').then((r) => r.json()).catch(() => ({ total: 0 })) as Promise<{ total: number }>,
       new Promise((r) => setTimeout(r, 500)),
     ])
-      .then(([data]) => {
+      .then(([data, multasData]) => {
         const todos = data.data ?? [];
+        setMultaReal((multasData as { total: number }).total ?? 0);
         if (hasSession) {
           setPrestamos(todos.filter((l) => l.status === 'active' || l.status === 'overdue'));
         } else {
@@ -122,12 +125,19 @@ export default function DashboardPage() {
       return;
     }
     setPagando(true);
-    await new Promise((r) => setTimeout(r, 1500)); // simular proceso de pago
-    setPrestamos((prev) => prev.map((p) => ({ ...p, fineAmount: 0 })));
-    setModalPago(false);
-    setCardNum('');
-    setPagando(false);
-    mostrarToast('Pago procesado correctamente. ¡Multas saldadas!', 'ok');
+    try {
+      const res = await fetch('/api/multas', { method: 'POST' });
+      if (!res.ok) throw new Error('Error al registrar pago');
+      setMultaReal(0);
+      setPrestamos((prev) => prev.map((p) => ({ ...p, fineAmount: 0 })));
+      setModalPago(false);
+      setCardNum('');
+      mostrarToast('Pago procesado correctamente. ¡Multas saldadas!', 'ok');
+    } catch {
+      mostrarToast('No se pudo procesar el pago. Intenta de nuevo.', 'err');
+    } finally {
+      setPagando(false);
+    }
   }
 
   const formatCard = (val: string) =>
@@ -135,7 +145,8 @@ export default function DashboardPage() {
 
   const vencidos = prestamos.filter((p) => p.status === 'overdue');
   const activos = prestamos.filter((p) => p.status === 'active');
-  const multaTotal = prestamos.reduce((s, p) => s + (p.fineAmount ?? 0), 0);
+  const multaLoans = prestamos.reduce((s, p) => s + (p.fineAmount ?? 0), 0);
+  const multaTotal = multaReal > 0 ? multaReal : multaLoans;
   const nombreSocio = usuario?.fullName ?? 'Santiago Gómez Vargas';
 
   return (
@@ -144,23 +155,23 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-parchment">
         <div className="mx-auto max-w-5xl px-6 py-10">
 
-          <div className="mb-10">
-            <span className="section-label">Portal del socio</span>
-            <h1 className="heading-md mt-2 text-ink">Mi cuenta</h1>
-            <div className="mt-2 flex items-center gap-3">
-              <p className="font-body text-sm text-ink-muted">
+          <div className="mb-10 flex items-start justify-between gap-4">
+            <div>
+              <span className="section-label">Portal del socio</span>
+              <h1 className="heading-md mt-2 text-ink">Mi cuenta</h1>
+              <p className="mt-1 font-body text-sm text-ink-muted">
                 Bienvenido, <span className="font-medium text-ink">{nombreSocio}</span>
                 {!usuario && <span className="ml-2 rounded-full bg-amber-book/10 px-2 py-0.5 font-mono text-xs text-amber-book">Vista de demo</span>}
               </p>
-              <button
-                onClick={recargar}
-                disabled={refrescando}
-                className="btn-secondary disabled:opacity-50"
-              >
-                <RotateCcw className={`h-4 w-4 ${refrescando ? 'animate-spin' : ''}`} />
-                Actualizar
-              </button>
             </div>
+            <button
+              onClick={recargar}
+              disabled={refrescando}
+              className="btn-secondary disabled:opacity-50"
+            >
+              <RotateCcw className={`h-4 w-4 ${refrescando ? 'animate-spin' : ''}`} />
+              Actualizar
+            </button>
           </div>
 
           {/* Alerta vencidos */}

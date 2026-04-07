@@ -11,6 +11,7 @@ export interface PatronSnapshot {
 export interface IPatronServiceClient {
   getPatronByCardNumber(cardNumber: string): Promise<PatronSnapshot | null>;
   getPatronById(id: string): Promise<PatronSnapshot | null>;
+  createFine(patronId: string, loanId: string, amount: number, reason: string): Promise<void>;
 }
 
 export const PATRON_SERVICE_CLIENT = Symbol('IPatronServiceClient');

@@ -41,6 +41,18 @@ export class HttpPatronClient implements IPatronServiceClient {
     }
   }
 
+  async createFine(patronId: string, loanId: string, amount: number, reason: string): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/api/v1/patrons/${patronId}/fines`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ loanId, amount, reason }),
+      });
+    } catch (err) {
+      this.logger.warn(`Could not create fine in patron-service: ${String(err)}`);
+    }
+  }
+
   private toSnapshot(data: any): PatronSnapshot {
     return {
       id: data.id as string,

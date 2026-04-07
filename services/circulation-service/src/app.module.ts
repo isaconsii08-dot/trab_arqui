@@ -56,11 +56,13 @@ import { HOLDINGS_SERVICE_CLIENT } from './application/ports/holdings-service-cl
       useFactory: (
         loanRepo: PrismaLoanRepository,
         holdingsClient: HttpHoldingsClient,
+        patronClient: HttpPatronClient,
         eventPublisher: RedisEventPublisher,
-      ) => new ReturnItemSaga(loanRepo, holdingsClient, eventPublisher),
+      ) => new ReturnItemSaga(loanRepo, holdingsClient, patronClient, eventPublisher),
       inject: [
         { token: LOAN_REPOSITORY, optional: false },
         { token: HOLDINGS_SERVICE_CLIENT, optional: false },
+        { token: PATRON_SERVICE_CLIENT, optional: false },
         { token: EVENT_PUBLISHER, optional: false },
       ],
     },

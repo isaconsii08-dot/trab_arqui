@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { LoanNotFoundError } from '@biblioflow/shared-errors';
 import { ILoanRepository } from '../../domain/repositories/loan.repository.interface';
 import { IHoldingsServiceClient } from '../ports/holdings-service-client.interface';
+import { IPatronServiceClient, PATRON_SERVICE_CLIENT } from '../ports/patron-service-client.interface';
 import { IEventPublisher } from '../ports/event-publisher.interface';
 import { ReturnItemCommand } from '@biblioflow/shared-types';
 import { EVENTS, LoanReturnedPayload, DomainEvent } from '@biblioflow/shared-events';
@@ -16,6 +17,7 @@ export class ReturnItemSaga {
   constructor(
     private readonly loanRepo: ILoanRepository,
     private readonly holdingsClient: IHoldingsServiceClient,
+    @Inject(PATRON_SERVICE_CLIENT) private readonly patronClient: IPatronServiceClient,
     private readonly eventPublisher: IEventPublisher,
   ) {}
 
@@ -34,6 +36,16 @@ export class ReturnItemSaga {
 
     // ── Step 4: Release item in Holdings Service ──────────────────────────
     await this.holdingsClient.releaseItem(command.itemBarcode);
+
+    // ── Step 4b: Register fine in Patron Service if applicable ────────────
+    if (fineAmount > 0) {
+      await this.patronClient.createFine(
+        saved.patronId,
+        saved.id,
+        fineAmount,
+        `Devolución tardía — ${Math.round(fineAmount / 0.5)} día(s)`,
+      );
+    }
 
     // ── Step 5: Publish event ─────────────────────────────────────────────
     const event: DomainEvent<LoanReturnedPayload> = {
