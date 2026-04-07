@@ -24,6 +24,7 @@ import { Roles } from '../decorators/roles.decorator';
 import { RolesGuard } from '../guards/roles.guard';
 import { ILoanRepository, LOAN_REPOSITORY } from '../../domain/repositories/loan.repository.interface';
 import { LoanMapper } from '../../application/mappers/loan.mapper';
+import { IPatronServiceClient, PATRON_SERVICE_CLIENT } from '../../application/ports/patron-service-client.interface';
 
 @ApiTags('Circulation')
 @Controller('circulation')
@@ -34,6 +35,7 @@ export class CirculationController {
     private readonly createLoanSaga: CreateLoanSaga,
     private readonly returnItemSaga: ReturnItemSaga,
     @Inject(LOAN_REPOSITORY) private readonly loanRepo: ILoanRepository,
+    @Inject(PATRON_SERVICE_CLIENT) private readonly patronClient: IPatronServiceClient,
   ) {}
 
   @Post('loans')
@@ -147,6 +149,18 @@ export class CirculationController {
       updated = updated.updateDueDate(updated.dueDate);
     }
     const saved = await this.loanRepo.save(updated);
+
+    // Si el cambio de fecha generó multa, crearla en patron-service
+    if (body.dueDate && saved.fineAmount > 0) {
+      const daysLate = Math.ceil(saved.fineAmount / 1000);
+      await this.patronClient.createFine(
+        saved.patronId,
+        saved.id,
+        saved.fineAmount,
+        `Préstamo vencido hace ${daysLate} día${daysLate !== 1 ? 's' : ''} (fecha ajustada por personal)`,
+      );
+    }
+
     return LoanMapper.toDto(saved);
   }
 
