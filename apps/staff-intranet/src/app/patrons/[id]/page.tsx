@@ -1,11 +1,14 @@
 import { ArrowLeft, User, AlertTriangle, CheckCircle, Clock, BookOpen, Pencil } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { RefreshButton } from '@/components/ui/refresh-button';
 import { notFound } from 'next/navigation';
 import { obtenerTokenServicio } from '@/lib/api';
 
-const PATRON_URL = process.env.PATRON_SERVICE_URL ?? 'http://localhost:3001';
-const CIRC_URL   = process.env.CIRC_SERVICE_URL   ?? 'http://localhost:3004';
+const PATRON_URL   = process.env.PATRON_SERVICE_URL   ?? 'http://localhost:3001';
+const CIRC_URL     = process.env.CIRC_SERVICE_URL     ?? 'http://localhost:3004';
+const HOLDINGS_URL = process.env.HOLDINGS_SERVICE_URL ?? 'http://localhost:3003';
+const CATALOG_URL  = process.env.CATALOG_SERVICE_URL  ?? 'http://localhost:3002';
 
 interface PatronDto {
   id: string;
@@ -25,6 +28,8 @@ interface LoanDto {
   itemId: string;
   itemBarcode: string;
   itemTitle: string;
+  coverImageUrl?: string | null;
+  itemAuthors?: string;
   loanDate: string;
   dueDate: string;
   returnDate: string | null;
@@ -48,7 +53,49 @@ async function obtenerPrestamosDelSocio(patronId: string, token: string): Promis
   );
   if (!res.ok) return [];
   const data = await res.json() as { data?: LoanDto[] };
-  return data.data ?? [];
+  const loans = data.data ?? [];
+  if (loans.length === 0) return loans;
+
+  // Enriquecer: barcode → holdings → recordId → catálogo (título + portada)
+  const holdingsMap: Record<string, string> = {}; // barcode → recordId
+  await Promise.all(
+    loans.map((l) =>
+      fetch(`${HOLDINGS_URL}/api/v1/holdings/items/${l.itemBarcode}`, { cache: 'no-store' })
+        .then((r) => r.ok ? r.json() : null)
+        .then((item: { barcode: string; recordId: string } | null) => {
+          if (item?.recordId) holdingsMap[item.barcode] = item.recordId;
+        })
+        .catch(() => {}),
+    ),
+  );
+
+  const uniqueIds = [...new Set(Object.values(holdingsMap))];
+  const catalogMap: Record<string, { title: string; coverImageUrl: string | null; authors: string }> = {};
+  await Promise.all(
+    uniqueIds.map((id) =>
+      fetch(`${CATALOG_URL}/api/v1/catalog/${id}`, { cache: 'no-store' })
+        .then((r) => r.ok ? r.json() : null)
+        .then((d: { title?: string; coverImageUrl?: string | null; authors?: Array<{ name: string }> } | null) => {
+          if (d) catalogMap[id] = {
+            title: d.title ?? '',
+            coverImageUrl: d.coverImageUrl ?? null,
+            authors: d.authors?.map((a) => a.name).join(', ') ?? '',
+          };
+        })
+        .catch(() => {}),
+    ),
+  );
+
+  return loans.map((l) => {
+    const recordId = holdingsMap[l.itemBarcode];
+    const cat = recordId ? catalogMap[recordId] : null;
+    return {
+      ...l,
+      itemTitle: cat?.title || l.itemTitle || l.itemBarcode,
+      coverImageUrl: cat?.coverImageUrl ?? null,
+      itemAuthors: cat?.authors ?? '',
+    };
+  });
 }
 
 const copFmt = (n: number) =>
@@ -167,8 +214,8 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
             <table className="data-table w-full">
               <thead>
                 <tr>
-                  <th>Ejemplar</th>
-                  <th>Fecha préstamo</th>
+                  <th>Libro</th>
+                  <th>Préstamo</th>
                   <th>Vencimiento</th>
                   <th>Estado</th>
                   <th>Multa</th>
@@ -179,9 +226,33 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
                   const est = estadoLoan[p.status] ?? { label: p.status, badge: '' };
                   return (
                     <tr key={p.id} className="table-row">
-                      <td className="max-w-[160px]">
-                        <p className="truncate font-body text-sm">{p.itemTitle || p.itemBarcode || p.itemId}</p>
-                        <p className="font-mono text-xs text-text-muted">{p.itemBarcode || p.itemId}</p>
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="relative h-12 w-9 shrink-0 overflow-hidden rounded-sm bg-surface-raised">
+                            {p.coverImageUrl ? (
+                              <Image
+                                src={p.coverImageUrl}
+                                alt={p.itemTitle}
+                                fill
+                                className="object-cover"
+                                sizes="36px"
+                              />
+                            ) : (
+                              <BookOpen className="absolute inset-0 m-auto h-4 w-4 text-text-muted/40" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="truncate font-body text-sm font-medium text-text-primary max-w-[180px]">
+                              {p.itemTitle}
+                            </p>
+                            {p.itemAuthors && (
+                              <p className="truncate font-mono text-xs text-text-muted max-w-[180px]">
+                                {p.itemAuthors}
+                              </p>
+                            )}
+                            <p className="font-mono text-[10px] text-text-muted">{p.itemBarcode}</p>
+                          </div>
+                        </div>
                       </td>
                       <td className="font-mono text-xs text-text-muted">
                         {new Date(p.loanDate).toLocaleDateString('es-CO')}
