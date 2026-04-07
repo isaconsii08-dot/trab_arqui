@@ -14,6 +14,7 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
+
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { RegisterPatronUseCase } from '../../application/use-cases/register-patron.use-case';
 import { RegisterPatronDto } from '../../application/dtos/register-patron.dto';
@@ -173,13 +174,14 @@ export class PatronController {
   @Get(':id/fines')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Obtener multas pendientes del socio' })
-  async getFines(@Param('id') id: string) {
+  @ApiOperation({ summary: 'Obtener multas del socio (pending por defecto, ?all=1 para todas)' })
+  async getFines(@Param('id') id: string, @Query('all') all?: string) {
+    const where = all === '1' ? { patronId: id } : { patronId: id, status: 'pending' as const };
     const fines = await this.prisma.fine.findMany({
-      where: { patronId: id, status: 'pending' },
+      where,
       orderBy: { createdAt: 'desc' },
     });
-    const total = fines.reduce((s, f) => s + Number(f.amount), 0);
+    const total = fines.filter((f) => f.status === 'pending').reduce((s, f) => s + Number(f.amount), 0);
     return { fines, total };
   }
 
@@ -194,5 +196,27 @@ export class PatronController {
     });
     if (result.count === 0) throw new BadRequestException('No hay multas pendientes');
     return { paid: result.count };
+  }
+
+  @Patch(':id/fines/:fineId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('administrator', 'librarian')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Actualizar una multa individual (condonar, pagar, cambiar monto)' })
+  async updateFine(
+    @Param('id') id: string,
+    @Param('fineId') fineId: string,
+    @Body() body: { status?: 'paid' | 'waived'; amount?: number },
+  ) {
+    const fine = await this.prisma.fine.findFirst({ where: { id: fineId, patronId: id } });
+    if (!fine) throw new NotFoundException('Multa no encontrada');
+    const updated = await this.prisma.fine.update({
+      where: { id: fineId },
+      data: {
+        ...(body.status ? { status: body.status, paidAt: new Date() } : {}),
+        ...(body.amount !== undefined ? { amount: body.amount } : {}),
+      },
+    });
+    return updated;
   }
 }

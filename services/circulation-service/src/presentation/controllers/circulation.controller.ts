@@ -1,12 +1,15 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpException,
   HttpStatus,
   Inject,
+  NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -116,5 +119,44 @@ export class CirculationController {
       prestamosActivos: allActive.length,
       prestamosVencidos: overdue.length,
     };
+  }
+
+  @Get('loans/:id')
+  @Roles('administrator', 'librarian', 'assistant')
+  @ApiOperation({ summary: 'Obtener préstamo por ID' })
+  async getLoan(@Param('id') id: string) {
+    const loan = await this.loanRepo.findById(id);
+    if (!loan) throw new NotFoundException('Préstamo no encontrado');
+    return LoanMapper.toDto(loan);
+  }
+
+  @Patch('loans/:id')
+  @Roles('administrator', 'librarian')
+  @ApiOperation({ summary: 'Actualizar préstamo (cambiar fecha de vencimiento, estado)' })
+  async updateLoan(@Param('id') id: string, @Body() body: { dueDate?: string; status?: string }) {
+    const loan = await this.loanRepo.findById(id);
+    if (!loan) throw new NotFoundException('Préstamo no encontrado');
+    let updated = loan;
+    if (body.dueDate) {
+      updated = updated.updateDueDate(new Date(body.dueDate));
+    }
+    if (body.status === 'overdue') {
+      updated = updated.markOverdue();
+    }
+    if (body.status === 'active') {
+      updated = updated.updateDueDate(updated.dueDate);
+    }
+    const saved = await this.loanRepo.save(updated);
+    return LoanMapper.toDto(saved);
+  }
+
+  @Delete('loans/:id')
+  @Roles('administrator', 'librarian')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Cancelar préstamo (cierre forzado sin multa)' })
+  async cancelLoan(@Param('id') id: string) {
+    const loan = await this.loanRepo.findById(id);
+    if (!loan) throw new NotFoundException('Préstamo no encontrado');
+    await this.loanRepo.save(loan.forceClose());
   }
 }

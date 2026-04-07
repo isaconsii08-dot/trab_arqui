@@ -118,4 +118,12 @@ export class Loan {
   markOverdue(): Loan {
     return new Loan({ ...this.props, status: 'overdue' });
   }
+
+  updateDueDate(newDueDate: Date): Loan {
+    return new Loan({ ...this.props, dueDate: newDueDate, status: 'active' });
+  }
+
+  forceClose(): Loan {
+    return new Loan({ ...this.props, returnDate: new Date(), status: 'returned', fineAmount: 0 });
+  }
 }

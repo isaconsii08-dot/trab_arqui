@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { BookOpen, RefreshCw, Scan, CheckCircle, XCircle, ArrowLeft, Inbox, Clock, ThumbsUp, ThumbsDown, Package, User, Loader2, Library, AlertTriangle, Search, RotateCcw } from 'lucide-react';
+import { BookOpen, RefreshCw, Scan, CheckCircle, XCircle, ArrowLeft, Inbox, Clock, ThumbsUp, ThumbsDown, Package, User, Loader2, Library, AlertTriangle, Search, RotateCcw, Pencil, Trash2, BadgeDollarSign, ShieldOff, CreditCard, CalendarDays, X } from 'lucide-react';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
 
@@ -47,6 +47,22 @@ interface PrestamoActivo {
   renewedCount: number;
   fineAmount: number;
   recordId?: string;
+}
+
+interface MultaItem {
+  fineId: string;
+  patronId: string;
+  patronName: string;
+  patronCard: string;
+  patronEmail: string;
+  loanId: string;
+  amount: number;
+  reason: string;
+  status: string;
+  createdAt: string;
+  paidAt: string | null;
+  itemBarcode?: string;
+  itemTitle?: string;
 }
 
 interface PatronInfo {
@@ -133,7 +149,19 @@ function useLookup<T>(type: 'patron' | 'item', query: string, delay = 400, forRe
 }
 
 export default function CirculationPage() {
-  const [activeTab, setActiveTab] = useState<'loan' | 'return' | 'solicitudes' | 'prestamos'>('loan');
+  const [activeTab, setActiveTab] = useState<'loan' | 'return' | 'solicitudes' | 'prestamos' | 'gestion' | 'multas'>('loan');
+  const [multas, setMultas] = useState<MultaItem[]>([]);
+  const [cargandoMultas, setCargandoMultas] = useState(false);
+  const [multaAccion, setMultaAccion] = useState<Record<string, boolean>>({});
+  const [filtroMultas, setFiltroMultas] = useState<'pending' | 'all'>('pending');
+  const [editLoanModal, setEditLoanModal] = useState<{ id: string; dueDate: string; title: string } | null>(null);
+  const [nuevaFecha, setNuevaFecha] = useState('');
+  const [actualizandoLoan, setActualizandoLoan] = useState(false);
+  const [cancelandoLoan, setCancelandoLoan] = useState<string | null>(null);
+  const [multaManualModal, setMultaManualModal] = useState<{ patronId: string; patronName: string; loanId: string } | null>(null);
+  const [multaManualMonto, setMultaManualMonto] = useState('');
+  const [multaManualRazon, setMultaManualRazon] = useState('');
+  const [creandoMulta, setCreandoMulta] = useState(false);
   const [prestamosActivos, setPrestamosActivos] = useState<PrestamoActivo[]>([]);
   const [prestamosQuery, setPrestamosQuery] = useState('');
   const [cargandoPrestamos, setCargandoPrestamos] = useState(false);
@@ -280,9 +308,88 @@ export default function CirculationPage() {
     }
   }, []);
 
+  const cargarMultas = useCallback(async () => {
+    setCargandoMultas(true);
+    try {
+      const res = await fetch('/api/multas');
+      if (res.ok) setMultas(await res.json());
+    } catch { /* ignorar */ } finally {
+      setCargandoMultas(false);
+    }
+  }, []);
+
+  const handleUpdateDueDate = async () => {
+    if (!editLoanModal || !nuevaFecha) return;
+    setActualizandoLoan(true);
+    try {
+      const res = await fetch(`/api/circulacion/loan/${editLoanModal.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dueDate: nuevaFecha }),
+      });
+      if (res.ok) {
+        setPrestamosActivos((prev) => prev.map((p) => p.id === editLoanModal.id ? { ...p, dueDate: nuevaFecha, status: 'active' } : p));
+        setEditLoanModal(null);
+      }
+    } catch { /* ignorar */ } finally {
+      setActualizandoLoan(false);
+    }
+  };
+
+  const handleCancelLoan = async (loanId: string) => {
+    if (!confirm('¿Cancelar este préstamo? El ejemplar volverá a estar disponible sin registrar multa.')) return;
+    setCancelandoLoan(loanId);
+    try {
+      await fetch(`/api/circulacion/loan/${loanId}`, { method: 'DELETE' });
+      setPrestamosActivos((prev) => prev.filter((p) => p.id !== loanId));
+    } catch { /* ignorar */ } finally {
+      setCancelandoLoan(null);
+    }
+  };
+
+  const handleFineAction = async (fineId: string, patronId: string, action: 'paid' | 'waived') => {
+    setMultaAccion((prev) => ({ ...prev, [fineId]: true }));
+    try {
+      await fetch(`/api/socios/${patronId}/multas/${fineId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: action }),
+      });
+      setMultas((prev) => prev.map((m) => m.fineId === fineId ? { ...m, status: action } : m));
+    } catch { /* ignorar */ } finally {
+      setMultaAccion((prev) => { const n = { ...prev }; delete n[fineId]; return n; });
+    }
+  };
+
+  const handleCrearMultaManual = async () => {
+    if (!multaManualModal || !multaManualMonto) return;
+    setCreandoMulta(true);
+    try {
+      await fetch(`/api/socios/${multaManualModal.patronId}/multas`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          loanId: multaManualModal.loanId,
+          amount: Number(multaManualMonto),
+          reason: multaManualRazon || 'Multa manual registrada por personal',
+        }),
+      });
+      setMultaManualModal(null);
+      setMultaManualMonto('');
+      setMultaManualRazon('');
+      await cargarMultas();
+    } catch { /* ignorar */ } finally {
+      setCreandoMulta(false);
+    }
+  };
+
   useEffect(() => {
-    if (activeTab === 'prestamos') cargarPrestamosTab();
+    if (activeTab === 'prestamos' || activeTab === 'gestion') cargarPrestamosTab();
   }, [activeTab, cargarPrestamosTab]);
+
+  useEffect(() => {
+    if (activeTab === 'multas') cargarMultas();
+  }, [activeTab, cargarMultas]);
 
   const cambiarEstado = async (id: string, estado: Solicitud['estado']) => {
     await fetch(`/api/prestamos/${id}`, {
@@ -345,10 +452,12 @@ export default function CirculationPage() {
       {/* Selector de pestaña */}
       <div className="flex gap-1 rounded-sm border border-surface-border bg-surface-card p-1 w-fit">
         {([
-          { key: 'loan',        icon: BookOpen,  label: 'Préstamo'    },
-          { key: 'return',      icon: RefreshCw, label: 'Devolución'  },
-          { key: 'solicitudes', icon: Inbox,     label: 'Solicitudes' },
-          { key: 'prestamos',   icon: Library,   label: 'Préstamos activos' },
+          { key: 'loan',        icon: BookOpen,        label: 'Préstamo'         },
+          { key: 'return',      icon: RefreshCw,       label: 'Devolución'       },
+          { key: 'solicitudes', icon: Inbox,           label: 'Solicitudes'      },
+          { key: 'prestamos',   icon: Library,         label: 'Préstamos activos'},
+          { key: 'gestion',     icon: CalendarDays,    label: 'Gestión'          },
+          { key: 'multas',      icon: BadgeDollarSign, label: 'Multas'           },
         ] as const).map((tab) => {
           const Icon = tab.icon;
           return (
@@ -619,8 +728,321 @@ export default function CirculationPage() {
         );
       })()}
 
+      {/* ── GESTIÓN DE PRÉSTAMOS ── */}
+      {activeTab === 'gestion' && (() => {
+        const q = prestamosQuery.toLowerCase().trim();
+        const filtrados = q
+          ? prestamosActivos.filter(
+              (p) =>
+                p.itemTitle.toLowerCase().includes(q) ||
+                p.patronName.toLowerCase().includes(q) ||
+                p.patronCardNumber.toLowerCase().includes(q) ||
+                p.itemBarcode.toLowerCase().includes(q),
+            )
+          : prestamosActivos;
+
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 max-w-sm">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+                <input
+                  type="search"
+                  value={prestamosQuery}
+                  onChange={(e) => setPrestamosQuery(e.target.value)}
+                  placeholder="Buscar préstamo..."
+                  className="input-dark w-full pl-8 py-2 text-sm"
+                />
+              </div>
+              <button onClick={cargarPrestamosTab} disabled={cargandoPrestamos} className="btn-ghost flex items-center gap-1.5 text-sm">
+                <RotateCcw className={`h-3.5 w-3.5 ${cargandoPrestamos ? 'animate-spin' : ''}`} />
+                Actualizar
+              </button>
+            </div>
+
+            {cargandoPrestamos ? (
+              <div className="flex flex-col items-center py-16">
+                <Loader2 className="mb-3 h-8 w-8 animate-spin text-text-muted/30" />
+                <p className="font-mono text-xs text-text-muted">Cargando...</p>
+              </div>
+            ) : filtrados.length === 0 ? (
+              <div className="surface-card flex flex-col items-center py-16">
+                <Library className="mb-3 h-10 w-10 text-text-muted/20" />
+                <p className="font-mono text-xs text-text-muted">No hay préstamos activos</p>
+              </div>
+            ) : (
+              <div className="surface-card overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-surface-border">
+                      <th className="px-4 py-2.5 text-left font-mono text-[10px] uppercase tracking-wider text-text-muted">Ejemplar</th>
+                      <th className="px-4 py-2.5 text-left font-mono text-[10px] uppercase tracking-wider text-text-muted">Socio</th>
+                      <th className="px-4 py-2.5 text-left font-mono text-[10px] uppercase tracking-wider text-text-muted">Vence</th>
+                      <th className="px-4 py-2.5 text-left font-mono text-[10px] uppercase tracking-wider text-text-muted">Estado</th>
+                      <th className="px-4 py-2.5 text-right font-mono text-[10px] uppercase tracking-wider text-text-muted">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-surface-border">
+                    {filtrados.map((p) => {
+                      const vencido = p.status === 'overdue';
+                      return (
+                        <tr key={p.id} className="hover:bg-surface-raised/40 transition-colors">
+                          <td className="px-4 py-3">
+                            <p className="font-body text-xs font-medium text-text-primary line-clamp-1">{p.itemTitle}</p>
+                            <p className="font-mono text-[10px] text-text-muted">{p.itemBarcode}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className="font-body text-xs text-text-primary">{p.patronName}</p>
+                            <p className="font-mono text-[10px] text-text-muted">{p.patronCardNumber}</p>
+                          </td>
+                          <td className="px-4 py-3">
+                            <p className={`font-mono text-xs ${vencido ? 'text-accent-red font-medium' : 'text-text-secondary'}`}>
+                              {new Date(p.dueDate).toLocaleDateString('es-CO')}
+                            </p>
+                            {vencido && <p className="font-mono text-[10px] text-accent-red">Vencido</p>}
+                          </td>
+                          <td className="px-4 py-3">
+                            {p.fineAmount > 0 ? (
+                              <span className="font-mono text-xs text-accent-red">{copFmt(p.fineAmount)}</span>
+                            ) : (
+                              <span className="font-mono text-[10px] text-text-muted">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                onClick={() => { setEditLoanModal({ id: p.id, dueDate: p.dueDate.slice(0, 10), title: p.itemTitle }); setNuevaFecha(p.dueDate.slice(0, 10)); }}
+                                className="flex items-center gap-1 rounded-sm border border-surface-border px-2 py-1 font-mono text-[10px] text-text-secondary hover:bg-surface-raised hover:text-text-primary transition-colors"
+                                title="Cambiar fecha de vencimiento"
+                              >
+                                <Pencil className="h-3 w-3" /> Fecha
+                              </button>
+                              <button
+                                disabled={cancelandoLoan === p.id}
+                                onClick={() => handleCancelLoan(p.id)}
+                                className="flex items-center gap-1 rounded-sm border border-accent-red/30 px-2 py-1 font-mono text-[10px] text-accent-red hover:bg-accent-red/8 transition-colors disabled:opacity-40"
+                                title="Cancelar préstamo"
+                              >
+                                {cancelandoLoan === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                                Cancelar
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* ── MULTAS ── */}
+      {activeTab === 'multas' && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex gap-1 rounded-sm border border-surface-border bg-surface-raised p-0.5">
+              {(['pending', 'all'] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFiltroMultas(f)}
+                  className={`rounded-sm px-3 py-1 font-mono text-xs transition-colors ${filtroMultas === f ? 'bg-surface-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'}`}
+                >
+                  {f === 'pending' ? 'Pendientes' : 'Todas'}
+                </button>
+              ))}
+            </div>
+            <button onClick={cargarMultas} disabled={cargandoMultas} className="btn-ghost flex items-center gap-1.5 text-sm">
+              <RotateCcw className={`h-3.5 w-3.5 ${cargandoMultas ? 'animate-spin' : ''}`} />
+              Actualizar
+            </button>
+          </div>
+
+          {cargandoMultas ? (
+            <div className="flex flex-col items-center py-16">
+              <Loader2 className="mb-3 h-8 w-8 animate-spin text-text-muted/30" />
+              <p className="font-mono text-xs text-text-muted">Cargando multas...</p>
+            </div>
+          ) : (() => {
+            const multasFiltradas = filtroMultas === 'pending'
+              ? multas.filter((m) => m.status === 'pending')
+              : multas;
+            return multasFiltradas.length === 0 ? (
+              <div className="surface-card flex flex-col items-center py-16">
+                <BadgeDollarSign className="mb-3 h-10 w-10 text-text-muted/20" />
+                <p className="font-mono text-xs text-text-muted">
+                  {filtroMultas === 'pending' ? 'No hay multas pendientes' : 'No hay multas registradas'}
+                </p>
+              </div>
+            ) : (
+              <div className="surface-card overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-surface-border">
+                      <th className="px-4 py-2.5 text-left font-mono text-[10px] uppercase tracking-wider text-text-muted">Socio</th>
+                      <th className="px-4 py-2.5 text-left font-mono text-[10px] uppercase tracking-wider text-text-muted">Ejemplar</th>
+                      <th className="px-4 py-2.5 text-left font-mono text-[10px] uppercase tracking-wider text-text-muted">Motivo</th>
+                      <th className="px-4 py-2.5 text-right font-mono text-[10px] uppercase tracking-wider text-text-muted">Monto</th>
+                      <th className="px-4 py-2.5 text-left font-mono text-[10px] uppercase tracking-wider text-text-muted">Estado</th>
+                      <th className="px-4 py-2.5 text-right font-mono text-[10px] uppercase tracking-wider text-text-muted">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-surface-border">
+                    {multasFiltradas.map((m) => (
+                      <tr key={m.fineId} className="hover:bg-surface-raised/40 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="font-body text-xs font-medium text-text-primary">{m.patronName}</p>
+                          <p className="font-mono text-[10px] text-text-muted">{m.patronCard}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-body text-xs text-text-secondary line-clamp-1">{m.itemTitle ?? m.itemBarcode ?? '—'}</p>
+                          <p className="font-mono text-[10px] text-text-muted">{new Date(m.createdAt).toLocaleDateString('es-CO')}</p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p className="font-mono text-xs text-text-muted line-clamp-1 max-w-[160px]">{m.reason}</p>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="font-mono text-xs font-medium text-accent-red">{copFmt(m.amount)}</span>
+                        </td>
+                        <td className="px-4 py-3">
+                          {m.status === 'pending' && (
+                            <span className="rounded-sm border border-accent-amber/20 bg-accent-amber/10 px-2 py-0.5 font-mono text-[10px] text-accent-amber">Pendiente</span>
+                          )}
+                          {m.status === 'paid' && (
+                            <span className="rounded-sm border border-accent-green/20 bg-accent-green/10 px-2 py-0.5 font-mono text-[10px] text-accent-green">Pagada</span>
+                          )}
+                          {m.status === 'waived' && (
+                            <span className="rounded-sm border border-surface-border bg-surface-raised px-2 py-0.5 font-mono text-[10px] text-text-muted">Condonada</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {m.status === 'pending' && (
+                              <>
+                                <button
+                                  disabled={multaAccion[m.fineId]}
+                                  onClick={() => handleFineAction(m.fineId, m.patronId, 'paid')}
+                                  className="flex items-center gap-1 rounded-sm border border-accent-green/30 px-2 py-1 font-mono text-[10px] text-accent-green hover:bg-accent-green/8 transition-colors disabled:opacity-40"
+                                  title="Marcar como pagada"
+                                >
+                                  {multaAccion[m.fineId] ? <Loader2 className="h-3 w-3 animate-spin" /> : <CreditCard className="h-3 w-3" />}
+                                  Pagada
+                                </button>
+                                <button
+                                  disabled={multaAccion[m.fineId]}
+                                  onClick={() => handleFineAction(m.fineId, m.patronId, 'waived')}
+                                  className="flex items-center gap-1 rounded-sm border border-surface-border px-2 py-1 font-mono text-[10px] text-text-muted hover:bg-surface-raised transition-colors disabled:opacity-40"
+                                  title="Condonar multa"
+                                >
+                                  {multaAccion[m.fineId] ? <Loader2 className="h-3 w-3 animate-spin" /> : <ShieldOff className="h-3 w-3" />}
+                                  Condonar
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => setMultaManualModal({ patronId: m.patronId, patronName: m.patronName, loanId: m.loanId })}
+                              className="flex items-center gap-1 rounded-sm border border-accent-blue/30 px-2 py-1 font-mono text-[10px] text-accent-blue hover:bg-accent-blue/8 transition-colors"
+                              title="Crear multa manual"
+                            >
+                              <BadgeDollarSign className="h-3 w-3" />
+                              +Multa
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+        </div>
+      )}
+
+      {/* ── MODAL: Editar fecha de vencimiento ── */}
+      {editLoanModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-sm border border-surface-border bg-surface-card p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-display text-sm font-semibold text-text-primary">Cambiar fecha de vencimiento</h3>
+              <button onClick={() => setEditLoanModal(null)} className="text-text-muted hover:text-text-primary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mb-4 font-body text-xs text-text-muted line-clamp-2">{editLoanModal.title}</p>
+            <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-wider text-text-muted">Nueva fecha</label>
+            <input
+              type="date"
+              value={nuevaFecha}
+              onChange={(e) => setNuevaFecha(e.target.value)}
+              className="input-dark w-full mb-4"
+            />
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setEditLoanModal(null)} className="btn-ghost text-sm">Cancelar</button>
+              <button
+                onClick={handleUpdateDueDate}
+                disabled={actualizandoLoan || !nuevaFecha}
+                className="btn-green text-sm disabled:opacity-40"
+              >
+                {actualizandoLoan ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Guardando...</> : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: Multa manual ── */}
+      {multaManualModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-sm border border-surface-border bg-surface-card p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="font-display text-sm font-semibold text-text-primary">Crear multa manual</h3>
+              <button onClick={() => setMultaManualModal(null)} className="text-text-muted hover:text-text-primary">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mb-4 font-body text-xs text-text-muted">{multaManualModal.patronName}</p>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-wider text-text-muted">Monto (COP)</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={multaManualMonto}
+                  onChange={(e) => setMultaManualMonto(e.target.value)}
+                  placeholder="Ej: 5000"
+                  className="input-dark w-full"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-wider text-text-muted">Motivo</label>
+                <input
+                  type="text"
+                  value={multaManualRazon}
+                  onChange={(e) => setMultaManualRazon(e.target.value)}
+                  placeholder="Descripción del motivo..."
+                  className="input-dark w-full"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex gap-2 justify-end">
+              <button onClick={() => { setMultaManualModal(null); setMultaManualMonto(''); setMultaManualRazon(''); }} className="btn-ghost text-sm">Cancelar</button>
+              <button
+                onClick={handleCrearMultaManual}
+                disabled={creandoMulta || !multaManualMonto}
+                className="btn-green text-sm disabled:opacity-40"
+              >
+                {creandoMulta ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Creando...</> : 'Crear multa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── PRÉSTAMO / DEVOLUCIÓN ── */}
-      {activeTab !== 'solicitudes' && activeTab !== 'prestamos' && (
+      {activeTab !== 'solicitudes' && activeTab !== 'prestamos' && activeTab !== 'gestion' && activeTab !== 'multas' && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Panel de formulario */}
           <div className="surface-card p-6">
