@@ -426,16 +426,7 @@ db-migrate-circulation: ## Migra solo la DB de circulation-service (loans, reser
 # local, Redis, JWT secret, etc. Debes revisar y ajustar los valores si es necesario.
 env-setup: ## Copia .env.example → .env en cada servicio (solo si no existe)
 	@echo "Creando archivos de entorno..."
-	@powershell -NoProfile -ExecutionPolicy Bypass -Command \
-		"Get-ChildItem -Path 'services','apps' -Directory | ForEach-Object { \
-			$$dir = $$_.FullName; \
-			$$ex = Join-Path $$dir '.env.example'; \
-			$$dst = if ($$_.Parent.Name -eq 'apps') { Join-Path $$dir '.env.local' } else { Join-Path $$dir '.env' }; \
-			if ((Test-Path $$ex) -and -not (Test-Path $$dst)) { \
-				Copy-Item $$ex $$dst; \
-				Write-Host ('  ok ' + ($$dst -replace [regex]::Escape((Get-Location).Path+'\'),'')); \
-			} \
-		}"
+	@powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -Path 'services','apps' -Directory | ForEach-Object { $$dir = $$_.FullName; $$ex = Join-Path $$dir '.env.example'; $$dst = if ($$_.Parent.Name -eq 'apps') { Join-Path $$dir '.env.local' } else { Join-Path $$dir '.env' }; if ((Test-Path $$ex) -and -not (Test-Path $$dst)) { Copy-Item $$ex $$dst; Write-Host ('  ok ' + ($$dst -replace [regex]::Escape((Get-Location).Path+'\'),'')); } }"
 	@echo "Revisa los archivos .env generados y ajusta los valores si es necesario."
 
 
