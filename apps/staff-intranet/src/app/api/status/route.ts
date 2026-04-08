@@ -12,7 +12,7 @@ export async function GET() {
   let token = '';
   try { token = await obtenerTokenServicio(); } catch { /* sin token */ }
 
-  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+  const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
   const opts = { cache: 'no-store' as const, signal: AbortSignal.timeout(3000) };
 
   const services = [
