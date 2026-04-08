@@ -10,8 +10,8 @@ export async function GET() {
   if (!token || !userRaw) return NextResponse.json({ fines: [], total: 0 });
 
   try {
-    const user = JSON.parse(decodeURIComponent(userRaw)) as { sub?: string };
-    const patronId = user.sub ?? '';
+    const user = JSON.parse(decodeURIComponent(userRaw)) as { sub?: string; id?: string };
+    const patronId = user.sub ?? user.id ?? '';
     if (!patronId) return NextResponse.json({ fines: [], total: 0 });
 
     const res = await fetch(`${PATRON_URL}/api/v1/patrons/${patronId}/fines`, {
@@ -32,8 +32,8 @@ export async function POST() {
   if (!token || !userRaw) return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
 
   try {
-    const user = JSON.parse(decodeURIComponent(userRaw)) as { sub?: string };
-    const patronId = user.sub ?? '';
+    const user = JSON.parse(decodeURIComponent(userRaw)) as { sub?: string; id?: string };
+    const patronId = user.sub ?? user.id ?? '';
     if (!patronId) return NextResponse.json({ error: 'Sin patronId' }, { status: 400 });
 
     const res = await fetch(`${PATRON_URL}/api/v1/patrons/${patronId}/fines/pay-all`, {
