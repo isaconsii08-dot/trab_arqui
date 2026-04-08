@@ -17,8 +17,8 @@ html {
 }
 
 body {
-  background-color: #0B0E14;
-  color: #E8ECF0;
+  background-color: #EDE5CC;
+  color: #1C1B29;
   font-family: var(--font-syne);
 }
 
@@ -45,38 +45,38 @@ body {
   }
 
   .badge-green  { @apply bg-accent-green/15 text-accent-green; }
-  .badge-amber  { @apply bg-accent-amber/15 text-accent-amber; }
+  .badge-amber  { @apply bg-accent-amber/20 text-accent-amber; }
   .badge-red    { @apply bg-accent-red/15 text-accent-red; }
   .badge-blue   { @apply bg-accent-blue/15 text-accent-blue; }
 
   .table-row {
-    @apply border-b border-surface-border last:border-0 hover:bg-surface-raised/50 transition-colors;
+    @apply border-b border-surface-border last:border-0 hover:bg-surface-raised/70 transition-colors;
   }
 
   .input-dark {
-    @apply w-full rounded-sm border border-surface-border bg-surface-raised px-3 py-2.5 font-mono text-sm text-text-primary placeholder-text-muted transition-colors focus:border-accent-green/50 focus:outline-none focus:ring-1 focus:ring-accent-green/20;
+    @apply w-full rounded-sm border border-surface-border bg-surface-card px-3 py-2.5 font-mono text-sm text-text-primary placeholder-text-muted transition-colors focus:border-accent-amber/60 focus:outline-none focus:ring-1 focus:ring-accent-amber/20;
   }
 
   .btn-green {
-    @apply inline-flex items-center gap-2 rounded-sm bg-accent-green px-4 py-2.5 font-body text-sm font-semibold text-surface-base transition-all duration-150 hover:bg-accent-green/90 active:scale-95 disabled:opacity-50;
+    @apply inline-flex items-center gap-2 rounded-sm bg-accent-amber px-4 py-2.5 font-body text-sm font-semibold text-white transition-all duration-150 hover:bg-accent-amber/90 active:scale-95 disabled:opacity-50;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center gap-2 rounded-sm border border-surface-border px-4 py-2.5 font-body text-sm text-text-secondary transition-all duration-150 hover:border-text-secondary hover:text-text-primary;
+    @apply inline-flex items-center gap-2 rounded-sm border border-surface-border px-4 py-2.5 font-body text-sm text-text-secondary transition-all duration-150 hover:border-text-secondary hover:text-text-primary hover:bg-surface-raised;
   }
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 6px; }
-::-webkit-scrollbar-track { background: #0B0E14; }
-::-webkit-scrollbar-thumb { background: #1E2A42; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #2A3A55; }
+::-webkit-scrollbar-track { background: #EDE5CC; }
+::-webkit-scrollbar-thumb { background: #C4B896; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #A8977A; }
 
 
 /* ─── Table ──────────────────────────────────────────────────────────────── */
 .data-table th {
   @apply px-4 py-3 text-left font-mono text-xs uppercase tracking-wider text-text-muted;
-  border-bottom: 1px solid #1E2A42;
+  border-bottom: 1px solid #D4C4A0;
 }
 
 .data-table td {

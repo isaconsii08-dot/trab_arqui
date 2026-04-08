@@ -52,7 +52,7 @@ export default function Sidebar() {
           alt="BiblioFlow"
           width={120}
           height={25}
-          className="h-6 w-auto brightness-0 invert"
+          className="h-6 w-auto"
           priority
         />
       </div>

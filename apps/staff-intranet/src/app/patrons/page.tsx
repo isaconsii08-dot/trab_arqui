@@ -105,10 +105,14 @@ export default async function PatronsPage({ searchParams }: PageProps) {
                       <span className="badge badge-red"><Ban className="mr-1 h-3 w-3" />Bloqueado</span>
                     )}
                   </td>
-                  <td className={`font-mono text-sm font-medium ${(patron.pendingFinesTotal ?? 0) > 0 ? 'text-accent-red' : 'text-text-muted'}`}>
-                    {(patron.pendingFinesTotal ?? 0) > 0
-                      ? copFormat(patron.pendingFinesTotal)
-                      : '—'}
+                  <td>
+                    {(patron.pendingFinesTotal ?? 0) > 0 ? (
+                      <span className="font-mono text-sm font-bold text-accent-red">
+                        {copFormat(patron.pendingFinesTotal)}
+                      </span>
+                    ) : (
+                      <span className="font-mono text-sm text-text-muted">—</span>
+                    )}
                   </td>
                   <td>
                     <Link href={`/patrons/${patron.id}`} className="font-mono text-xs text-accent-green hover:underline">

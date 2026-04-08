@@ -14,7 +14,7 @@ interface Props {
   prestamosVencidos: number;
 }
 
-const TIPO_COLORS = ['#1FB870', '#3B82F6', '#F59E0B', '#8B5CF6', '#EF4444', '#06B6D4'];
+const TIPO_COLORS = ['#1D5E4A', '#1D4ED8', '#C8860A', '#6D28D9', '#8B3A3A', '#0E7490'];
 
 // Datos de actividad mensual (últimos 6 meses con datos del sistema)
 function getMesesData(vencidos: number) {
@@ -32,8 +32,8 @@ export default function AnalyticsCharts({ patronesData, tiposData, totalSocios, 
   const mesesData = getMesesData(prestamosVencidos);
 
   const radialData = [
-    { name: 'Disponibilidad', value: totalMateriales > 0 ? Math.round(((totalMateriales - prestamosVencidos) / totalMateriales) * 100) : 100, fill: '#1FB870' },
-    { name: 'Socios activos', value: totalSocios > 0 ? Math.round((patronesData[0]?.value ?? 0) / totalSocios * 100) : 0, fill: '#3B82F6' },
+    { name: 'Disponibilidad', value: totalMateriales > 0 ? Math.round(((totalMateriales - prestamosVencidos) / totalMateriales) * 100) : 100, fill: '#1D5E4A' },
+    { name: 'Socios activos', value: totalSocios > 0 ? Math.round((patronesData[0]?.value ?? 0) / totalSocios * 100) : 0, fill: '#1D4ED8' },
   ];
 
   return (
@@ -44,17 +44,17 @@ export default function AnalyticsCharts({ patronesData, tiposData, totalSocios, 
         <p className="mb-4 font-mono text-xs text-text-muted">Préstamos, devoluciones y vencidos (últimos 6 meses)</p>
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={mesesData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1E2A42" />
-            <XAxis dataKey="mes" tick={{ fill: '#64748B', fontSize: 11, fontFamily: 'JetBrains Mono' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#64748B', fontSize: 11, fontFamily: 'JetBrains Mono' }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#D4C4A0" />
+            <XAxis dataKey="mes" tick={{ fill: '#6B6A7D', fontSize: 11, fontFamily: 'JetBrains Mono' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#6B6A7D', fontSize: 11, fontFamily: 'JetBrains Mono' }} axisLine={false} tickLine={false} />
             <Tooltip
-              contentStyle={{ background: '#111827', border: '1px solid #1E2A42', borderRadius: 4, fontSize: 12 }}
-              labelStyle={{ color: '#E8ECF0', fontWeight: 600 }}
+              contentStyle={{ background: '#FAF7F2', border: '1px solid #D4C4A0', borderRadius: 4, fontSize: 12 }}
+              labelStyle={{ color: '#1C1B29', fontWeight: 600 }}
             />
             <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'JetBrains Mono', paddingTop: 8 }} />
-            <Bar dataKey="prestamos"    name="Préstamos"    fill="#1FB870" radius={[2,2,0,0]} />
-            <Bar dataKey="devoluciones" name="Devoluciones" fill="#3B82F6" radius={[2,2,0,0]} />
-            <Bar dataKey="vencidos"     name="Vencidos"     fill="#F59E0B" radius={[2,2,0,0]} />
+            <Bar dataKey="prestamos"    name="Préstamos"    fill="#1D5E4A" radius={[2,2,0,0]} />
+            <Bar dataKey="devoluciones" name="Devoluciones" fill="#1D4ED8" radius={[2,2,0,0]} />
+            <Bar dataKey="vencidos"     name="Vencidos"     fill="#C8860A" radius={[2,2,0,0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -84,7 +84,7 @@ export default function AnalyticsCharts({ patronesData, tiposData, totalSocios, 
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ background: '#111827', border: '1px solid #1E2A42', borderRadius: 4, fontSize: 12 }}
+                contentStyle={{ background: '#FAF7F2', border: '1px solid #D4C4A0', borderRadius: 4, fontSize: 12 }}
                 formatter={(v: number) => [`${v} socios`, '']}
               />
               <Legend wrapperStyle={{ fontSize: 11, fontFamily: 'JetBrains Mono' }} />
@@ -119,7 +119,7 @@ export default function AnalyticsCharts({ patronesData, tiposData, totalSocios, 
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{ background: '#111827', border: '1px solid #1E2A42', borderRadius: 4, fontSize: 12 }}
+                contentStyle={{ background: '#FAF7F2', border: '1px solid #D4C4A0', borderRadius: 4, fontSize: 12 }}
                 formatter={(v: number) => [`${v} materiales`, '']}
               />
             </PieChart>
@@ -133,10 +133,10 @@ export default function AnalyticsCharts({ patronesData, tiposData, totalSocios, 
         <p className="mb-4 font-mono text-xs text-text-muted">Porcentaje de disponibilidad y actividad</p>
         <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
           {[
-            { label: 'Socios activos',     value: totalSocios > 0 ? Math.round(((patronesData[0]?.value ?? 0) / totalSocios) * 100) : 0, color: '#1FB870', desc: `${patronesData[0]?.value ?? 0} de ${totalSocios}` },
-            { label: 'Sin multas',          value: totalSocios > 0 ? Math.round(((totalSocios - (patronesData[1]?.value ?? 0)) / totalSocios) * 100) : 100, color: '#3B82F6', desc: `${totalSocios - (patronesData[1]?.value ?? 0)} socios` },
-            { label: 'Préstamos en plazo', value: prestamosVencidos === 0 ? 100 : Math.round(((totalMateriales - prestamosVencidos) / Math.max(totalMateriales, 1)) * 100), color: '#8B5CF6', desc: `${prestamosVencidos} vencidos` },
-            { label: 'Colección activa',   value: totalMateriales > 0 ? 100 : 0, color: '#F59E0B', desc: `${totalMateriales} títulos` },
+            { label: 'Socios activos',     value: totalSocios > 0 ? Math.round(((patronesData[0]?.value ?? 0) / totalSocios) * 100) : 0, color: '#1D5E4A', desc: `${patronesData[0]?.value ?? 0} de ${totalSocios}` },
+            { label: 'Sin multas',          value: totalSocios > 0 ? Math.round(((totalSocios - (patronesData[1]?.value ?? 0)) / totalSocios) * 100) : 100, color: '#1D4ED8', desc: `${totalSocios - (patronesData[1]?.value ?? 0)} socios` },
+            { label: 'Préstamos en plazo', value: prestamosVencidos === 0 ? 100 : Math.round(((totalMateriales - prestamosVencidos) / Math.max(totalMateriales, 1)) * 100), color: '#6D28D9', desc: `${prestamosVencidos} vencidos` },
+            { label: 'Colección activa',   value: totalMateriales > 0 ? 100 : 0, color: '#C8860A', desc: `${totalMateriales} títulos` },
           ].map((ind) => (
             <div key={ind.label} className="flex flex-col items-center">
               <div className="relative h-24 w-24">
@@ -145,7 +145,7 @@ export default function AnalyticsCharts({ patronesData, tiposData, totalSocios, 
                     cx="50%" cy="50%"
                     innerRadius="60%" outerRadius="100%"
                     startAngle={90} endAngle={-270}
-                    data={[{ value: ind.value, fill: ind.color }, { value: 100 - ind.value, fill: '#1E2A42' }]}
+                    data={[{ value: ind.value, fill: ind.color }, { value: 100 - ind.value, fill: '#EDE5CC' }]}
                   >
                     <RadialBar dataKey="value" cornerRadius={4} background={false} />
                   </RadialBarChart>

@@ -28,8 +28,8 @@ export default async function BookDetailPage({ params }: Props) {
   const [libro, ejemplares] = await Promise.all([
     obtenerLibro(id),
     obtenerEjemplaresLibro(id),
-    new Promise((r) => setTimeout(r, 500)),
-  ]).then(([l, e]) => [l, e] as const);
+    new Promise<void>((r) => setTimeout(r, 500)),
+  ]).then(([l, e]) => [l, e]);
 
   if (!libro) notFound();
 
@@ -127,39 +127,45 @@ export default async function BookDetailPage({ params }: Props) {
                     Ejemplares en la biblioteca
                   </h2>
                   <div className="space-y-2">
-                    {(ejemplares.items as Array<{ barcode: string; location: string; status: string; callNumber?: string }>).map((ej) => (
-                      <div key={ej.barcode} className="flex items-center justify-between rounded-sm border border-ink/8 bg-white px-4 py-3">
-                        <div className="flex-1 min-w-0 mr-4">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-semibold text-ink">{ej.barcode}</span>
-                            <span className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${ej.status === 'available' ? 'bg-emerald-pale text-emerald-library' : 'bg-rust/10 text-rust'}`}>
-                              {ej.status === 'available' ? 'Disponible' : 'Prestado'}
-                            </span>
-                          </div>
-                          <div className="mt-1 flex items-center gap-3">
-                            <span className="font-body text-xs text-ink-muted flex items-center gap-1">
-                              <Building className="h-3 w-3" /> {ej.location}
-                            </span>
-                            {ej.callNumber && (
-                              <span className="font-mono text-[10px] text-ink-muted bg-parchment-dark px-1.5 py-0.5 rounded">
-                                {ej.callNumber}
+                    {(ejemplares.items as Array<{ barcode: string; location: string; status: string; callNumber?: string }>).map((ej) => {
+                      const disponible = ej.status === 'available';
+                      return (
+                        <div key={ej.barcode} className="flex items-center gap-4 rounded-sm border border-ink/8 bg-parchment-light px-4 py-3">
+                          {/* Indicador de estado */}
+                          <div className={`h-2 w-2 shrink-0 rounded-full ${disponible ? 'bg-emerald-library' : 'bg-rust/60'}`} />
+
+                          {/* Info principal */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-mono text-sm font-semibold text-ink">{ej.barcode}</span>
+                              <span className={`rounded-full px-2.5 py-0.5 font-mono text-[10px] font-semibold ${disponible ? 'bg-emerald-pale text-emerald-library' : 'bg-rust/10 text-rust'}`}>
+                                {disponible ? 'Disponible' : 'En préstamo'}
                               </span>
+                            </div>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                              <span className="flex items-center gap-1 font-body text-xs text-ink-muted">
+                                <Building className="h-3 w-3 shrink-0" />
+                                {ej.location}
+                              </span>
+                              {ej.callNumber && (
+                                <span className="font-mono text-[10px] text-ink-muted/70">
+                                  Signatura: {ej.callNumber}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Acción */}
+                          <div className="shrink-0">
+                            {disponible ? (
+                              <LoanButton bookId={id} bookTitle={libro.title} itemBarcode={ej.barcode} variant="inline" />
+                            ) : (
+                              <span className="font-mono text-xs text-ink-muted/50">No disponible</span>
                             )}
                           </div>
                         </div>
-                        
-                        {ej.status === 'available' && (
-                          <div className="shrink-0">
-                            <LoanButton 
-                              bookId={id} 
-                              bookTitle={libro.title} 
-                              itemBarcode={ej.barcode} 
-                              variant="inline" 
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

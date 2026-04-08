@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BookOpen, ArrowLeft, Clock, CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react';
+import { BookOpen, ArrowLeft, Clock, CheckCircle, AlertTriangle, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -38,7 +38,7 @@ export default function HistorialPage() {
   const [refrescando, setRefrescando] = useState(false);
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const limit = 20;
+  const limit = 6;
 
   useEffect(() => {
     const hasToken = document.cookie.split('; ').some(r => r.startsWith('bf_token='));
@@ -142,9 +142,9 @@ export default function HistorialPage() {
                         </p>
                       )}
                       {prestamo.fineAmount > 0 && (
-                        <p className="font-mono text-xs text-rust mt-0.5">
-                          Multa: {copFmt(prestamo.fineAmount)}
-                        </p>
+                        <span className="font-mono text-sm font-bold text-rust mt-0.5 block">
+                          {copFmt(prestamo.fineAmount)}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -158,17 +158,34 @@ export default function HistorialPage() {
               <span className="font-mono text-xs text-ink-muted">
                 Página {page} de {totalPages} · {total} préstamos
               </span>
-              <div className="flex gap-2">
-                {page > 1 && (
-                  <button onClick={() => setPage(page - 1)} className="btn-secondary px-4 py-2 text-sm">
-                    ← Anterior
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(page - 1)}
+                  disabled={page === 1}
+                  className="flex h-7 w-7 items-center justify-center rounded-sm border border-ink/15 text-ink-muted hover:bg-parchment-dark disabled:pointer-events-none disabled:opacity-30"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`flex h-7 w-7 items-center justify-center rounded-sm border font-mono text-xs transition-colors ${
+                      p === page
+                        ? 'border-amber-book/40 bg-amber-book/10 text-amber-book'
+                        : 'border-ink/15 text-ink-muted hover:bg-parchment-dark'
+                    }`}
+                  >
+                    {p}
                   </button>
-                )}
-                {page < totalPages && (
-                  <button onClick={() => setPage(page + 1)} className="btn-secondary px-4 py-2 text-sm">
-                    Siguiente →
-                  </button>
-                )}
+                ))}
+                <button
+                  onClick={() => setPage(page + 1)}
+                  disabled={page === totalPages}
+                  className="flex h-7 w-7 items-center justify-center rounded-sm border border-ink/15 text-ink-muted hover:bg-parchment-dark disabled:pointer-events-none disabled:opacity-30"
+                >
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
           )}

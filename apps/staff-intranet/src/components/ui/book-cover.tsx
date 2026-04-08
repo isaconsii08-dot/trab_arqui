@@ -13,11 +13,11 @@ interface BookCoverProps {
 }
 
 const COLORS = [
-  { bg: '#1a2744', text: '#4ade80' },
-  { bg: '#2a1a0e', text: '#fb923c' },
-  { bg: '#0e2a1a', text: '#34d399' },
-  { bg: '#2a0e1a', text: '#f472b6' },
-  { bg: '#0e1a2a', text: '#60a5fa' },
+  { bg: '#2A1208', text: '#EDCFC4' },  // dark brown / cream
+  { bg: '#1D5E4A', text: '#C4DDD6' },  // emerald / pale green
+  { bg: '#6B2A1A', text: '#F5EFE0' },  // terracota / parchment
+  { bg: '#1D4ED8', text: '#EDE5CC' },  // blue / warm white
+  { bg: '#4A1D96', text: '#F0EAD6' },  // purple / parchment
 ];
 
 export default function BookCover({ src, title, fill = false, sizes, className = '', colorIndex = 0 }: BookCoverProps) {

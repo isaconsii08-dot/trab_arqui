@@ -29,9 +29,9 @@ export default async function AnalyticsPage() {
   }));
 
   const patronesData = [
-    { name: 'Activos',     value: estadisticas.socios.activos,     fill: '#1FB870' },
-    { name: 'Suspendidos', value: estadisticas.socios.suspendidos,  fill: '#EF4444' },
-    { name: 'Expirados',   value: estadisticas.socios.expirados ?? 0, fill: '#F59E0B' },
+    { name: 'Activos',     value: estadisticas.socios.activos,     fill: '#1D5E4A' },
+    { name: 'Suspendidos', value: estadisticas.socios.suspendidos,  fill: '#8B3A3A' },
+    { name: 'Expirados',   value: estadisticas.socios.expirados ?? 0, fill: '#C8860A' },
   ];
 
   const metricas = [

@@ -22,7 +22,7 @@ interface Solicitud {
   bookId: string;
   itemBarcode?: string;
   userId: string;
-  estado: 'pendiente' | 'aprobada' | 'rechazada' | 'entregada';
+  estado: 'pendiente' | 'aprobada' | 'rechazada' | 'entregada' | 'devuelta';
 }
 
 type Estado = 'idle' | 'pendiente' | 'aprobada' | 'entregada' | 'rechazada';
@@ -68,6 +68,11 @@ export default function LoanButton({ bookId, bookTitle, itemBarcode, variant = '
   const [enviando, setEnviando] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  const resetearSolicitud = useCallback(() => {
+    setEstado('idle');
+    localStorage.removeItem(storageKey);
+  }, [storageKey]);
+
   // Consulta el estado real de la solicitud en el servidor
   const sincronizarEstado = useCallback(async (uid: string) => {
     if (!uid) return;
@@ -80,17 +85,26 @@ export default function LoanButton({ bookId, bookTitle, itemBarcode, variant = '
                s.userId === uid &&
                (!itemBarcode || s.itemBarcode === itemBarcode),
       );
-      if (sol) {
+      if (sol && sol.estado !== 'devuelta') {
+        // Si sigue como entregada, verificar si el ejemplar ya está disponible
+        if (sol.estado === 'entregada' && itemBarcode) {
+          const dispRes = await fetch(`/api/disponibilidad?barcode=${encodeURIComponent(itemBarcode)}`).catch(() => null);
+          if (dispRes?.ok) {
+            const disp = await dispRes.json() as { available: boolean };
+            if (disp.available) { resetearSolicitud(); return; }
+          }
+        }
         setEstado(sol.estado);
-        // Mantener localStorage en sync
         if (sol.estado !== 'rechazada') {
           localStorage.setItem(storageKey, '1');
         } else {
           localStorage.removeItem(storageKey);
         }
+      } else {
+        resetearSolicitud();
       }
     } catch { /* ignorar */ }
-  }, [bookId, itemBarcode, storageKey]);
+  }, [bookId, itemBarcode, storageKey, resetearSolicitud]);
 
   useEffect(() => {
     const userCookie = document.cookie.split('; ').find((r) => r.startsWith('bf_user='));
@@ -113,7 +127,7 @@ export default function LoanButton({ bookId, bookTitle, itemBarcode, variant = '
 
   // Polling cada 8s mientras hay una solicitud activa en curso
   useEffect(() => {
-    if (!userId || estado === 'idle' || estado === 'entregada' || estado === 'rechazada') return;
+    if (!userId || estado === 'idle' || estado === 'rechazada') return;
     const interval = setInterval(() => sincronizarEstado(userId), 8000);
     return () => clearInterval(interval);
   }, [userId, estado, sincronizarEstado]);
@@ -159,9 +173,19 @@ export default function LoanButton({ bookId, bookTitle, itemBarcode, variant = '
           const cfg = ESTADO_CONFIG[estado];
           const Icon = cfg.icon;
           return (
-            <div className={`flex items-center gap-2 rounded-sm border font-body ${variant === 'full' ? 'px-4 py-3 text-sm' : 'px-2 py-1 text-xs'} ${cfg.cls}`}>
-              <Icon className={variant === 'full' ? 'h-4 w-4 shrink-0' : 'h-3 w-3 shrink-0'} />
-              <span>{variant === 'full' ? cfg.full : cfg.inline}</span>
+            <div className="flex flex-col gap-1">
+              <div className={`flex items-center gap-2 rounded-sm border font-body ${variant === 'full' ? 'px-4 py-3 text-sm' : 'px-2 py-1 text-xs'} ${cfg.cls}`}>
+                <Icon className={variant === 'full' ? 'h-4 w-4 shrink-0' : 'h-3 w-3 shrink-0'} />
+                <span>{variant === 'full' ? cfg.full : cfg.inline}</span>
+              </div>
+              {estado === 'entregada' && (
+                <button
+                  onClick={resetearSolicitud}
+                  className="font-mono text-[10px] text-ink-muted/60 hover:text-amber-book underline text-left"
+                >
+                  ¿Ya devolviste el libro? Solicitar de nuevo
+                </button>
+              )}
             </div>
           );
         })() : (

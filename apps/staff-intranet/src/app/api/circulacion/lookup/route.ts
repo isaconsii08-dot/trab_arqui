@@ -39,16 +39,18 @@ export async function GET(req: NextRequest) {
         const item = await res.json() as { barcode: string; recordId?: string; status: string; location: string } | null;
         if (!item) return NextResponse.json([]);
 
-        // Enriquecer con título del catálogo
+        // Enriquecer con título y portada del catálogo
         let title: string | undefined;
+        let coverImageUrl: string | null = null;
         if (item.recordId) {
           const cat = await fetch(`${CATALOG_URL}/api/v1/catalog/${item.recordId}`).catch(() => null);
           if (cat?.ok) {
-            const catData = await cat.json() as { title?: string };
+            const catData = await cat.json() as { title?: string; coverImageUrl?: string | null };
             title = catData.title;
+            coverImageUrl = catData.coverImageUrl ?? null;
           }
         }
-        return NextResponse.json([{ ...item, title: title ?? item.barcode }]);
+        return NextResponse.json([{ ...item, title: title ?? item.barcode, coverImageUrl }]);
       }
 
       // Texto libre → buscar en CATÁLOGO por título
@@ -56,7 +58,7 @@ export async function GET(req: NextRequest) {
         `${CATALOG_URL}/api/v1/catalog/search?query=${encodeURIComponent(q)}&limit=8`,
       );
       if (!catRes.ok) return NextResponse.json([]);
-      const catData = await catRes.json() as { data?: Array<{ id: string; title: string }> };
+      const catData = await catRes.json() as { data?: Array<{ id: string; title: string; coverImageUrl?: string | null }> };
       const libros = catData.data ?? [];
       if (libros.length === 0) return NextResponse.json([]);
 
@@ -70,7 +72,7 @@ export async function GET(req: NextRequest) {
         : {};
 
       // Traer los ejemplares disponibles (status=available primero) de cada libro
-      const results: Array<{ barcode: string; title: string; status: string; location: string; recordId: string }> = [];
+      const results: Array<{ barcode: string; title: string; status: string; location: string; recordId: string; coverImageUrl: string | null }> = [];
 
       await Promise.all(
         libros.map(async (libro) => {
@@ -95,7 +97,7 @@ export async function GET(req: NextRequest) {
             ? sorted.filter((it) => it.status === 'loaned')
             : sorted;
           for (const it of filtered.slice(0, 3)) {
-            results.push({ ...it, title: libro.title });
+            results.push({ ...it, title: libro.title, coverImageUrl: libro.coverImageUrl ?? null });
           }
         }),
       );

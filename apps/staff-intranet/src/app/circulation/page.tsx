@@ -25,6 +25,8 @@ interface Solicitud {
   bookTitle: string;
   userId: string;
   userName: string;
+  cardNumber?: string;
+  itemBarcode?: string;
   estado: 'pendiente' | 'aprobada' | 'rechazada' | 'entregada';
   creadaEn: string;
   notas?: string;
@@ -79,6 +81,7 @@ interface ItemInfo {
   status: string;
   location: string;
   title?: string;
+  coverImageUrl?: string | null;
 }
 
 const copFmt = (n: number) =>
@@ -105,7 +108,8 @@ const ESTADO_STYLES: Record<string, { label: string; cls: string }> = {
   pendiente:  { label: 'Pendiente',  cls: 'bg-accent-amber/15 text-accent-amber border-accent-amber/20' },
   aprobada:   { label: 'Aprobada',   cls: 'bg-accent-green/15 text-accent-green border-accent-green/20' },
   rechazada:  { label: 'Rechazada',  cls: 'bg-accent-red/15 text-accent-red border-accent-red/20' },
-  entregada:  { label: 'Entregada',  cls: 'bg-surface-raised text-text-muted border-surface-border' },
+  entregada:  { label: 'Entregada',  cls: 'bg-accent-blue/10 text-accent-blue border-accent-blue/20' },
+  devuelta:   { label: 'Devuelta',   cls: 'bg-surface-raised text-text-muted border-surface-border' },
 };
 
 function useLookup<T>(type: 'patron' | 'item', query: string, delay = 400, forReturn = false) {
@@ -242,7 +246,31 @@ export default function CirculationPage() {
     return () => clearInterval(interval);
   }, [cargarSolicitudes, cargarStats]);
 
-  const handleReturnInline = async (loanId: string, barcode: string) => {
+  // Marca la solicitud del portal de socios como devuelta cuando se registra una devolución
+  const marcarSolicitudDevuelta = async (barcode: string, patronId?: string) => {
+    try {
+      const res = await fetch('/api/prestamos');
+      if (!res.ok) return;
+      const lista = await res.json() as Array<{ id: string; itemBarcode?: string; userId?: string; estado: string }>;
+      const entregadas = lista.filter((s) => s.estado === 'entregada');
+      // 1. Match exacto por barcode
+      let sol = entregadas.find((s) => s.itemBarcode === barcode);
+      // 2. Fallback: match por patronId si está disponible
+      if (!sol && patronId) sol = entregadas.find((s) => s.userId === patronId);
+      // 3. Último recurso: si solo hay una entregada, esa es
+      if (!sol && entregadas.length === 1) sol = entregadas[0];
+      if (sol) {
+        await fetch(`/api/prestamos/${sol.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: 'devuelta' }),
+        });
+        cargarSolicitudes();
+      }
+    } catch { /* no bloquear el flujo principal */ }
+  };
+
+  const handleReturnInline = async (loanId: string, barcode: string, patronId?: string) => {
     setAccionEnCurso((prev) => ({ ...prev, [loanId]: 'return' }));
     try {
       const res = await fetch('/api/circulacion/return', {
@@ -256,7 +284,10 @@ export default function CirculationPage() {
         ? `Devolución registrada${data.fineAmount ? ` · Multa: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(data.fineAmount)}` : ''}`
         : (data.message ?? 'Error al registrar devolución');
       setAccionMsg((prev) => ({ ...prev, [loanId]: { ok, msg } }));
-      if (ok) setPrestamosActivos((prev) => prev.filter((p) => p.id !== loanId));
+      if (ok) {
+        setPrestamosActivos((prev) => prev.filter((p) => p.id !== loanId));
+        marcarSolicitudDevuelta(barcode, patronId);
+      }
     } catch {
       setAccionMsg((prev) => ({ ...prev, [loanId]: { ok: false, msg: 'Error de conexión' } }));
     } finally {
@@ -425,13 +456,30 @@ export default function CirculationPage() {
     if (activeTab === 'multas') cargarMultas();
   }, [activeTab, cargarMultas]);
 
-  const cambiarEstado = async (id: string, estado: Solicitud['estado']) => {
+  const cambiarEstado = async (id: string, estado: Solicitud['estado'], solicitud?: Solicitud) => {
+    // Al entregar, primero crear el préstamo real en circulación
+    if (estado === 'entregada' && solicitud?.itemBarcode && solicitud?.cardNumber) {
+      const loanRes = await fetch('/api/circulacion/loan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemBarcode: solicitud.itemBarcode,
+          patronCardNumber: solicitud.cardNumber,
+        }),
+      });
+      if (!loanRes.ok) {
+        const err = await loanRes.json() as { message?: string };
+        alert(`No se pudo crear el préstamo: ${err.message ?? 'Error desconocido'}`);
+        return;
+      }
+    }
     await fetch(`/api/prestamos/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ estado }),
     });
     cargarSolicitudes();
+    if (estado === 'entregada') cargarPrestamosTab();
   };
 
   const handleLoan = async (data: LoanForm) => {
@@ -470,9 +518,9 @@ export default function CirculationPage() {
       } else {
         setReturnOk(body);
         returnForm.reset();
-        // Actualizar lista de préstamos activos y estadísticas
         setPrestamosActivos((prev) => prev.filter((p) => p.itemBarcode !== data.itemBarcode));
         cargarStats();
+        marcarSolicitudDevuelta(data.itemBarcode);
       }
     } catch {
       setReturnError('No se pudo conectar con el servidor');
@@ -561,13 +609,13 @@ export default function CirculationPage() {
       {/* ── SOLICITUDES ── */}
       {activeTab === 'operaciones' && subTab === 'solicitudes' && (
         <div className="space-y-3">
-          {solicitudes.length === 0 ? (
+          {solicitudes.filter(s => s.estado !== 'devuelta').length === 0 ? (
             <div className="surface-card flex flex-col items-center py-16 text-center">
               <Inbox className="mb-3 h-10 w-10 text-text-muted/20" />
-              <p className="font-mono text-xs text-text-muted">No hay solicitudes registradas</p>
+              <p className="font-mono text-xs text-text-muted">No hay solicitudes activas</p>
             </div>
           ) : (
-            solicitudes.map((s) => {
+            solicitudes.filter(s => s.estado !== 'devuelta').map((s) => {
               const est = ESTADO_STYLES[s.estado] ?? ESTADO_STYLES.pendiente;
               return (
                 <div key={s.id} className="surface-card flex items-start gap-4 p-4">
@@ -589,10 +637,10 @@ export default function CirculationPage() {
                     {s.estado === 'pendiente' && (
                       <div className="mt-3 flex gap-2">
                         <button
-                          onClick={() => cambiarEstado(s.id, 'aprobada')}
+                          onClick={() => cambiarEstado(s.id, 'entregada', s)}
                           className="flex items-center gap-1.5 rounded-sm border border-accent-green/30 px-3 py-1.5 font-mono text-xs text-accent-green hover:bg-accent-green/8 transition-colors"
                         >
-                          <ThumbsUp className="h-3.5 w-3.5" /> Aprobar
+                          <ThumbsUp className="h-3.5 w-3.5" /> Aprobar y entregar
                         </button>
                         <button
                           onClick={() => cambiarEstado(s.id, 'rechazada')}
@@ -605,10 +653,10 @@ export default function CirculationPage() {
                     {s.estado === 'aprobada' && (
                       <div className="mt-3 flex gap-2">
                         <button
-                          onClick={() => cambiarEstado(s.id, 'entregada')}
-                          className="flex items-center gap-1.5 rounded-sm border border-surface-border px-3 py-1.5 font-mono text-xs text-text-secondary hover:bg-surface-raised transition-colors"
+                          onClick={() => cambiarEstado(s.id, 'entregada', s)}
+                          className="flex items-center gap-1.5 rounded-sm border border-accent-green/30 px-3 py-1.5 font-mono text-xs text-accent-green hover:bg-accent-green/8 transition-colors"
                         >
-                          <Package className="h-3.5 w-3.5" /> Marcar entregado
+                          <Package className="h-3.5 w-3.5" /> Entregar
                         </button>
                       </div>
                     )}
@@ -616,6 +664,28 @@ export default function CirculationPage() {
                 </div>
               );
             })
+          )}
+
+          {/* Historial de devueltas */}
+          {solicitudes.filter(s => s.estado === 'devuelta').length > 0 && (
+            <details className="mt-2">
+              <summary className="cursor-pointer font-mono text-xs text-text-muted hover:text-text-secondary select-none">
+                {solicitudes.filter(s => s.estado === 'devuelta').length} solicitud(es) completada(s)
+              </summary>
+              <div className="mt-2 space-y-2">
+                {solicitudes.filter(s => s.estado === 'devuelta').map((s) => (
+                  <div key={s.id} className="surface-card flex items-center gap-3 px-4 py-3 opacity-60">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-body text-sm text-text-secondary line-clamp-1">{s.bookTitle}</p>
+                      <p className="font-mono text-xs text-text-muted">{s.userName}</p>
+                    </div>
+                    <span className="shrink-0 rounded-sm border px-2 py-0.5 font-mono text-xs bg-surface-raised text-text-muted border-surface-border">
+                      Devuelta
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </details>
           )}
         </div>
       )}
@@ -650,14 +720,6 @@ export default function CirculationPage() {
                   className="input-dark w-full pl-8 py-2 text-sm"
                 />
               </div>
-              <button
-                onClick={cargarPrestamosTab}
-                disabled={cargandoPrestamos}
-                className="btn-ghost flex items-center gap-1.5 text-sm"
-              >
-                <RotateCcw className={`h-3.5 w-3.5 ${cargandoPrestamos ? 'animate-spin' : ''}`} />
-                Actualizar
-              </button>
               <span className="font-mono text-xs text-text-muted">
                 {filtrados.length} préstamo{filtrados.length !== 1 ? 's' : ''}
               </span>
@@ -676,7 +738,7 @@ export default function CirculationPage() {
                 </p>
               </div>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" id="prestamos-grid">
                 {filtrados.map((p) => {
                   const vencido = p.status === 'overdue';
                   const diasVence = Math.ceil(
@@ -770,7 +832,7 @@ export default function CirculationPage() {
                         <div className="flex gap-2">
                           <button
                             disabled={!!accionEnCurso[p.id]}
-                            onClick={() => handleReturnInline(p.id, p.itemBarcode)}
+                            onClick={() => handleReturnInline(p.id, p.itemBarcode, p.patronId)}
                             className="flex flex-1 items-center justify-center gap-1.5 rounded-sm border border-surface-border px-3 py-1.5 font-mono text-xs text-text-secondary hover:bg-surface-raised hover:text-text-primary transition-colors disabled:opacity-40"
                           >
                             {accionEnCurso[p.id] === 'return'
@@ -795,6 +857,18 @@ export default function CirculationPage() {
                 })}
               </div>
             )}
+
+            {/* Botón actualizar al final */}
+            <div className="flex justify-end">
+              <button
+                onClick={cargarPrestamosTab}
+                disabled={cargandoPrestamos}
+                className="btn-ghost flex items-center gap-1.5 text-sm"
+              >
+                <RotateCcw className={`h-3.5 w-3.5 ${cargandoPrestamos ? 'animate-spin' : ''}`} />
+                Actualizar
+              </button>
+            </div>
           </div>
         );
       })()}
@@ -825,10 +899,6 @@ export default function CirculationPage() {
                   className="input-dark w-full pl-8 py-2 text-sm"
                 />
               </div>
-              <button onClick={cargarPrestamosTab} disabled={cargandoPrestamos} className="btn-ghost flex items-center gap-1.5 text-sm">
-                <RotateCcw className={`h-3.5 w-3.5 ${cargandoPrestamos ? 'animate-spin' : ''}`} />
-                Actualizar
-              </button>
             </div>
 
             {cargandoPrestamos ? (
@@ -906,6 +976,14 @@ export default function CirculationPage() {
                 </table>
               </div>
             )}
+
+            {/* Botón actualizar al final */}
+            <div className="flex justify-end">
+              <button onClick={cargarPrestamosTab} disabled={cargandoPrestamos} className="btn-ghost flex items-center gap-1.5 text-sm">
+                <RotateCcw className={`h-3.5 w-3.5 ${cargandoPrestamos ? 'animate-spin' : ''}`} />
+                Actualizar
+              </button>
+            </div>
           </div>
         );
       })()}
@@ -1144,13 +1222,18 @@ export default function CirculationPage() {
                             loanForm.setValue('itemBarcode', item.barcode);
                             setSelectedLoanItem(item);
                           }}
-                          className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-surface-raised"
+                          className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-surface-raised"
                         >
-                          <div className="min-w-0">
+                          <div className="relative h-10 w-7 shrink-0 overflow-hidden rounded-sm bg-surface-raised">
+                            {item.coverImageUrl
+                              ? <Image src={item.coverImageUrl} alt={item.title ?? ''} fill className="object-cover" sizes="28px" />
+                              : <BookOpen className="absolute inset-0 m-auto h-3 w-3 text-text-muted/40" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
                             <p className="truncate font-body text-xs font-medium text-text-primary">{item.title || 'Sin título'}</p>
                             <p className="font-mono text-[10px] text-text-muted">{item.barcode} · {item.location}</p>
                           </div>
-                          <span className={`font-mono text-[10px] ${itemStatus(item.status).color}`}>
+                          <span className={`shrink-0 font-mono text-[10px] ${itemStatus(item.status).color}`}>
                             {itemStatus(item.status).label}
                           </span>
                         </button>
@@ -1164,14 +1247,19 @@ export default function CirculationPage() {
                       {(() => {
                         const item = selectedLoanItem || loanItemResults[0];
                         return (
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-body text-xs font-medium text-text-primary truncate max-w-[200px]">
+                          <div className="flex items-center gap-2.5">
+                            <div className="relative h-10 w-7 shrink-0 overflow-hidden rounded-sm bg-surface-raised">
+                              {item.coverImageUrl
+                                ? <Image src={item.coverImageUrl} alt={item.title ?? ''} fill className="object-cover" sizes="28px" />
+                                : <BookOpen className="absolute inset-0 m-auto h-3 w-3 text-text-muted/40" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-body text-xs font-medium text-text-primary truncate max-w-[180px]">
                                 {item.title ?? item.barcode}
                               </p>
                               <p className="font-mono text-xs text-text-muted">{item.location}</p>
                             </div>
-                            <span className={`font-mono text-xs ${itemStatus(item.status).color}`}>
+                            <span className={`shrink-0 font-mono text-xs ${itemStatus(item.status).color}`}>
                               {itemStatus(item.status).label}
                             </span>
                           </div>
@@ -1281,13 +1369,18 @@ export default function CirculationPage() {
                             returnForm.setValue('itemBarcode', item.barcode);
                             setSelectedReturnItem(item);
                           }}
-                          className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-surface-raised"
+                          className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-surface-raised"
                         >
-                          <div className="min-w-0">
+                          <div className="relative h-10 w-7 shrink-0 overflow-hidden rounded-sm bg-surface-raised">
+                            {item.coverImageUrl
+                              ? <Image src={item.coverImageUrl} alt={item.title ?? ''} fill className="object-cover" sizes="28px" />
+                              : <BookOpen className="absolute inset-0 m-auto h-3 w-3 text-text-muted/40" />}
+                          </div>
+                          <div className="min-w-0 flex-1">
                             <p className="truncate font-body text-xs font-medium text-text-primary">{item.title || 'Sin título'}</p>
                             <p className="font-mono text-[10px] text-text-muted">{item.barcode} · {item.location}</p>
                           </div>
-                          <span className={`font-mono text-[10px] ${itemStatus(item.status).color}`}>
+                          <span className={`shrink-0 font-mono text-[10px] ${itemStatus(item.status).color}`}>
                             {itemStatus(item.status).label}
                           </span>
                         </button>
@@ -1301,14 +1394,19 @@ export default function CirculationPage() {
                       {(() => {
                         const item = selectedReturnItem || returnItemResults[0];
                         return (
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-body text-xs font-medium text-text-primary truncate max-w-[200px]">
+                          <div className="flex items-center gap-2.5">
+                            <div className="relative h-10 w-7 shrink-0 overflow-hidden rounded-sm bg-surface-raised">
+                              {item.coverImageUrl
+                                ? <Image src={item.coverImageUrl} alt={item.title ?? ''} fill className="object-cover" sizes="28px" />
+                                : <BookOpen className="absolute inset-0 m-auto h-3 w-3 text-text-muted/40" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-body text-xs font-medium text-text-primary truncate max-w-[180px]">
                                 {item.title ?? item.barcode}
                               </p>
                               <p className="font-mono text-xs text-text-muted">{item.location}</p>
                             </div>
-                            <span className={`font-mono text-xs ${itemStatus(item.status).color}`}>
+                            <span className={`shrink-0 font-mono text-xs ${itemStatus(item.status).color}`}>
                               {itemStatus(item.status).label}
                             </span>
                           </div>

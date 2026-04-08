@@ -51,10 +51,10 @@ export default async function CatalogPage({ searchParams }: PageProps) {
           <RefreshButton />
           <Link
             href={mostrarInactivos ? `/catalog${query ? `?query=${encodeURIComponent(query)}` : ''}` : `/catalog?inactive=1${query ? `&query=${encodeURIComponent(query)}` : ''}`}
-            className="btn-ghost text-sm"
+            className={`btn-ghost text-sm ${mostrarInactivos ? 'ring-1 ring-accent-amber/40 bg-accent-amber/8 text-accent-amber' : ''}`}
           >
             {mostrarInactivos ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            {mostrarInactivos ? 'Inactivos' : 'Inactivos'}
+            {mostrarInactivos ? 'Ocultar inactivos' : 'Ver inactivos'}
           </Link>
           <Link href="/catalog/new" className="btn-green">
             <BookOpen className="h-4 w-4" />
