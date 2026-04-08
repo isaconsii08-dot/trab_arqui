@@ -63,12 +63,31 @@ export async function GET() {
         .catch(() => {}),
     ));
 
+    // Fetch real pending fine totals from patron service for loans with fineAmount > 0
+    // This overrides the cached fineAmount on the loan record (which may be stale after payment)
+    const patronIdsWithFine = [...new Set(
+      loans.filter((l) => Number(l.fineAmount) > 0).map((l) => l.patronId as string),
+    )];
+    const patronFinesMap: Record<string, number> = {};
+    await Promise.all(patronIdsWithFine.map((pid) =>
+      fetch(`${PATRON_URL}/api/v1/patrons/${pid}/fines`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      })
+        .then((r) => r.ok ? r.json() : { total: 0 })
+        .then((d: { total?: number }) => { patronFinesMap[pid] = d.total ?? 0; })
+        .catch(() => { patronFinesMap[pid] = 0; }),
+    ));
+
     const enriched = loans.map((l) => {
       const recordId = holdingsMap[l.itemBarcode as string]?.recordId;
       const catalog = recordId ? catalogMap[recordId] : null;
       const patron = patronMap[l.patronId as string];
+      const pid = l.patronId as string;
+      const fineAmount = pid in patronFinesMap ? patronFinesMap[pid] : Number(l.fineAmount ?? 0);
       return {
         ...l,
+        fineAmount,
         recordId,
         itemTitle: catalog?.title || (l.itemTitle as string) || (l.itemBarcode as string),
         coverImageUrl: catalog?.coverImageUrl ?? null,
