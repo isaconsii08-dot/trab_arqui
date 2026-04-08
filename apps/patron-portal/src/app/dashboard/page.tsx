@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Clock, BookOpen, AlertTriangle, RefreshCw, CreditCard, X, CheckCircle, RotateCcw } from 'lucide-react';
+import { Clock, BookOpen, AlertTriangle, RefreshCw, CreditCard, X, CheckCircle, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -46,20 +46,25 @@ export default function DashboardPage() {
   const [usuario, setUsuario] = useState<{ sub: string; role: string; fullName: string } | null>(null);
   const [cargando, setCargando] = useState(true);
   const [toast, setToast] = useState<{ msg: string; tipo: 'ok' | 'err' } | null>(null);
+  const [pageActivos, setPageActivos] = useState(1);
+  const limitActivos = 6;
   const [renovando, setRenovando] = useState<string | null>(null);
   const [refrescando, setRefrescando] = useState(false);
   const [modalPago, setModalPago] = useState(false);
   const [pagando, setPagando] = useState(false);
   const [cardNum, setCardNum] = useState('');
-  const [multaReal, setMultaReal] = useState(0);
+  const [multaReal, setMultaReal] = useState<number | null>(null);
 
   function recargar() {
     setRefrescando(true);
-    fetch('/api/mis-prestamos')
-      .then((r) => r.json())
-      .then((data: { data: Prestamo[] }) => {
+    Promise.all([
+      fetch('/api/mis-prestamos').then((r) => r.json()) as Promise<{ data: Prestamo[] }>,
+      fetch('/api/multas').then((r) => r.json()).catch(() => ({ total: 0 })) as Promise<{ total: number }>,
+    ])
+      .then(([data, multasData]) => {
         const todos = data.data ?? [];
         setPrestamos(todos.filter((l) => l.status === 'active' || l.status === 'overdue'));
+        setMultaReal(multasData.total ?? 0);
       })
       .catch(() => {})
       .finally(() => setRefrescando(false));
@@ -127,7 +132,11 @@ export default function DashboardPage() {
     setPagando(true);
     try {
       const res = await fetch('/api/multas', { method: 'POST' });
-      if (!res.ok) throw new Error('Error al registrar pago');
+      const data = await res.json() as { message?: string; statusCode?: number };
+      // 400 "No hay multas pendientes" = ya pagadas, tratar como éxito
+      if (!res.ok && !(res.status === 400 && String(data.message).toLowerCase().includes('pendientes'))) {
+        throw new Error('Error al registrar pago');
+      }
       setMultaReal(0);
       setPrestamos((prev) => prev.map((p) => ({ ...p, fineAmount: 0 })));
       setModalPago(false);
@@ -145,8 +154,12 @@ export default function DashboardPage() {
 
   const vencidos = prestamos.filter((p) => p.status === 'overdue');
   const activos = prestamos.filter((p) => p.status === 'active');
+  const totalPagesActivos = Math.ceil(prestamos.length / limitActivos);
+  const activosPaginados = prestamos.slice((pageActivos - 1) * limitActivos, pageActivos * limitActivos);
   const multaLoans = prestamos.reduce((s, p) => s + (p.fineAmount ?? 0), 0);
-  const multaTotal = multaReal > 0 ? multaReal : multaLoans;
+  // multaReal=null → aún cargando, usar suma de préstamos como fallback
+  // multaReal=0 → servidor confirmó que no hay multas pendientes
+  const multaTotal = multaReal !== null ? multaReal : multaLoans;
   const nombreSocio = usuario?.fullName ?? 'Santiago Gómez Vargas';
 
   return (
@@ -238,7 +251,7 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {prestamos.map((prestamo) => {
+                {activosPaginados.map((prestamo) => {
                   const diasRestantes = diasHasta(prestamo.dueDate);
                   const esVencido = prestamo.status === 'overdue' || diasRestantes < 0;
                   const puedeRenovar = !esVencido && prestamo.renewedCount < 2;
@@ -277,9 +290,9 @@ export default function DashboardPage() {
                           {new Date(prestamo.dueDate).toLocaleDateString('es-CO')}
                         </p>
                         {prestamo.fineAmount > 0 && (
-                          <p className="font-mono text-xs text-rust mt-1">
-                            Multa: {copFmt(prestamo.fineAmount)}
-                          </p>
+                          <span className="font-mono text-sm font-bold text-rust mt-1 block">
+                            {copFmt(prestamo.fineAmount)}
+                          </span>
                         )}
                         {puedeRenovar && (
                           <button
@@ -295,6 +308,43 @@ export default function DashboardPage() {
                     </div>
                   );
                 })}
+
+                {totalPagesActivos > 1 && (
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="font-mono text-xs text-ink-muted">
+                      Página {pageActivos} de {totalPagesActivos} · {prestamos.length} préstamos
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setPageActivos(pageActivos - 1)}
+                        disabled={pageActivos === 1}
+                        className="flex h-7 w-7 items-center justify-center rounded-sm border border-ink/15 text-ink-muted hover:bg-parchment-dark disabled:pointer-events-none disabled:opacity-30"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </button>
+                      {Array.from({ length: totalPagesActivos }, (_, i) => i + 1).map((p) => (
+                        <button
+                          key={p}
+                          onClick={() => setPageActivos(p)}
+                          className={`flex h-7 w-7 items-center justify-center rounded-sm border font-mono text-xs transition-colors ${
+                            p === pageActivos
+                              ? 'border-amber-book/40 bg-amber-book/10 text-amber-book'
+                              : 'border-ink/15 text-ink-muted hover:bg-parchment-dark'
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setPageActivos(pageActivos + 1)}
+                        disabled={pageActivos === totalPagesActivos}
+                        className="flex h-7 w-7 items-center justify-center rounded-sm border border-ink/15 text-ink-muted hover:bg-parchment-dark disabled:pointer-events-none disabled:opacity-30"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </section>
