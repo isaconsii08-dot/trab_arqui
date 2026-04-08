@@ -41,17 +41,59 @@ RESET  := \033[0m
 # AYUDA
 # ═════════════════════════════════════════════════════════════════════════════
 
-# help: imprime automáticamente todos los targets que tienen "## descripción".
-# Usa grep para encontrar las líneas con el patrón `nombre: ## texto` y las
-# formatea con awk como una tabla alineada.
+# help: muestra todos los comandos disponibles.
+# Se usa echo puro (sin grep/awk) para ser compatible con Windows cmd y PowerShell.
 help: ## Muestra todos los comandos disponibles
 	@echo ""
-	@echo "  $(CYAN)BiblioFlow$(RESET) — Sistema Integral de Gestión Bibliotecaria"
+	@echo "  BiblioFlow - Sistema Integral de Gestion Bibliotecaria"
 	@echo ""
-	@echo "  $(YELLOW)Uso:$(RESET) make $(CYAN)<target>$(RESET)"
+	@echo "  Uso: make <target>"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  $(CYAN)%-24s$(RESET) %s\n", $$1, $$2}'
+	@echo "  --- Dependencias ---"
+	@echo "  install              Instala todas las dependencias del monorepo"
+	@echo "  env-setup            Copia .env.example -> .env en cada servicio"
+	@echo "  setup                Configuracion completa: env + install + infra + db"
+	@echo ""
+	@echo "  --- Desarrollo ---"
+	@echo "  dev                  Inicia todos los servicios en modo watch"
+	@echo "  dev-patron           Solo patron-service"
+	@echo "  dev-catalog          Solo catalog-service"
+	@echo "  dev-holdings         Solo holdings-service"
+	@echo "  dev-circulation      Solo circulation-service"
+	@echo "  dev-notification     Solo notification-service"
+	@echo "  dev-acquisitions     Solo acquisitions-service"
+	@echo "  dev-space            Solo space-service"
+	@echo "  dev-analytics        Solo analytics-service"
+	@echo "  dev-portal           Solo patron-portal (frontend)"
+	@echo "  dev-staff            Solo staff-intranet (frontend)"
+	@echo ""
+	@echo "  --- Build y calidad ---"
+	@echo "  build                Compila todos los paquetes y servicios"
+	@echo "  build-packages       Solo paquetes compartidos (shared-*)"
+	@echo "  lint                 Linting en todo el monorepo"
+	@echo "  type-check           Verificacion de tipos TypeScript"
+	@echo "  test                 Tests unitarios"
+	@echo "  test-e2e             Tests de integracion (Circulation Service)"
+	@echo "  format               Formatea con Prettier"
+	@echo "  format-check         Verifica formato sin aplicar cambios"
+	@echo "  clean                Elimina dist/ y node_modules"
+	@echo ""
+	@echo "  --- Infraestructura Docker ---"
+	@echo "  infra                Levanta PostgreSQL x7, Redis y Elasticsearch"
+	@echo "  infra-down           Detiene todos los contenedores"
+	@echo "  infra-logs           Sigue los logs en tiempo real"
+	@echo "  infra-obs            Infra + Kibana + RedisInsight (observabilidad)"
+	@echo "  infra-reset          Destruye volumenes y levanta desde cero"
+	@echo ""
+	@echo "  --- Base de datos ---"
+	@echo "  db-setup             Migra y siembra todos los servicios"
+	@echo "  db-migrate           Migraciones pendientes en todos los servicios"
+	@echo "  db-seed              Seeds en todos los servicios"
+	@echo "  db-generate          Genera clientes Prisma en todos los servicios"
+	@echo "  db-migrate-patron    Solo migraciones de patron-service"
+	@echo "  db-migrate-catalog   Solo migraciones de catalog-service"
+	@echo "  db-migrate-holdings  Solo migraciones de holdings-service"
+	@echo "  db-migrate-circulation Solo migraciones de circulation-service"
 	@echo ""
 
 
