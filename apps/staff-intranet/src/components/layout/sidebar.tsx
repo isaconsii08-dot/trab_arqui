@@ -8,7 +8,6 @@ import {
   BookOpen,
   RefreshCw,
   Users,
-  ShoppingCart,
   MapPin,
   BarChart2,
   Settings,
@@ -22,7 +21,6 @@ const navItems = [
   { href: '/circulation',   icon: RefreshCw,       label: 'Circulación', badge: 'prestamos' },
   { href: '/catalog',       icon: BookOpen,        label: 'Catálogo'    },
   { href: '/patrons',       icon: Users,           label: 'Socios'      },
-  { href: '/acquisitions',  icon: ShoppingCart,    label: 'Adquisiciones' },
   { href: '/spaces',        icon: MapPin,          label: 'Salas'       },
   { href: '/analytics',     icon: BarChart2,       label: 'Estadísticas' },
 ];

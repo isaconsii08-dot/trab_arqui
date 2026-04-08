@@ -36,7 +36,7 @@ class PatchPatronDto {
 
 class CreateFineDto {
   @IsString() loanId!: string;
-  @IsNumber() @Min(0.01) amount!: number;
+  @IsNumber() @Min(0) amount!: number;
   @IsOptional() @IsString() reason?: string;
 }
 
@@ -136,6 +136,7 @@ export class PatronController {
     if (dto.status === 'active')    updated = updated.activate();
     if (dto.status === 'suspended') updated = updated.suspend();
     if (dto.status === 'blocked')   updated = updated.block();
+    if (dto.status === 'expired')   updated = updated.expire();
 
     // Campos mutables directos (el entity guarda props inmutables, así que hacemos reconstitución)
     const saved = await this.patronRepo.save(updated);
@@ -168,7 +169,7 @@ export class PatronController {
         status: 'pending',
       },
     });
-    return fine;
+    return { ...fine, amount: Number(fine.amount) };
   }
 
   @Get(':id/fines')
@@ -181,8 +182,9 @@ export class PatronController {
       where,
       orderBy: { createdAt: 'desc' },
     });
-    const total = fines.filter((f) => f.status === 'pending').reduce((s, f) => s + Number(f.amount), 0);
-    return { fines, total };
+    const serialized = fines.map((f) => ({ ...f, amount: Number(f.amount) }));
+    const total = serialized.filter((f) => f.status === 'pending').reduce((s, f) => s + f.amount, 0);
+    return { fines: serialized, total };
   }
 
   @Post(':id/fines/pay-all')
@@ -217,6 +219,6 @@ export class PatronController {
         ...(body.amount !== undefined ? { amount: body.amount } : {}),
       },
     });
-    return updated;
+    return { ...updated, amount: Number(updated.amount) };
   }
 }

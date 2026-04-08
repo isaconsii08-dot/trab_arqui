@@ -135,7 +135,7 @@ export class CirculationController {
   @Patch('loans/:id')
   @Roles('administrator', 'librarian')
   @ApiOperation({ summary: 'Actualizar préstamo (cambiar fecha de vencimiento, estado)' })
-  async updateLoan(@Param('id') id: string, @Body() body: { dueDate?: string; status?: string }) {
+  async updateLoan(@Param('id') id: string, @Body() body: { dueDate?: string; status?: string; fineAmount?: number }) {
     const loan = await this.loanRepo.findById(id);
     if (!loan) throw new NotFoundException('Préstamo no encontrado');
     let updated = loan;
@@ -147,6 +147,9 @@ export class CirculationController {
     }
     if (body.status === 'active') {
       updated = updated.updateDueDate(updated.dueDate);
+    }
+    if (body.fineAmount !== undefined) {
+      updated = updated.setFineAmount(body.fineAmount);
     }
     const saved = await this.loanRepo.save(updated);
 

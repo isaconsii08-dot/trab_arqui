@@ -34,6 +34,7 @@ model Loan {
   returnDate   DateTime?  @map("return_date")
   status       LoanStatus @default(pending)
   renewedCount Int        @default(0) @map("renewed_count")
+  fineAmount   Decimal    @default(0) @map("fine_amount") @db.Decimal(12, 2)
   staffId      String     @map("staff_id")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")

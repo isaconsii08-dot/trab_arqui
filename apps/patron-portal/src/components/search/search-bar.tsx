@@ -27,7 +27,7 @@ export default function SearchBar({ variant = 'inline', defaultValue = '' }: Sea
         className={clsx(
           'flex overflow-hidden transition-all',
           variant === 'hero'
-            ? 'rounded-sm bg-parchment shadow-2xl ring-1 ring-white/20'
+            ? 'rounded-sm bg-[#F8EDD5] border border-[#B8860B]/30'
             : 'rounded-sm border border-ink/15 bg-white',
         )}
       >
@@ -47,8 +47,10 @@ export default function SearchBar({ variant = 'inline', defaultValue = '' }: Sea
               : 'Buscar en el catálogo...'
           }
           className={clsx(
-            'flex-1 bg-transparent px-4 font-body text-ink placeholder-ink-muted focus:outline-none',
-            variant === 'hero' ? 'py-5 text-base' : 'py-3 text-sm',
+            'flex-1 px-4 font-body text-ink placeholder-ink-muted/60 focus:outline-none',
+            variant === 'hero'
+              ? 'py-5 text-base bg-transparent'
+              : 'py-3 text-sm bg-transparent',
           )}
           aria-label="Buscar en el catálogo bibliográfico"
         />
@@ -66,8 +68,8 @@ export default function SearchBar({ variant = 'inline', defaultValue = '' }: Sea
           className={clsx(
             'shrink-0 font-body font-medium transition-colors',
             variant === 'hero'
-              ? 'bg-amber-book px-8 py-5 text-sm text-white hover:bg-amber-warm'
-              : 'bg-ink px-6 py-3 text-sm text-parchment hover:bg-ink-light',
+              ? 'bg-[#2A1208] px-8 py-5 text-sm font-medium text-[#FDF6F0] hover:bg-[#3B1A0A] transition-colors border-l border-[#C8860A]/20'
+              : 'bg-[#2A1208] px-6 py-3 text-sm text-[#FDF6F0] hover:bg-[#3B1A0A] transition-colors',
           )}
         >
           Buscar

@@ -149,7 +149,8 @@ function useLookup<T>(type: 'patron' | 'item', query: string, delay = 400, forRe
 }
 
 export default function CirculationPage() {
-  const [activeTab, setActiveTab] = useState<'loan' | 'return' | 'solicitudes' | 'prestamos' | 'gestion' | 'multas'>('loan');
+  const [activeTab, setActiveTab] = useState<'operaciones' | 'prestamos' | 'gestion' | 'multas'>('operaciones');
+  const [subTab, setSubTab] = useState<'loan' | 'return' | 'solicitudes'>('loan');
   const [multas, setMultas] = useState<MultaItem[]>([]);
   const [cargandoMultas, setCargandoMultas] = useState(false);
   const [multaAccion, setMultaAccion] = useState<Record<string, boolean>>({});
@@ -355,6 +356,23 @@ export default function CirculationPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: action }),
       });
+      const multaResuelta = multas.find((m) => m.fineId === fineId);
+      // Si no quedan multas pendientes para ese préstamo, limpiar fineAmount en el préstamo
+      if (multaResuelta) {
+        const otrasDelLoan = multas.filter(
+          (m) => m.loanId === multaResuelta.loanId && m.fineId !== fineId && m.status === 'pending',
+        );
+        if (otrasDelLoan.length === 0) {
+          await fetch(`/api/circulacion/loan/${multaResuelta.loanId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fineAmount: 0 }),
+          });
+          setPrestamosActivos((prev) =>
+            prev.map((p) => p.id === multaResuelta.loanId ? { ...p, fineAmount: 0 } : p),
+          );
+        }
+      }
       setMultas((prev) => prev.map((m) => m.fineId === fineId ? { ...m, status: action } : m));
     } catch { /* ignorar */ } finally {
       setMultaAccion((prev) => { const n = { ...prev }; delete n[fineId]; return n; });
@@ -365,15 +383,27 @@ export default function CirculationPage() {
     if (!multaManualModal || !multaManualMonto) return;
     setCreandoMulta(true);
     try {
+      const monto = Number(multaManualMonto);
       await fetch(`/api/socios/${multaManualModal.patronId}/multas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           loanId: multaManualModal.loanId,
-          amount: Number(multaManualMonto),
+          amount: monto,
           reason: multaManualRazon || 'Multa manual registrada por personal',
         }),
       });
+      // Actualizar fineAmount del préstamo en circulación
+      const loanActual = prestamosActivos.find((p) => p.id === multaManualModal.loanId);
+      const nuevoTotal = (loanActual?.fineAmount ?? 0) + monto;
+      await fetch(`/api/circulacion/loan/${multaManualModal.loanId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fineAmount: nuevoTotal }),
+      });
+      setPrestamosActivos((prev) =>
+        prev.map((p) => p.id === multaManualModal.loanId ? { ...p, fineAmount: nuevoTotal } : p),
+      );
       setMultaManualModal(null);
       setMultaManualMonto('');
       setMultaManualRazon('');
@@ -386,6 +416,10 @@ export default function CirculationPage() {
   useEffect(() => {
     if (activeTab === 'prestamos' || activeTab === 'gestion') cargarPrestamosTab();
   }, [activeTab, cargarPrestamosTab]);
+
+  useEffect(() => {
+    cargarMultas();
+  }, [cargarMultas]);
 
   useEffect(() => {
     if (activeTab === 'multas') cargarMultas();
@@ -436,6 +470,9 @@ export default function CirculationPage() {
       } else {
         setReturnOk(body);
         returnForm.reset();
+        // Actualizar lista de préstamos activos y estadísticas
+        setPrestamosActivos((prev) => prev.filter((p) => p.itemBarcode !== data.itemBarcode));
+        cargarStats();
       }
     } catch {
       setReturnError('No se pudo conectar con el servidor');
@@ -452,14 +489,13 @@ export default function CirculationPage() {
       {/* Selector de pestaña */}
       <div className="flex gap-1 rounded-sm border border-surface-border bg-surface-card p-1 w-fit">
         {([
-          { key: 'loan',        icon: BookOpen,        label: 'Préstamo'         },
-          { key: 'return',      icon: RefreshCw,       label: 'Devolución'       },
-          { key: 'solicitudes', icon: Inbox,           label: 'Solicitudes'      },
+          { key: 'operaciones', icon: BookOpen,        label: 'Operaciones'      },
           { key: 'prestamos',   icon: Library,         label: 'Préstamos activos'},
           { key: 'gestion',     icon: CalendarDays,    label: 'Gestión'          },
           { key: 'multas',      icon: BadgeDollarSign, label: 'Multas'           },
         ] as const).map((tab) => {
           const Icon = tab.icon;
+          const multasPendientes = multas.filter((m) => m.status === 'pending').length;
           return (
             <button
               key={tab.key}
@@ -472,7 +508,7 @@ export default function CirculationPage() {
             >
               <Icon className="h-4 w-4" />
               {tab.label}
-              {tab.key === 'solicitudes' && pendienteCount > 0 && (
+              {tab.key === 'operaciones' && pendienteCount > 0 && (
                 <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-amber px-1 font-mono text-[10px] font-bold text-white">
                   {pendienteCount}
                 </span>
@@ -482,13 +518,48 @@ export default function CirculationPage() {
                   {countPrestamosActivos}
                 </span>
               )}
+              {tab.key === 'multas' && multasPendientes > 0 && (
+                <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-red px-1 font-mono text-[10px] font-bold text-white">
+                  {multasPendientes}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
+      {/* ── OPERACIONES: sub-tabs ── */}
+      {activeTab === 'operaciones' && (
+        <div className="flex gap-1 rounded-sm border border-surface-border bg-surface-raised p-0.5 w-fit">
+          {([
+            { key: 'loan',        icon: BookOpen,  label: 'Préstamo'   },
+            { key: 'return',      icon: RefreshCw, label: 'Devolución' },
+            { key: 'solicitudes', icon: Inbox,     label: 'Solicitudes'},
+          ] as const).map((st) => {
+            const Icon = st.icon;
+            return (
+              <button
+                key={st.key}
+                onClick={() => setSubTab(st.key)}
+                className={`flex items-center gap-1.5 rounded-sm px-3 py-1.5 font-body text-sm font-medium transition-colors ${
+                  subTab === st.key ? 'bg-surface-card text-text-primary shadow-sm' : 'text-text-muted hover:text-text-secondary'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {st.label}
+                {st.key === 'solicitudes' && pendienteCount > 0 && (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-accent-amber px-1 font-mono text-[10px] font-bold text-white">
+                    {pendienteCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* ── SOLICITUDES ── */}
-      {activeTab === 'solicitudes' && (
+      {activeTab === 'operaciones' && subTab === 'solicitudes' && (
         <div className="space-y-3">
           {solicitudes.length === 0 ? (
             <div className="surface-card flex flex-col items-center py-16 text-center">
@@ -1042,11 +1113,11 @@ export default function CirculationPage() {
       )}
 
       {/* ── PRÉSTAMO / DEVOLUCIÓN ── */}
-      {activeTab !== 'solicitudes' && activeTab !== 'prestamos' && activeTab !== 'gestion' && activeTab !== 'multas' && (
+      {activeTab === 'operaciones' && subTab !== 'solicitudes' && (
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Panel de formulario */}
           <div className="surface-card p-6">
-            {activeTab === 'loan' ? (
+            {subTab === 'loan' ? (
               <form onSubmit={loanForm.handleSubmit(handleLoan)} className="space-y-4">
                 {/* Campo: código de barras del ejemplar */}
                 <div className="relative">
@@ -1268,7 +1339,7 @@ export default function CirculationPage() {
           <div className="surface-card p-6">
             <h3 className="mb-4 font-display text-sm font-semibold text-text-primary">Resultado</h3>
 
-            {activeTab === 'loan' && loanOk ? (
+            {subTab === 'loan' && loanOk ? (
               <div className="flex flex-col items-center py-8 text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent-green/15">
                   <CheckCircle className="h-8 w-8 text-accent-green" />
@@ -1287,7 +1358,7 @@ export default function CirculationPage() {
                   Nuevo préstamo
                 </button>
               </div>
-            ) : activeTab === 'loan' && loanError ? (
+            ) : subTab === 'loan' && loanError ? (
               <div className="flex flex-col items-center py-8 text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent-red/15">
                   <XCircle className="h-8 w-8 text-accent-red" />
@@ -1302,7 +1373,7 @@ export default function CirculationPage() {
                   Intentar de nuevo
                 </button>
               </div>
-            ) : activeTab === 'return' && returnOk ? (
+            ) : subTab === 'return' && returnOk ? (
               <div className="flex flex-col items-center py-8 text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent-green/15">
                   <CheckCircle className="h-8 w-8 text-accent-green" />
@@ -1325,7 +1396,7 @@ export default function CirculationPage() {
                   Nueva devolución
                 </button>
               </div>
-            ) : activeTab === 'return' && returnError ? (
+            ) : subTab === 'return' && returnError ? (
               <div className="flex flex-col items-center py-8 text-center">
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-accent-red/15">
                   <XCircle className="h-8 w-8 text-accent-red" />
@@ -1353,7 +1424,7 @@ export default function CirculationPage() {
       )}
 
       {/* Indicador de reloj en solicitudes */}
-      {activeTab === 'solicitudes' && solicitudes.length > 0 && (
+      {activeTab === 'operaciones' && subTab === 'solicitudes' && solicitudes.length > 0 && (
         <p className="flex items-center gap-1.5 font-mono text-xs text-text-muted">
           <Clock className="h-3 w-3" /> Actualización automática cada 8 s
         </p>

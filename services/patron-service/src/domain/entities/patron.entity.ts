@@ -102,6 +102,10 @@ export class Patron {
     return new Patron({ ...this.props, status: 'blocked' });
   }
 
+  expire(): Patron {
+    return new Patron({ ...this.props, status: 'expired' });
+  }
+
   updateContactInfo(phone: string | null, address: string | null): Patron {
     return new Patron({ ...this.props, phone, address });
   }

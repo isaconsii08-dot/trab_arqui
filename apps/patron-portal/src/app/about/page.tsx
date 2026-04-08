@@ -18,12 +18,12 @@ export default async function AboutPage() {
       <div className="min-h-screen bg-parchment">
 
         {/* Hero */}
-        <section className="relative overflow-hidden py-20" style={{ backgroundColor: '#EDD9BE' }}>
+        <section className="relative overflow-hidden py-24" style={{ backgroundColor: '#6B2A1A' }}>
           {/* Grain */}
           <div
             className="pointer-events-none absolute inset-0"
             style={{
-              opacity: 0.07,
+              opacity: 0.1,
               backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
               backgroundSize: '256px 256px',
             }}
@@ -32,12 +32,12 @@ export default async function AboutPage() {
           <div
             className="pointer-events-none absolute inset-0"
             style={{
-              backgroundImage: 'repeating-linear-gradient(transparent, transparent 39px, rgba(139,58,39,0.06) 39px, rgba(139,58,39,0.06) 40px)',
+              backgroundImage: 'repeating-linear-gradient(transparent, transparent 39px, rgba(237,207,196,0.08) 39px, rgba(237,207,196,0.08) 40px)',
             }}
           />
           {/* Blobs */}
-          <div className="absolute -right-16 top-0 h-72 w-72 rounded-full opacity-20 blur-[100px]" style={{ backgroundColor: '#C1614A' }} />
-          <div className="absolute -left-10 bottom-0 h-56 w-56 rounded-full opacity-15 blur-[80px]" style={{ backgroundColor: '#C8860A' }} />
+          <div className="absolute -top-20 -left-20 h-80 w-80 rounded-full opacity-30 blur-[100px]" style={{ backgroundColor: '#C1614A' }} />
+          <div className="absolute bottom-0 right-0 h-96 w-96 translate-x-1/3 translate-y-1/3 rounded-full opacity-20 blur-[120px]" style={{ backgroundColor: '#8B3A27' }} />
           {/* Borde rasgado inferior */}
           <div className="absolute bottom-0 left-0 right-0 overflow-hidden" style={{ height: '32px' }}>
             <svg viewBox="0 0 1440 32" preserveAspectRatio="none" className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
@@ -45,16 +45,16 @@ export default async function AboutPage() {
             </svg>
           </div>
           <div className="relative mx-auto max-w-4xl px-6 text-center">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-sm" style={{ backgroundColor: 'rgba(193,97,74,0.15)' }}>
-              <Library className="h-8 w-8" style={{ color: '#C1614A' }} />
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-sm" style={{ backgroundColor: 'rgba(237,207,196,0.15)' }}>
+              <Library className="h-8 w-8" style={{ color: '#EDCFC4' }} />
             </div>
-            <span className="font-mono text-xs uppercase tracking-[0.25em]" style={{ color: '#8B3A27' }}>
+            <span className="font-mono text-xs uppercase tracking-[0.25em]" style={{ color: 'rgba(237,207,196,0.6)' }}>
               Universidad Cooperativa de Colombia
             </span>
-            <h1 className="mt-3 font-display text-4xl font-semibold" style={{ color: '#3B1F14' }}>
+            <h1 className="mt-3 font-display text-4xl font-semibold" style={{ color: '#EDCFC4' }}>
               Biblioteca Campus Montería
             </h1>
-            <p className="mt-4 font-body text-lg leading-relaxed" style={{ color: 'rgba(59,31,20,0.6)' }}>
+            <p className="mt-4 font-body text-lg leading-relaxed" style={{ color: 'rgba(237,207,196,0.55)' }}>
               Un espacio de conocimiento al servicio de la comunidad universitaria
               del Campus Montería.
             </p>

@@ -4,7 +4,7 @@ import { MapPin, Phone, Mail, Clock } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="relative overflow-hidden" style={{ backgroundColor: '#3B1F14' }}>
+    <footer className="relative overflow-hidden" style={{ backgroundColor: '#2A1208' }}>
       {/* Paper grain */}
       <div
         className="pointer-events-none absolute inset-0"

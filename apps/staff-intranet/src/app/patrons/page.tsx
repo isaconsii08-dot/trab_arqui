@@ -1,4 +1,4 @@
-import { Search, UserPlus, CheckCircle, XCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, UserPlus, CheckCircle, XCircle, Clock, ChevronLeft, ChevronRight, Ban } from 'lucide-react';
 import { RefreshButton } from '@/components/ui/refresh-button';
 import Link from 'next/link';
 import { listarSocios } from '@/lib/api';
@@ -93,25 +93,19 @@ export default async function PatronsPage({ searchParams }: PageProps) {
                   <td className="text-text-secondary">{patron.email}</td>
                   <td>
                     {patron.status === 'active' && (
-                      <span className="badge badge-green">
-                        <CheckCircle className="mr-1 h-3 w-3" />Activo
-                      </span>
+                      <span className="badge badge-green"><CheckCircle className="mr-1 h-3 w-3" />Activo</span>
                     )}
                     {patron.status === 'suspended' && (
-                      <span className="badge badge-red">
-                        <XCircle className="mr-1 h-3 w-3" />Suspendido
-                      </span>
+                      <span className="badge badge-red"><XCircle className="mr-1 h-3 w-3" />Suspendido</span>
                     )}
                     {patron.status === 'expired' && (
-                      <span className="badge badge-amber">
-                        <Clock className="mr-1 h-3 w-3" />Caducado
-                      </span>
+                      <span className="badge badge-amber"><Clock className="mr-1 h-3 w-3" />Caducado</span>
                     )}
-                    {!['active', 'suspended', 'expired'].includes(patron.status) && (
-                      <span className="badge">{patron.status}</span>
+                    {patron.status === 'blocked' && (
+                      <span className="badge badge-red"><Ban className="mr-1 h-3 w-3" />Bloqueado</span>
                     )}
                   </td>
-                  <td className={`font-mono text-sm ${(patron.pendingFinesTotal ?? 0) > 0 ? 'text-accent-amber' : 'text-text-muted'}`}>
+                  <td className={`font-mono text-sm font-medium ${(patron.pendingFinesTotal ?? 0) > 0 ? 'text-accent-red' : 'text-text-muted'}`}>
                     {(patron.pendingFinesTotal ?? 0) > 0
                       ? copFormat(patron.pendingFinesTotal)
                       : '—'}

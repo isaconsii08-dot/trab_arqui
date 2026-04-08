@@ -109,7 +109,7 @@ export default function SearchFiltersPanel({ currentFilters }: SearchFiltersProp
               onClick={() => applyFilter('subject', currentFilters.subject === subject ? undefined : subject)}
               className={`rounded-sm px-2.5 py-1 font-mono text-xs transition-colors ${
                 currentFilters.subject === subject
-                  ? 'bg-ink text-parchment'
+                  ? 'bg-[#2A1208] text-[#FDF6F0] border border-[#2A1208]'
                   : 'border border-ink/15 text-ink-muted hover:border-amber-book hover:text-amber-book'
               }`}
             >

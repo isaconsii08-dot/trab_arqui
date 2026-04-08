@@ -73,6 +73,7 @@ export class PrismaLoanRepository implements ILoanRepository {
       returnDate: loan.returnDate,
       status: loan.status as PrismaLoanStatus,
       renewedCount: loan.renewedCount,
+      fineAmount: loan.fineAmount,
     };
     const saved = await this.prisma.loan.upsert({
       where: { id: loan.id },
@@ -100,7 +101,7 @@ export class PrismaLoanRepository implements ILoanRepository {
       returnDate: r.returnDate ?? null,
       status: r.status as LoanStatus,
       renewedCount: r.renewedCount,
-      fineAmount: 0,
+      fineAmount: Number(r.fineAmount ?? 0),
     });
   }
 }

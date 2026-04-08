@@ -11,6 +11,7 @@ export function RefreshButton({ className }: { className?: string }) {
   function handleRefresh() {
     setSpinning(true);
     router.refresh();
+    window.dispatchEvent(new CustomEvent('biblioflow:refresh'));
     setTimeout(() => setSpinning(false), 800);
   }
 

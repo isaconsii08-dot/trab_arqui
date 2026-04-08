@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { BookOpen, ArrowLeft, Clock, CheckCircle, AlertTriangle, RotateCcw } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { SkeletonLoanCard } from '@/components/ui/skeleton';
 
 interface Prestamo {
@@ -31,6 +32,7 @@ const estadoLabel: Record<string, { label: string; color: string; icon: React.El
 };
 
 export default function HistorialPage() {
+  const router = useRouter();
   const [prestamos, setPrestamos] = useState<Prestamo[]>([]);
   const [cargando, setCargando] = useState(true);
   const [refrescando, setRefrescando] = useState(false);
@@ -39,6 +41,8 @@ export default function HistorialPage() {
   const limit = 20;
 
   useEffect(() => {
+    const hasToken = document.cookie.split('; ').some(r => r.startsWith('bf_token='));
+    if (!hasToken) { router.replace('/login?redirect=/dashboard/historial'); return; }
     cargarHistorial(page);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);

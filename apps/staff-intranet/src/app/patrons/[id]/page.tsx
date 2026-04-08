@@ -1,4 +1,4 @@
-import { ArrowLeft, User, AlertTriangle, CheckCircle, Clock, BookOpen, Pencil } from 'lucide-react';
+import { ArrowLeft, User, AlertTriangle, CheckCircle, Clock, BookOpen, Pencil, Ban } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { RefreshButton } from '@/components/ui/refresh-button';
@@ -149,7 +149,7 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
           {socio.status === 'active'    && <><CheckCircle className="mr-1 h-3 w-3" />Activo</>}
           {socio.status === 'suspended' && <><AlertTriangle className="mr-1 h-3 w-3" />Suspendido</>}
           {socio.status === 'expired'   && <><Clock className="mr-1 h-3 w-3" />Caducado</>}
-          {!['active','suspended','expired'].includes(socio.status) && socio.status}
+          {socio.status === 'blocked'   && <><Ban className="mr-1 h-3 w-3" />Bloqueado</>}
         </span>
       </div>
 
@@ -188,7 +188,7 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
               <p className="font-mono text-xs text-text-muted">Vencidos</p>
             </div>
             <div className="surface-card p-3 text-center">
-              <p className={`font-display text-xl font-semibold ${socio.pendingFinesTotal > 0 ? 'text-accent-amber' : 'text-text-primary'}`}>
+              <p className={`font-display text-xl font-semibold ${socio.pendingFinesTotal > 0 ? 'text-accent-red' : 'text-text-primary'}`}>
                 {copFmt(socio.pendingFinesTotal ?? 0)}
               </p>
               <p className="font-mono text-xs text-text-muted">Multas</p>
@@ -263,7 +263,7 @@ export default async function PatronDetailPage({ params }: { params: Promise<{ i
                       <td>
                         <span className={`badge ${est.badge}`}>{est.label}</span>
                       </td>
-                      <td className={`font-mono text-sm ${p.fineAmount > 0 ? 'text-accent-amber' : 'text-text-muted'}`}>
+                      <td className={`font-mono text-sm font-medium ${p.fineAmount > 0 ? 'text-accent-red' : 'text-text-muted'}`}>
                         {p.fineAmount > 0 ? copFmt(p.fineAmount) : '—'}
                       </td>
                     </tr>

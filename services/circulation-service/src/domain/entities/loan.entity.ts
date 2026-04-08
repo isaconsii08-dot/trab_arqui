@@ -134,6 +134,10 @@ export class Loan {
     });
   }
 
+  setFineAmount(amount: number): Loan {
+    return new Loan({ ...this.props, fineAmount: amount });
+  }
+
   forceClose(): Loan {
     return new Loan({ ...this.props, returnDate: new Date(), status: 'returned', fineAmount: 0 });
   }

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { BookOpen, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
@@ -79,13 +80,15 @@ function LoginForm() {
           </svg>
         </div>
         <div className="relative flex h-full flex-col justify-between p-12 pr-16">
-          <Link href="/" className="inline-flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-sm" style={{ backgroundColor: 'rgba(237,207,196,0.2)' }}>
-              <BookOpen className="h-4 w-4" style={{ color: '#EDCFC4' }} />
-            </div>
-            <span className="font-display text-lg font-semibold" style={{ color: '#EDCFC4' }}>
-              Biblio<span style={{ color: '#E8A882' }}>Flow</span>
-            </span>
+          <Link href="/" className="inline-flex items-center">
+            <Image
+              src="/LogoBiblioFlow.png"
+              alt="BiblioFlow"
+              width={130}
+              height={27}
+              className="h-7 w-auto"
+              style={{ filter: 'brightness(0) invert(1)', opacity: 0.75 }}
+            />
           </Link>
           <div>
             <blockquote className="mb-8">
@@ -101,9 +104,14 @@ function LoginForm() {
       {/* Formulario */}
       <div className="flex flex-1 flex-col items-center justify-center bg-parchment-light px-6 py-12 lg:max-w-xl">
         <div className="w-full max-w-sm">
-          <Link href="/" className="mb-8 inline-flex items-center gap-2 lg:hidden">
-            <BookOpen className="h-5 w-5 text-amber-book" />
-            <span className="font-display text-base font-semibold text-ink">BiblioFlow</span>
+          <Link href="/" className="mb-8 inline-flex items-center lg:hidden">
+            <Image
+              src="/LogoBiblioFlow.png"
+              alt="BiblioFlow"
+              width={120}
+              height={25}
+              className="h-6 w-auto"
+            />
           </Link>
 
           <h1 className="heading-md mb-2 text-ink">Bienvenido de vuelta</h1>

@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { obtenerEstadisticas, obtenerPrestamosActivos, listarCatalogo, type LoanConDetalle } from '@/lib/api';
 import { LoansTable } from '@/components/ui/loans-table';
 import { RefreshButton } from '@/components/ui/refresh-button';
+import { ServiceStatusWidget } from '@/components/ui/service-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -102,6 +103,9 @@ export default async function DashboardPage() {
         </div>
         <RefreshButton />
       </div>
+
+      {/* Estado del sistema */}
+      <ServiceStatusWidget />
 
       {/* Estadísticas */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
