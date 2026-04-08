@@ -60,7 +60,7 @@ export default function NewCatalogPage() {
       summary: form.summary || null,
       coverImageUrl: form.coverImageUrl || null,
       authors: authors.filter(Boolean).map((name) => ({ name, role: 'author' })),
-      subjects: subjects.filter(Boolean).map((term) => ({ term })),
+      subjects: subjects.filter(Boolean),
     };
 
     try {
