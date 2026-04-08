@@ -39,6 +39,9 @@ jobs:
       - name: Build shared packages
         run: pnpm turbo run build --filter=@biblioflow/shared-*
 
+      - name: Generate Prisma clients
+        run: pnpm turbo run db:generate
+
       - name: Type check all packages
         run: pnpm turbo run type-check
 
