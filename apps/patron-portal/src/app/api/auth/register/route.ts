@@ -5,7 +5,7 @@ const PATRON_URL = process.env.PATRON_SERVICE_URL ?? 'http://localhost:3001';
 // Traducciones de mensajes de validación de class-validator (inglés → español)
 function traducirMensajes(messages: string | string[]): string {
   const lista = Array.isArray(messages) ? messages : [messages];
-  const traducciones: [RegExp, string][] = [
+  const traducciones: [RegExp, string | ((...args: string[]) => string)][] = [
     [/fullName should not be empty/i,       'El nombre completo es requerido'],
     [/fullName must be a string/i,           'El nombre debe ser texto'],
     [/email must be an email/i,              'El correo electrónico no es válido'],
