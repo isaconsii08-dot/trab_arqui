@@ -123,19 +123,14 @@ install: ## Instala las dependencias de todos los workspaces (pnpm install)
 # Cada servicio corre en modo watch: detecta cambios en el código y se reinicia solo.
 # Necesita que la infraestructura Docker esté levantada (`make infra`) antes.
 kill-ports: ## Libera los puertos de BiblioFlow (3000-3005, 4000, 4001) si están ocupados
-	@echo "$(YELLOW)▶ Liberando puertos...$(RESET)"
-	@for port in 3000 3001 3002 3003 3004 3005 4000 4001; do \
-		pid=$$(netstat -ano 2>/dev/null | grep ":$$port " | grep "LISTENING" | awk '{print $$NF}' | head -1); \
-		if [ -n "$$pid" ]; then \
-			taskkill //F //PID $$pid 2>/dev/null && echo "  Liberado puerto $$port (PID $$pid)"; \
-		fi; \
-	done
-	@echo "$(GREEN)✓ Puertos listos$(RESET)"
+	@echo "Liberando puertos..."
+	@powershell -NoProfile -ExecutionPolicy Bypass -Command "foreach ($$p in @(3000,3001,3002,3003,3004,3005,4000,4001)) { $$m = netstat -ano | Select-String (':'+$$p+' ') | Where-Object { $$_ -match 'LISTENING' }; if ($$m) { $$id = ($$m[0].ToString().Trim() -split '\s+')[-1]; Stop-Process -Id $$id -Force -ErrorAction SilentlyContinue; Write-Host ('  Puerto '+$$p+' liberado (PID '+$$id+')') } }"
+	@echo "Puertos listos"
 
 dev: kill-ports ## Inicia TODOS los servicios en modo watch (requiere `make infra` previo)
-	@echo "$(GREEN)▶ Limpiando cache Next.js para servir código fresco...$(RESET)"
-	@rm -rf apps/patron-portal/.next apps/staff-intranet/.next
-	@echo "$(GREEN)▶ Iniciando todos los servicios en modo desarrollo...$(RESET)"
+	@echo "Limpiando cache Next.js..."
+	@powershell -NoProfile -ExecutionPolicy Bypass -Command "Remove-Item -Recurse -Force apps/patron-portal/.next, apps/staff-intranet/.next -ErrorAction SilentlyContinue"
+	@echo "Iniciando todos los servicios en modo desarrollo..."
 	pnpm dev
 
 # build: compila todos los paquetes y servicios en orden de dependencias.
@@ -430,20 +425,18 @@ db-migrate-circulation: ## Migra solo la DB de circulation-service (loans, reser
 # Cada .env contiene las variables necesarias para conectar a la base de datos
 # local, Redis, JWT secret, etc. Debes revisar y ajustar los valores si es necesario.
 env-setup: ## Copia .env.example → .env en cada servicio (solo si no existe)
-	@echo "$(GREEN)▶ Creando archivos de entorno...$(RESET)"
-	@for dir in services/*/; do \
-		if [ -f "$$dir.env.example" ] && [ ! -f "$$dir.env" ]; then \
-			cp "$$dir.env.example" "$$dir.env"; \
-			echo "  ✓ $$dir.env"; \
-		fi; \
-	done
-	@for dir in apps/*/; do \
-		if [ -f "$$dir.env.example" ] && [ ! -f "$$dir.env.local" ]; then \
-			cp "$$dir.env.example" "$$dir.env.local"; \
-			echo "  ✓ $$dir.env.local"; \
-		fi; \
-	done
-	@echo "$(YELLOW)  Revisa los archivos .env generados y ajusta los valores si es necesario.$(RESET)"
+	@echo "Creando archivos de entorno..."
+	@powershell -NoProfile -ExecutionPolicy Bypass -Command \
+		"Get-ChildItem -Path 'services','apps' -Directory | ForEach-Object { \
+			$$dir = $$_.FullName; \
+			$$ex = Join-Path $$dir '.env.example'; \
+			$$dst = if ($$_.Parent.Name -eq 'apps') { Join-Path $$dir '.env.local' } else { Join-Path $$dir '.env' }; \
+			if ((Test-Path $$ex) -and -not (Test-Path $$dst)) { \
+				Copy-Item $$ex $$dst; \
+				Write-Host ('  ok ' + ($$dst -replace [regex]::Escape((Get-Location).Path+'\'),'')); \
+			} \
+		}"
+	@echo "Revisa los archivos .env generados y ajusta los valores si es necesario."
 
 
 # ═════════════════════════════════════════════════════════════════════════════
