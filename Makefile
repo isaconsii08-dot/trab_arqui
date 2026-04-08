@@ -20,7 +20,7 @@
 # .PHONY le indica a Make que estos nombres NO son archivos del sistema de ficheros.
 # Sin esto, si existiera un archivo llamado "install", Make pensaría que ya está
 # "construido" y no ejecutaría el comando.
-.PHONY: help install dev build test lint type-check clean \
+.PHONY: help install dev kill-ports build test lint type-check clean \
         infra infra-down infra-logs infra-obs infra-reset \
         db-setup db-migrate db-seed db-generate \
         db-migrate-patron db-migrate-catalog db-migrate-holdings db-migrate-circulation \
@@ -55,7 +55,8 @@ help: ## Muestra todos los comandos disponibles
 	@echo "  setup                Configuracion completa: env + install + infra + db"
 	@echo ""
 	@echo "  --- Desarrollo ---"
-	@echo "  dev                  Inicia todos los servicios en modo watch"
+	@echo "  dev                  Mata procesos en puertos, limpia .next e inicia todo"
+	@echo "  kill-ports           Libera puertos 3000-3005, 4000, 4001"
 	@echo "  dev-patron           Solo patron-service"
 	@echo "  dev-catalog          Solo catalog-service"
 	@echo "  dev-holdings         Solo holdings-service"
@@ -121,9 +122,20 @@ install: ## Instala las dependencias de todos los workspaces (pnpm install)
 # en turbo.json (los paquetes shared-* arrancan antes que los servicios que los usan).
 # Cada servicio corre en modo watch: detecta cambios en el código y se reinicia solo.
 # Necesita que la infraestructura Docker esté levantada (`make infra`) antes.
-dev: ## Inicia TODOS los servicios en modo watch (requiere `make infra` previo)
+kill-ports: ## Libera los puertos de BiblioFlow (3000-3005, 4000, 4001) si están ocupados
+	@echo "$(YELLOW)▶ Liberando puertos...$(RESET)"
+	@for port in 3000 3001 3002 3003 3004 3005 4000 4001; do \
+		pid=$$(netstat -ano 2>/dev/null | grep ":$$port " | grep "LISTENING" | awk '{print $$NF}' | head -1); \
+		if [ -n "$$pid" ]; then \
+			taskkill //F //PID $$pid 2>/dev/null && echo "  Liberado puerto $$port (PID $$pid)"; \
+		fi; \
+	done
+	@echo "$(GREEN)✓ Puertos listos$(RESET)"
+
+dev: kill-ports ## Inicia TODOS los servicios en modo watch (requiere `make infra` previo)
+	@echo "$(GREEN)▶ Limpiando cache Next.js para servir código fresco...$(RESET)"
+	@rm -rf apps/patron-portal/.next apps/staff-intranet/.next
 	@echo "$(GREEN)▶ Iniciando todos los servicios en modo desarrollo...$(RESET)"
-	@echo "  Asegúrate de haber ejecutado $(CYAN)make infra$(RESET) antes."
 	pnpm dev
 
 # build: compila todos los paquetes y servicios en orden de dependencias.
@@ -196,11 +208,13 @@ dev-analytics: ## Inicia solo analytics-service en modo watch (:3008)
 # dev-portal: inicia el portal del socio (Next.js) en el puerto 4000.
 # Aplicación web pública donde los socios consultan el catálogo y sus préstamos.
 dev-portal: ## Inicia solo patron-portal (frontend socio) en modo watch (:4000)
+	@rm -rf apps/patron-portal/.next
 	pnpm --filter @biblioflow/patron-portal dev
 
 # dev-staff: inicia la intranet del personal (Next.js) en el puerto 4001.
 # Aplicación privada para que los bibliotecarios gestionen el sistema.
 dev-staff: ## Inicia solo staff-intranet (frontend staff) en modo watch (:4001)
+	@rm -rf apps/staff-intranet/.next
 	pnpm --filter @biblioflow/staff-intranet dev
 
 
