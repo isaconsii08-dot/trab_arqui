@@ -117,19 +117,60 @@ sudo pacman -S make
 
 ## Inicio rápido
 
+### Primera instalación (máquina nueva)
+
+Cada desarrollador tiene su propia base de datos local corriendo en Docker. Al clonar el repositorio por primera vez hay que crearla desde cero:
+
 ```bash
 # 1. Clonar el repositorio
 git clone https://github.com/juanguillermomarinco/biblioflow.git
 cd biblioflow
 
-# 2. Copiar variables de entorno y instalar dependencias
-make setup
+# 2. Copiar .env.example → .env en cada servicio
+make env-setup
 
-# 3. Iniciar todos los servicios en modo desarrollo
+# 3. Instalar dependencias del monorepo
+pnpm install
+
+# 4. Generar los clientes Prisma (OBLIGATORIO antes de compilar o hacer type-check)
+pnpm turbo run db:generate
+
+# 5. Levantar la infraestructura Docker (PostgreSQL × 7, Redis, Elasticsearch)
+make infra
+
+# 6. Crear tablas y cargar datos de prueba
+make db-setup
+
+# 7. Iniciar todos los servicios en modo desarrollo
 make dev
 ```
 
-> `make setup` ejecuta `make env-setup` + `make install` + `make infra` + `make db-setup` en un solo comando.
+> **¿Por qué `db:generate`?** Prisma genera código TypeScript a partir del esquema de cada servicio. Sin ese paso el compilador no encuentra los tipos y lanza errores `Cannot find module '../../generated/prisma'`.
+
+> **Base de datos local vs. la de un compañero:** cada máquina tiene sus propios volúmenes Docker. Los datos no se comparten entre desarrolladores — `make db-seed` carga un conjunto de datos de prueba idéntico para todos.
+
+---
+
+### Arranque diario (después de la instalación inicial)
+
+```bash
+make infra   # solo si Docker no está corriendo (tras reiniciar el PC, por ejemplo)
+make dev     # mata procesos en puertos, limpia caché Next.js e inicia todo
+```
+
+---
+
+### Setup en un solo comando
+
+Si ya tienes Docker corriendo y solo quieres hacer todo de golpe:
+
+```bash
+make setup
+```
+
+> `make setup` ejecuta `make env-setup` + `make install` + `make infra` + `make db-setup` en un solo comando. No incluye `db:generate` — ejecútalo manualmente si es la primera vez que compilas.
+
+---
 
 Después de `make dev` los servicios estarán disponibles en:
 
