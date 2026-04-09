@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { MapPin, Users, Clock, CheckCircle, XCircle, CalendarX, RefreshCw, Power, AlertTriangle, X } from 'lucide-react';
+import { LoadingOverlay } from '@/components/ui/loading-overlay';
 
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
@@ -272,9 +273,13 @@ export default function SalasAdminPage() {
         ))}
       </div>
 
+      {(accionando !== null || cancelando !== null) && (
+        <LoadingOverlay label={accionando !== null ? 'Actualizando sala...' : 'Cancelando reserva...'} />
+      )}
+
       {/* Modal confirmación cancelar */}
       {confirmarCancelar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="fixed inset-0 z-[9999] mt-0 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(10,13,18,0.80)', backdropFilter: 'blur(4px)' }}>
           <div className="w-full max-w-sm rounded-sm border border-surface-border bg-surface-base p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-display text-sm font-semibold text-text-primary">Cancelar reserva</h3>

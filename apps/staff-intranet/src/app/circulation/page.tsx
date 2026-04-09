@@ -277,6 +277,7 @@ export default function CirculationPage() {
 
   const handleReturnInline = async (loanId: string, barcode: string, patronId?: string) => {
     setAccionEnCurso((prev) => ({ ...prev, [loanId]: 'return' }));
+    setLoadingGlobal(true);
     try {
       const res = await fetch('/api/circulacion/return', {
         method: 'POST',
@@ -297,11 +298,13 @@ export default function CirculationPage() {
       setAccionMsg((prev) => ({ ...prev, [loanId]: { ok: false, msg: 'Error de conexión' } }));
     } finally {
       setAccionEnCurso((prev) => { const n = { ...prev }; delete n[loanId]; return n; });
+      setLoadingGlobal(false);
     }
   };
 
   const handleRenewInline = async (loanId: string, barcode: string, patronCardNumber: string) => {
     setAccionEnCurso((prev) => ({ ...prev, [loanId]: 'renew' }));
+    setLoadingGlobal(true);
     try {
       // Devolver primero, luego crear nuevo préstamo
       const retRes = await fetch('/api/circulacion/return', {
@@ -331,6 +334,7 @@ export default function CirculationPage() {
       setAccionMsg((prev) => ({ ...prev, [loanId]: { ok: false, msg } }));
     } finally {
       setAccionEnCurso((prev) => { const n = { ...prev }; delete n[loanId]; return n; });
+      setLoadingGlobal(false);
       setTimeout(() => setAccionMsg((prev) => { const n = { ...prev }; delete n[loanId]; return n; }), 5000);
     }
   };
@@ -424,6 +428,7 @@ export default function CirculationPage() {
   const handleCrearMultaManual = async () => {
     if (!multaManualModal || !multaManualMonto) return;
     setCreandoMulta(true);
+    setLoadingGlobal(true);
     try {
       const monto = Number(multaManualMonto);
       await fetch(`/api/socios/${multaManualModal.patronId}/multas`, {
@@ -452,6 +457,7 @@ export default function CirculationPage() {
       await cargarMultas();
     } catch { /* ignorar */ } finally {
       setCreandoMulta(false);
+      setLoadingGlobal(false);
     }
   };
 
@@ -468,6 +474,7 @@ export default function CirculationPage() {
   }, [activeTab, cargarMultas]);
 
   const cambiarEstado = async (id: string, estado: Solicitud['estado'], solicitud?: Solicitud) => {
+    setLoadingGlobal(true);
     // Al entregar, primero crear el préstamo real en circulación
     if (estado === 'entregada' && solicitud?.itemBarcode && solicitud?.cardNumber) {
       const loanRes = await fetch('/api/circulacion/loan', {
@@ -491,6 +498,7 @@ export default function CirculationPage() {
     });
     cargarSolicitudes();
     if (estado === 'entregada') cargarPrestamosTab();
+    setLoadingGlobal(false);
   };
 
   const handleLoan = async (data: LoanForm) => {

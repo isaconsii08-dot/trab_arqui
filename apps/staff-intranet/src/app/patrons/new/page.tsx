@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, UserPlus, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { LoadingOverlay } from '@/components/ui/loading-overlay';
 
 export default function NewPatronPage() {
   const router = useRouter();
@@ -47,6 +48,8 @@ export default function NewPatronPage() {
           <p className="font-mono text-xs text-text-muted">Registrar un nuevo miembro de la biblioteca</p>
         </div>
       </div>
+
+      {loading && <LoadingOverlay label="Registrando socio..." />}
 
       <div className="surface-card p-6">
         {error && (

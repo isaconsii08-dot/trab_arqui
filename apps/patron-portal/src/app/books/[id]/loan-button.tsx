@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BookOpen, CheckCircle, Clock, Package, X, LogIn, Loader2, XCircle } from 'lucide-react';
+import { LoadingModal } from '@/components/ui/skeleton';
 
 interface LoanButtonProps {
   bookId: string;
@@ -59,6 +61,7 @@ const ESTADO_CONFIG: Record<Exclude<Estado, 'idle'>, {
 };
 
 export default function LoanButton({ bookId, bookTitle, itemBarcode, variant = 'full' }: LoanButtonProps) {
+  const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [userId, setUserId] = useState('');
@@ -153,6 +156,7 @@ export default function LoanButton({ bookId, bookTitle, itemBarcode, variant = '
         message: `¡Solicitud enviada! El personal de la biblioteca confirmará tu préstamo de "${bookTitle}" a la brevedad.`,
         type: 'success',
       });
+      router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error de conexión';
       setToast({ message: msg, type: 'error' });
@@ -168,6 +172,7 @@ export default function LoanButton({ bookId, bookTitle, itemBarcode, variant = '
 
   return (
     <>
+      {enviando && <LoadingModal label="Enviando solicitud..." />}
       {isLoggedIn ? (
         estado !== 'idle' ? (() => {
           const cfg = ESTADO_CONFIG[estado];

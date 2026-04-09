@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, Save, Loader2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { LoadingOverlay } from '@/components/ui/loading-overlay';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 interface PatronDto {
   id: string; fullName: string; email: string; phone: string | null;
@@ -23,6 +25,7 @@ export default function EditPatronPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({ phone: '', address: '', status: 'active' });
   const [socio, setSocio] = useState<PatronDto | null>(null);
@@ -62,7 +65,6 @@ export default function EditPatronPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm(`¿Eliminar al socio ${socio?.fullName}? Esta acción no se puede deshacer.`)) return;
     setDeleting(true);
     try {
       await fetch(`/api/socios/${id}`, { method: 'DELETE' });
@@ -89,6 +91,19 @@ export default function EditPatronPage() {
 
   return (
     <div className="space-y-6 max-w-xl">
+      {(saving || deleting) && <LoadingOverlay label={saving ? 'Guardando cambios...' : 'Eliminando socio...'} />}
+
+      {confirmDelete && (
+        <ConfirmModal
+          title={`¿Eliminar a ${socio?.fullName}?`}
+          description="Esta acción no se puede deshacer. Se eliminarán todos los datos del socio."
+          confirmLabel="Sí, eliminar"
+          variant="danger"
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      )}
+
       <div className="flex items-center gap-3">
         <Link href={`/patrons/${id}`} className="text-text-muted hover:text-text-primary transition-colors">
           <ArrowLeft className="h-5 w-5" />
@@ -155,7 +170,7 @@ export default function EditPatronPage() {
             </div>
             <button
               type="button"
-              onClick={handleDelete}
+              onClick={() => setConfirmDelete(true)}
               disabled={deleting}
               className="inline-flex items-center gap-2 rounded-sm border border-accent-red/20 px-3 py-2.5 font-body text-sm text-accent-red/70 transition-colors hover:bg-accent-red/10 hover:text-accent-red"
             >

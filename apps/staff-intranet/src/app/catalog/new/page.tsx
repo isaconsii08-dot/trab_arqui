@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, BookOpen, Plus, Loader2, X, Download, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { LoadingOverlay } from '@/components/ui/loading-overlay';
 
 const TIPOS = [
   { value: 'book',        label: 'Libro'           },
@@ -91,6 +92,8 @@ export default function NewCatalogPage() {
           <p className="font-mono text-xs text-text-muted">Añadir un nuevo registro bibliográfico al catálogo</p>
         </div>
       </div>
+
+      {loading && <LoadingOverlay label="Creando registro..." />}
 
       <div className="surface-card p-6">
         {error && (

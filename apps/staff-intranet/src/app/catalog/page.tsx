@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { BookOpen, Search, ChevronLeft, ChevronRight, EyeOff, Eye } from 'lucide-react';
 import { RefreshButton } from '@/components/ui/refresh-button';
 import { CatalogTableRows } from '@/components/ui/catalog-table-rows';

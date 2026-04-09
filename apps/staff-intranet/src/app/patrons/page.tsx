@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { Search, UserPlus, CheckCircle, XCircle, Clock, ChevronLeft, ChevronRight, Ban } from 'lucide-react';
 import { RefreshButton } from '@/components/ui/refresh-button';
 import Link from 'next/link';

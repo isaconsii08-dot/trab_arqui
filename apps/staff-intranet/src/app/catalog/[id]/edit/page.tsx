@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { ArrowLeft, BookOpen, Loader2, X, Plus, Trash2, Download, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { LoadingOverlay } from '@/components/ui/loading-overlay';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 const TIPOS = [
   { value: 'book',        label: 'Libro'           },
@@ -196,6 +198,10 @@ export default function EditCatalogPage() {
           <p className="font-mono text-xs text-text-muted">{id}</p>
         </div>
       </div>
+
+      {(guardando || eliminando || reactivando) && (
+        <LoadingOverlay label={guardando ? 'Guardando cambios...' : eliminando ? 'Desactivando...' : 'Reactivando...'} />
+      )}
 
       {!isActive && (
         <div className="rounded-sm border border-accent-amber/30 bg-accent-amber/8 px-4 py-3 font-mono text-xs text-accent-amber">
@@ -402,32 +408,15 @@ export default function EditCatalogPage() {
         </form>
       </div>
 
-      {/* Modal de confirmación de eliminación */}
       {confirmarEliminar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="surface-card w-full max-w-sm p-6 space-y-4">
-            <h2 className="font-display text-base font-semibold text-text-primary">¿Desactivar este registro?</h2>
-            <p className="font-mono text-xs text-text-muted">
-              El libro dejará de aparecer en el catálogo pero se conservará el historial de préstamos e imágenes.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={handleDelete}
-                disabled={eliminando}
-                className="flex items-center gap-1.5 rounded-sm bg-accent-red px-4 py-2 font-mono text-xs text-white hover:opacity-90 disabled:opacity-50"
-              >
-                {eliminando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                {eliminando ? 'Desactivando...' : 'Sí, desactivar'}
-              </button>
-              <button
-                onClick={() => setConfirmarEliminar(false)}
-                className="btn-ghost text-xs"
-              >
-                Cancelar
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmModal
+          title="¿Desactivar este registro?"
+          description="El libro dejará de aparecer en el catálogo pero se conservará el historial de préstamos e imágenes."
+          confirmLabel="Sí, desactivar"
+          variant="danger"
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmarEliminar(false)}
+        />
       )}
     </div>
   );
