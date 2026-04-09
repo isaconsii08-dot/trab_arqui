@@ -890,25 +890,142 @@ Todos los endpoints siguen el mismo esquema de respuesta:
 
 ---
 
-## 18. Pila Tecnológica
+## 18. Pila Tecnológica — Qué es y para qué se usa
 
-| Capa | Tecnología | Versión |
+### Lenguaje y runtime
+
+| Tecnología | Para qué se usa en BiblioFlow |
+|---|---|
+| **TypeScript** | Lenguaje principal en todo el proyecto (frontend y backend). Detecta errores en tiempo de compilación antes de llegar a producción. Los tipos compartidos en `packages/shared-types` garantizan que frontend y backend hablen el mismo "idioma" al intercambiar datos. |
+| **Node.js ≥ 20** | Runtime de JavaScript en el servidor. Ejecuta todos los microservicios NestJS y los servidores de Next.js. Su modelo asíncrono y no bloqueante lo hace eficiente para servicios de alta concurrencia como el de circulación de préstamos. |
+
+---
+
+### Backend — Microservicios
+
+| Tecnología | Para qué se usa en BiblioFlow |
+|---|---|
+| **NestJS** | Framework sobre Node.js para construir los microservicios. Provee una estructura modular con decoradores (`@Controller`, `@Injectable`, `@Module`) que hace el código predecible y testeable. Cada microservicio (patron-service, catalog-service, etc.) es una aplicación NestJS independiente. |
+| **Prisma ORM** | Mapea las tablas de PostgreSQL a objetos TypeScript. Cada microservicio tiene su propio `schema.prisma` que define sus modelos. Se usa para hacer consultas type-safe a la base de datos sin escribir SQL crudo. El cliente generado vive en `src/generated/prisma/`. |
+| **class-validator + class-transformer** | Validan los datos que llegan por HTTP antes de que toquen la lógica. Por ejemplo, si el frontend envía `amount: "abc"` en vez de un número, estos decoradores lanzan un error `400 Bad Request` automáticamente sin código manual de validación. |
+| **Passport + passport-jwt** | Maneja la autenticación. La estrategia JWT extrae el token del header `Authorization: Bearer …`, lo verifica con la clave secreta y adjunta el usuario al request. Usado en patron-service para proteger todos los endpoints que requieren login. |
+| **bcrypt** | Hace el hash de contraseñas antes de guardarlas en la base de datos. Nunca se guarda la contraseña en texto plano. Al hacer login, bcrypt compara el hash guardado con la contraseña ingresada. |
+| **Helmet** | Agrega headers HTTP de seguridad automáticamente (Content-Security-Policy, X-Frame-Options, etc.) a todos los microservicios para proteger contra ataques comunes como XSS y clickjacking. |
+| **@nestjs/swagger** | Genera documentación interactiva de la API en `/api/docs` por cada microservicio. Permite probar los endpoints desde el navegador durante el desarrollo. |
+
+---
+
+### Base de datos e infraestructura
+
+| Tecnología | Para qué se usa en BiblioFlow |
+|---|---|
+| **PostgreSQL 16** | Base de datos relacional principal. Cada microservicio tiene la suya propia (patron_db, catalog_db, holdings_db, circulation_db). Esto es el patrón *Database per Service*: ningún servicio puede acceder a la BD de otro directamente. |
+| **Redis 7** | Tiene dos roles: (1) **Event Bus** — los microservicios publican eventos (`loan.created`, `fine.generated`) y otros los consumen vía Pub/Sub, desacoplando la comunicación asíncrona. (2) **Caché** — almacena tokens y resultados de consultas frecuentes para reducir carga en la BD. |
+| **Docker + Docker Compose** | Levanta la infraestructura local con un solo comando (`make infra`): cuatro contenedores PostgreSQL independientes en puertos 5432–5435 y uno Redis en el 6379. Los microservicios corren fuera de Docker en desarrollo para poder hacer hot-reload. |
+
+---
+
+### Frontend
+
+| Tecnología | Para qué se usa en BiblioFlow |
+|---|---|
+| **Next.js 15 (App Router)** | Framework React para los dos frontends. Usa **Server Components** para renderizar páginas con datos del servidor sin exponer credenciales al cliente, y **Route Handlers** (`app/api/`) como proxy hacia los microservicios para no exponer las URLs internas al navegador. |
+| **Tailwind CSS** | Utilidades CSS aplicadas directamente en el JSX. Permite construir interfaces consistentes sin archivos `.css` separados. El tema personalizado (colores `accent-green`, `surface-card`, `text-muted`, etc.) se define en `tailwind.config.ts` y es compartido por todas las páginas. |
+| **React Hook Form** | Gestiona los formularios del staff-intranet (crear libro, registrar préstamo, etc.) con validación eficiente y mínimo re-render. Evita re-renders en cada tecla que se presiona. |
+| **Lucide React** | Librería de iconos SVG. Todos los iconos del sistema vienen de aquí (`BookOpen`, `RefreshCw`, `AlertTriangle`, etc.) para mantener consistencia visual. |
+
+---
+
+### Monorepo y herramientas de desarrollo
+
+| Tecnología | Para qué se usa en BiblioFlow |
+|---|---|
+| **pnpm** | Gestor de paquetes. Más rápido que npm/yarn y usa enlaces simbólicos para no duplicar dependencias entre paquetes del monorepo. El archivo `pnpm-workspace.yaml` declara qué carpetas son paquetes del workspace. |
+| **Turborepo** | Orquesta la ejecución de scripts en el monorepo. Sabe en qué orden compilar (primero `shared-*`, luego los servicios que los usan) y hace caché de los resultados. `make dev` delega en `pnpm turbo run dev` que arranca todos los servicios en paralelo. |
+| **GnuWin32 Make** | Permite usar el `Makefile` en Windows para simplificar comandos complejos (`make dev`, `make db-migrate`, `make db-seed`). Las operaciones complejas con PowerShell se delegan a scripts `.ps1` en la carpeta `scripts/`. |
+| **Husky + lint-staged** | Husky registra git hooks. Al hacer `git commit`, lint-staged ejecuta el linter y el formateador solo sobre los archivos modificados. Impide que código con errores de sintaxis entre al repositorio. |
+
+---
+
+## 19. Archivos clave por microservicio
+
+### API Gateway — `services/api-gateway/`
+
+| Archivo | Qué hace |
+|---|---|
+| `src/main.ts` | Punto de entrada. Crea la app NestJS, aplica Helmet y CORS, y arranca en el puerto `3000`. |
+| `src/app.module.ts` | Módulo raíz. Registra el middleware proxy como global para que intercepte todas las rutas. |
+| `src/middleware/proxy.middleware.ts` | **El núcleo del gateway.** Lee el path de la petición entrante, decide a qué microservicio enrutarla según el prefijo (`/api/v1/patrons` → `:3001`, `/api/v1/catalog` → `:3002`, etc.) y hace forward del request completo incluyendo el JWT. |
+| `src/controllers/health.controller.ts` | Expone `GET /health` para verificar que el gateway está vivo. Lo usan los scripts de `wait-services.ps1` para saber cuándo arrancó. |
+
+---
+
+### Patron Service — `services/patron-service/`
+
+| Archivo | Qué hace |
+|---|---|
+| `src/main.ts` | Arranca el servicio en el puerto `3001`. Habilita validación global con `ValidationPipe`. |
+| `src/app.module.ts` | Cablea todas las dependencias: PrismaService, repositorios, casos de uso, controladores y módulo JWT. |
+| `prisma/schema.prisma` | Define las tablas: `Patron`, `Staff`, `Fine`. Incluye relaciones, índices y enums (`PatronStatus`, `FineStatus`). Desde aquí se generan las migraciones. |
+| `prisma/seed.ts` | Crea la cuenta de servicio `herrera@biblioflow.edu.co` que usa el staff-intranet para autenticarse server-side. Se ejecuta con `make db-seed`. |
+| `src/infrastructure/persistence/patron.repository.ts` | Implementación real del repositorio usando Prisma. Traduce entre entidades de dominio y registros de base de datos. |
+| `src/presentation/controllers/patron.controller.ts` | Endpoints REST de socios: listar, buscar, crear, editar, eliminar, estadísticas. Protegidos con JWT + roles. |
+| `src/presentation/controllers/auth.controller.ts` | `POST /api/v1/auth/login` — valida credenciales, firma y devuelve el JWT. |
+
+---
+
+### Catalog Service — `services/catalog-service/`
+
+| Archivo | Qué hace |
+|---|---|
+| `src/main.ts` | Arranca en el puerto `3002`. |
+| `prisma/schema.prisma` | Tablas: `CatalogRecord`, `Author`, `Subject`. Un registro puede tener N autores y N materias. |
+| `src/infrastructure/persistence/catalog.repository.ts` | Consultas Prisma con joins a autores y materias. Implementa búsqueda por texto con `contains + insensitive`. |
+| `src/presentation/controllers/catalog.controller.ts` | `GET /search`, `GET /:id`, `POST`, `PUT /:id`, `DELETE /:id`, `PATCH /:id` (activar/desactivar). |
+
+---
+
+### Holdings Service — `services/holdings-service/`
+
+| Archivo | Qué hace |
+|---|---|
+| `src/main.ts` | Arranca en el puerto `3003`. |
+| `prisma/schema.prisma` | Tabla `Item`: código de barras, estado, ubicación, referencia al `recordId` del catálogo. |
+| `src/presentation/controllers/holdings.controller.ts` | Gestiona ejemplares: listar, buscar por barcode, disponibilidad por `recordId`, crear, reservar y liberar ejemplares. El endpoint `GET /availability?recordIds=...` es llamado por el portal de socios para mostrar cuántos ejemplares están disponibles. |
+| `src/infrastructure/prisma.service.ts` | Singleton de PrismaClient compartido por el módulo. |
+
+---
+
+### Circulation Service — `services/circulation-service/`
+
+| Archivo | Qué hace |
+|---|---|
+| `src/main.ts` | Arranca en el puerto `3004`. |
+| `prisma/schema.prisma` | Tabla `Loan`: socio, ejemplar, fecha préstamo, fecha vencimiento, estado, multa acumulada. |
+| `src/infrastructure/persistence/loan.repository.ts` | Consultas Prisma para préstamos activos, historial por socio, vencidos. |
+| `src/presentation/controllers/circulation.controller.ts` | `POST /loans` (nuevo préstamo), `POST /returns` (devolución + cálculo de multa), `GET /loans/active`, `PATCH /loans/:id` (cambiar fecha/estado/multa), `DELETE /loans/:id`. |
+| `src/application/` | Casos de uso que implementan la lógica de negocio: verificar que el socio esté activo, que el ejemplar esté disponible, calcular días de retraso y multa en COP ($1.000/día). |
+
+---
+
+### Notification Service — `services/notification-service/`
+
+| Archivo | Qué hace |
+|---|---|
+| `src/main.ts` | Arranca en el puerto `3005`. Se conecta a Redis al iniciar. |
+| `src/app.module.ts` | Registra los suscriptores de eventos Redis. |
+| `src/event-handlers/` | Cada archivo escucha un tipo de evento publicado por otros servicios (ej. `loan.created`) y dispara el envío de una notificación por email o push al socio correspondiente. |
+
+---
+
+### Frontends — Archivos clave comunes
+
+| Archivo / Carpeta | Dónde existe | Qué hace |
 |---|---|---|
-| Runtime | Node.js | ≥ 20 |
-| Lenguaje | TypeScript | ^5.3 |
-| Backend framework | NestJS | ^10.3 |
-| ORM | Prisma | ^5.9 |
-| Base de datos | PostgreSQL | 16 |
-| Event bus / caché | Redis | 7 |
-| Búsqueda full-text | Elasticsearch | 8.12 |
-| Frontend framework | Next.js (App Router) | ^14.2 |
-| Styling | TailwindCSS | ^3 |
-| Autenticación | passport-jwt + JWT | - |
-| Validación | class-validator + class-transformer | - |
-| HTTP seguridad | Helmet | ^7 |
-| Monorepo | pnpm workspaces + Turborepo | pnpm 10 / turbo 2 |
-| Contenedores | Docker + Docker Compose | - |
-| CI/CD | GitHub Actions → GHCR | - |
-| Deploy frontend | Vercel | - |
-| Deploy backend | Render | - |
-| Git hooks | Husky + lint-staged | - |
+| `src/lib/api.ts` | Ambos frontends | Funciones para llamar a los microservicios desde Server Components. En el staff-intranet incluye `obtenerTokenServicio()` que hace login como cuenta de servicio y cachea el JWT para las llamadas server-side. |
+| `src/app/api/` | Ambos frontends | Route Handlers de Next.js que actúan como proxy. El navegador nunca llama directamente a `:3001`-`:3004`; llama a `/api/socios`, `/api/catalogo`, etc. y Next.js reenvía la petición al microservicio con las credenciales correctas. |
+| `src/app/layout.tsx` | Ambos frontends | Layout raíz de Next.js. Define la estructura HTML base, aplica las fuentes y el tema global de Tailwind. |
+| `src/components/ui/loading-overlay.tsx` | staff-intranet | Modal de carga que bloquea la UI durante operaciones CRUD. Fondo crema `rgba(245,239,224,0.92)` con spinner rust igual al del portal de socios. |
+| `src/components/ui/confirm-modal.tsx` | staff-intranet | Modal de confirmación para acciones destructivas (cancelar préstamo, desactivar registro, eliminar socio). Reemplaza al `confirm()` nativo del navegador. |
+| `src/components/ui/date-picker.tsx` | staff-intranet | Selector de fechas personalizado en tema oscuro. Usado en el modal de cambiar fecha de vencimiento de un préstamo. |
+| `src/components/ui/skeleton.tsx` | patron-portal | Contiene `LoadingModal` (pantalla de carga crema con spinner rust) y skeletons de carga para listas de libros y préstamos. |
