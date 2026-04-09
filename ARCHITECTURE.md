@@ -48,32 +48,122 @@ El proyecto utiliza **pnpm workspaces** + **Turborepo** para gestionar el monore
 
 ```
 biblioflow/
-├── apps/                          # Frontends (Next.js)
-│   ├── patron-portal/             # Portal del socio  → :4000
-│   └── staff-intranet/            # Intranet del personal → :4001
 │
-├── services/                      # Backends (NestJS)
-│   ├── api-gateway/               # Punto de entrada único → :3000
-│   ├── patron-service/            # Socios, staff, auth, multas → :3001
-│   ├── catalog-service/           # Catálogo bibliográfico → :3002
-│   ├── holdings-service/          # Ejemplares físicos/digitales → :3003
-│   ├── circulation-service/       # Préstamos y devoluciones → :3004
-│   ├── notification-service/      # Notificaciones push/email → :3005
-│   ├── acquisitions-service/      # Pedidos y adquisiciones → :3006
-│   ├── space-service/             # Reserva de salas → :3007
-│   └── analytics-service/         # Informes y estadísticas → :3008
+├── apps/                                    # Frontends Next.js 15 (App Router)
+│   │
+│   ├── patron-portal/                       # Portal del socio → :4000
+│   │   └── src/
+│   │       ├── app/                         # Rutas Next.js (App Router)
+│   │       │   ├── page.tsx                 # Home / hero con stats
+│   │       │   ├── about/page.tsx           # Página institucional
+│   │       │   ├── login/page.tsx           # Autenticación del socio
+│   │       │   ├── register/page.tsx        # Registro de nuevo socio
+│   │       │   ├── search/page.tsx          # Búsqueda del catálogo
+│   │       │   ├── books/[id]/page.tsx      # Detalle de libro + solicitud
+│   │       │   ├── dashboard/page.tsx       # Panel del socio (préstamos)
+│   │       │   ├── dashboard/historial/     # Historial de préstamos
+│   │       │   ├── spaces/page.tsx          # Reserva de salas de estudio
+│   │       │   └── api/                     # Route handlers (proxy → servicios)
+│   │       ├── components/                  # Componentes React
+│   │       │   ├── layout/                  # Navbar, Footer
+│   │       │   ├── search/                  # SearchBar, SearchFilters, SearchResults
+│   │       │   └── ui/                      # BookCover, skeleton, LoadingModal, etc.
+│   │       └── lib/
+│   │           └── api.ts                   # Funciones SSR para llamar microservicios
+│   │
+│   └── staff-intranet/                      # Intranet del personal → :4001
+│       └── src/
+│           ├── app/                         # Rutas Next.js (App Router)
+│           │   ├── page.tsx                 # Dashboard con métricas
+│           │   ├── catalog/                 # Listado, detalle, nuevo, editar registro
+│           │   ├── patrons/                 # Listado, detalle, nuevo, editar socio
+│           │   ├── circulation/page.tsx     # Operaciones, préstamos, gestión, multas
+│           │   ├── spaces/page.tsx          # Gestión de salas (admin)
+│           │   ├── analytics/page.tsx       # Estadísticas y gráficas
+│           │   ├── acquisitions/page.tsx    # Módulo de adquisiciones
+│           │   ├── settings/page.tsx        # Configuración del sistema
+│           │   ├── status/page.tsx          # Estado de servicios en tiempo real
+│           │   └── api/                     # Route handlers (proxy → microservicios)
+│           ├── components/
+│           │   ├── layout/                  # Sidebar, TopBar
+│           │   └── ui/                      # LoadingOverlay, ConfirmModal, DatePicker,
+│           │                                #   RefreshButton, CatalogTableRows, etc.
+│           └── lib/
+│               └── api.ts                   # Funciones SSR con token de servicio
 │
-├── packages/                      # Código compartido (librerías internas)
-│   ├── shared-types/              # Tipos e interfaces TypeScript comunes
-│   ├── shared-events/             # Contratos de eventos Redis Pub/Sub
-│   └── shared-errors/             # Errores de dominio estandarizados
+├── services/                                # Microservicios NestJS
+│   │
+│   ├── api-gateway/                         # Puerta de entrada única → :3000
+│   │   └── src/
+│   │       ├── main.ts
+│   │       ├── app.module.ts
+│   │       ├── middleware/
+│   │       │   └── proxy.middleware.ts      # Enrutamiento por prefijo + JWT forward
+│   │       └── controllers/
+│   │           └── health.controller.ts     # GET /health
+│   │
+│   ├── patron-service/                      # Socios, staff, auth, multas → :3001
+│   │   └── src/
+│   │       ├── main.ts
+│   │       ├── app.module.ts
+│   │       ├── domain/                      # Entidades y puertos (interfaces)
+│   │       ├── application/                 # Casos de uso
+│   │       ├── infrastructure/
+│   │       │   └── persistence/             # Repositorios Prisma
+│   │       ├── presentation/
+│   │       │   └── controllers/             # PatronController, StaffController,
+│   │       │                                #   AuthController, FineController
+│   │       └── generated/prisma/            # Cliente Prisma generado
+│   │
+│   ├── catalog-service/                     # Catálogo bibliográfico → :3002
+│   │   └── src/
+│   │       ├── domain/
+│   │       ├── application/
+│   │       ├── infrastructure/persistence/
+│   │       ├── presentation/controllers/    # CatalogController, AuthorController
+│   │       └── generated/prisma/
+│   │
+│   ├── holdings-service/                    # Ejemplares físicos → :3003
+│   │   └── src/
+│   │       ├── infrastructure/              # PrismaService
+│   │       ├── presentation/controllers/    # HoldingsController
+│   │       └── generated/prisma/
+│   │
+│   ├── circulation-service/                 # Préstamos y devoluciones → :3004
+│   │   └── src/
+│   │       ├── domain/
+│   │       ├── application/
+│   │       ├── infrastructure/persistence/
+│   │       ├── presentation/controllers/    # CirculationController, LoanController
+│   │       └── generated/prisma/
+│   │
+│   └── notification-service/               # Notificaciones por email/push → :3005
+│       └── src/
+│           ├── main.ts
+│           ├── app.module.ts
+│           └── event-handlers/             # Subscriptores Redis Pub/Sub
 │
-├── docker-compose.yml             # Infraestructura local (DBs, Redis, ES)
-├── turbo.json                     # Pipeline de Turborepo
-├── pnpm-workspace.yaml            # Definición de workspaces
-├── tsconfig.base.json             # TypeScript base compartido
-├── Makefile                       # Comandos de desarrollo
-└── package.json                   # Scripts raíz del monorepo
+├── packages/                               # Librerías internas compartidas
+│   ├── shared-types/                       # Tipos e interfaces TypeScript comunes
+│   ├── shared-events/                      # Contratos de eventos (Redis Pub/Sub)
+│   └── shared-errors/                      # Errores de dominio estandarizados
+│
+├── scripts/                                # Scripts PowerShell de desarrollo
+│   ├── kill-ports.ps1                      # Libera los puertos en uso
+│   ├── wait-services.ps1                   # Monitorea arranque + reintenta fallos
+│   ├── status.ps1                          # Estado de cada servicio
+│   ├── env-setup.ps1                       # Copia .env.example → .env
+│   ├── db-dump.ps1                         # Exporta las 4 BDs a dumps/
+│   └── db-restore.ps1                      # Importa dumps/ a los contenedores
+│
+├── docker-compose.yml                      # PostgreSQL ×4 + Redis (infraestructura local)
+├── Makefile                                # Comandos: dev, infra, db-migrate, db-seed…
+├── turbo.json                              # Pipeline Turborepo
+├── pnpm-workspace.yaml                     # Workspaces del monorepo
+├── tsconfig.base.json                      # TypeScript base compartido
+├── ARCHITECTURE.md                         # Este documento
+├── GITFLOW.md                              # Convención de ramas y commits
+└── README.md                               # Guía de instalación y primeros pasos
 ```
 
 ### Turborepo Pipeline
