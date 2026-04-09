@@ -124,9 +124,7 @@ install: ## Instala las dependencias de todos los workspaces (pnpm install)
 # Cada servicio corre en modo watch: detecta cambios en el código y se reinicia solo.
 # Necesita que la infraestructura Docker esté levantada (`make infra`) antes.
 kill-ports: ## Libera los puertos de BiblioFlow (3000-3005, 4000, 4001) si están ocupados
-	@echo "Liberando puertos..."
-	@powershell -NoProfile -ExecutionPolicy Bypass -Command "foreach ($$p in @(3000,3001,3002,3003,3004,3005,4000,4001)) { $$m = netstat -ano | Select-String (':'+$$p+' .*LISTENING'); if ($$m) { $$id = ($$m[0].ToString().Trim() -split '\s+')[-1]; Stop-Process -Id $$id -Force -ErrorAction SilentlyContinue; Write-Host ('  Puerto '+$$p+' liberado (PID '+$$id+')') } }"
-	@echo "Puertos listos"
+	@powershell -NoProfile -ExecutionPolicy Bypass -File scripts\kill-ports.ps1
 
 dev: kill-ports ## Inicia TODOS los servicios en modo watch (requiere `make infra` previo)
 	@echo "Limpiando cache Next.js..."
@@ -136,7 +134,7 @@ dev: kill-ports ## Inicia TODOS los servicios en modo watch (requiere `make infr
 	pnpm dev
 
 status: ## Muestra qué servicios de BiblioFlow están activos
-	@powershell -NoProfile -ExecutionPolicy Bypass -Command "Write-Host ''; Write-Host 'Estado de BiblioFlow:'; Write-Host ''; if(netstat -ano|Select-String ':3000 .*LISTENING'){Write-Host '  [OK]  :3000  API Gateway'}else{Write-Host '  [--]  :3000  API Gateway'}; if(netstat -ano|Select-String ':3001 .*LISTENING'){Write-Host '  [OK]  :3001  Patron Service'}else{Write-Host '  [--]  :3001  Patron Service'}; if(netstat -ano|Select-String ':3002 .*LISTENING'){Write-Host '  [OK]  :3002  Catalog Service'}else{Write-Host '  [--]  :3002  Catalog Service'}; if(netstat -ano|Select-String ':3003 .*LISTENING'){Write-Host '  [OK]  :3003  Holdings Service'}else{Write-Host '  [--]  :3003  Holdings Service'}; if(netstat -ano|Select-String ':3004 .*LISTENING'){Write-Host '  [OK]  :3004  Circulation Service'}else{Write-Host '  [--]  :3004  Circulation Service'}; if(netstat -ano|Select-String ':3005 .*LISTENING'){Write-Host '  [OK]  :3005  Notification Service'}else{Write-Host '  [--]  :3005  Notification Service'}; if(netstat -ano|Select-String ':4000 .*LISTENING'){Write-Host '  [OK]  :4000  Portal Socio'}else{Write-Host '  [--]  :4000  Portal Socio'}; if(netstat -ano|Select-String ':4001 .*LISTENING'){Write-Host '  [OK]  :4001  Staff Intranet'}else{Write-Host '  [--]  :4001  Staff Intranet'}; Write-Host ''"
+	@powershell -NoProfile -ExecutionPolicy Bypass -File scripts\status.ps1
 
 # build: compila todos los paquetes y servicios en orden de dependencias.
 # Turborepo ejecuta `npm run build` en cada workspace respetando el grafo:
@@ -430,9 +428,7 @@ db-migrate-circulation: ## Migra solo la DB de circulation-service (loans, reser
 # Cada .env contiene las variables necesarias para conectar a la base de datos
 # local, Redis, JWT secret, etc. Debes revisar y ajustar los valores si es necesario.
 env-setup: ## Copia .env.example → .env en cada servicio (solo si no existe)
-	@echo "Creando archivos de entorno..."
-	@powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -Path 'services','apps' -Directory | ForEach-Object { $$dir = $$_.FullName; $$ex = Join-Path $$dir '.env.example'; $$dst = if ($$_.Parent.Name -eq 'apps') { Join-Path $$dir '.env.local' } else { Join-Path $$dir '.env' }; if ((Test-Path $$ex) -and -not (Test-Path $$dst)) { Copy-Item $$ex $$dst; Write-Host ('  ok ' + ($$dst -replace [regex]::Escape((Get-Location).Path+'\'),'')); } }"
-	@echo "Revisa los archivos .env generados y ajusta los valores si es necesario."
+	@powershell -NoProfile -ExecutionPolicy Bypass -File scripts\env-setup.ps1
 
 
 # ═════════════════════════════════════════════════════════════════════════════
