@@ -370,13 +370,10 @@ db-migrate: ## Aplica las migraciones Prisma pendientes en todos los servicios
 # Los seeds insertan registros iniciales necesarios para desarrollar y probar:
 # socios de ejemplo, libros en el catálogo, ejemplares, préstamos activos, etc.
 # Solo se aplica a los servicios que tienen datos de prueba definidos.
-db-seed: ## Inserta datos de prueba (socios, libros, ejemplares, préstamos) en las DBs
-	@echo "$(GREEN)▶ Ejecutando seeds de datos de prueba...$(RESET)"
+db-seed: ## Crea la cuenta de servicio del staff en patron-service
+	@echo "$(GREEN)▶ Ejecutando seed de patron-service...$(RESET)"
 	pnpm --filter @biblioflow/patron-service       db:seed
-	pnpm --filter @biblioflow/catalog-service      db:seed
-	pnpm --filter @biblioflow/holdings-service     db:seed
-	pnpm --filter @biblioflow/circulation-service  db:seed
-	@echo "$(GREEN)✓ Seeds completados$(RESET)"
+	@echo "$(GREEN)✓ Seed completado$(RESET)"
 
 # db-generate: regenera los clientes TypeScript de Prisma en todos los servicios.
 # Cuando modificas un archivo schema.prisma (añades un modelo, cambias un campo),

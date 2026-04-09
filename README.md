@@ -142,7 +142,11 @@ make infra
 # 6. Crear las tablas en la base de datos
 make db-migrate
 
-# 7. Iniciar todos los servicios en modo desarrollo
+# 7. Crear la cuenta de servicio de la intranet (OBLIGATORIO)
+#    Sin este paso la intranet no puede autenticarse con los microservicios
+make db-seed
+
+# 8. Iniciar todos los servicios en modo desarrollo
 make dev
 ```
 
