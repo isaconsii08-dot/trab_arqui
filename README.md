@@ -119,35 +119,42 @@ sudo pacman -S make
 
 ### Primera instalación (máquina nueva)
 
-Cada desarrollador tiene su propia base de datos local corriendo en Docker. Al clonar el repositorio por primera vez hay que crearla desde cero:
+Cada desarrollador tiene su propia base de datos local corriendo en Docker. Al clonar el repositorio por primera vez sigue estos pasos en orden:
 
 ```bash
 # 1. Clonar el repositorio
 git clone https://github.com/juanguillermomarinco/biblioflow.git
 cd biblioflow
 
-# 2. Copiar .env.example → .env en cada servicio
-make env-setup
-
-# 3. Instalar dependencias del monorepo
+# 2. Instalar dependencias del monorepo
 pnpm install
 
-# 4. Generar los clientes Prisma (OBLIGATORIO antes de compilar o hacer type-check)
+# 3. Copiar .env.example → .env en cada servicio
+make env-setup
+
+# 4. Generar los clientes Prisma
+#    OBLIGATORIO antes de compilar — sin este paso TypeScript no encuentra los tipos
 pnpm turbo run db:generate
 
 # 5. Levantar la infraestructura Docker (PostgreSQL × 7, Redis, Elasticsearch)
 make infra
 
-# 6. Crear tablas y cargar datos de prueba
-make db-setup
+# 6. Crear las tablas en la base de datos
+make db-migrate
 
 # 7. Iniciar todos los servicios en modo desarrollo
 make dev
 ```
 
-> **¿Por qué `db:generate`?** Prisma genera código TypeScript a partir del esquema de cada servicio. Sin ese paso el compilador no encuentra los tipos y lanza errores `Cannot find module '../../generated/prisma'`.
+> **Base de datos local:** cada máquina tiene sus propios volúmenes Docker. Los datos no se comparten entre desarrolladores — cada uno empieza con las tablas vacías y crea sus propios datos desde la interfaz.
 
-> **Base de datos local vs. la de un compañero:** cada máquina tiene sus propios volúmenes Docker. Los datos no se comparten entre desarrolladores — `make db-seed` carga un conjunto de datos de prueba idéntico para todos.
+> **¿Por qué `db:generate`?** Prisma genera código TypeScript a partir del esquema de cada servicio. Sin ese paso el compilador lanza `Cannot find module '../../generated/prisma'`.
+
+Al ejecutar `make dev` se abre automáticamente una ventana secundaria que espera a que todos los servicios arranquen y muestra su estado final. Si alguno falla, lo reintenta abriendo una ventana independiente para ese servicio. También puedes verificar el estado en cualquier momento con:
+
+```bash
+make status
+```
 
 ---
 
@@ -157,18 +164,6 @@ make dev
 make infra   # solo si Docker no está corriendo (tras reiniciar el PC, por ejemplo)
 make dev     # mata procesos en puertos, limpia caché Next.js e inicia todo
 ```
-
----
-
-### Setup en un solo comando
-
-Si ya tienes Docker corriendo y solo quieres hacer todo de golpe:
-
-```bash
-make setup
-```
-
-> `make setup` ejecuta `make env-setup` + `make install` + `make infra` + `make db-setup` en un solo comando. No incluye `db:generate` — ejecútalo manualmente si es la primera vez que compilas.
 
 ---
 
