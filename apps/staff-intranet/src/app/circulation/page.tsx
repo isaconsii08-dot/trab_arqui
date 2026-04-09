@@ -291,8 +291,8 @@ export default function CirculationPage() {
         : (data.message ?? 'Error al registrar devolución');
       setAccionMsg((prev) => ({ ...prev, [loanId]: { ok, msg } }));
       if (ok) {
-        setPrestamosActivos((prev) => prev.filter((p) => p.id !== loanId));
         marcarSolicitudDevuelta(barcode, patronId);
+        await Promise.all([cargarPrestamosTab(), cargarMultas(), cargarStats()]);
       }
     } catch {
       setAccionMsg((prev) => ({ ...prev, [loanId]: { ok: false, msg: 'Error de conexión' } }));
@@ -325,10 +325,7 @@ export default function CirculationPage() {
       if (!loanRes.ok) throw new Error(loanData.message ?? 'Error al registrar renovación');
       const nuevaFecha = loanData.dueDate ? new Date(loanData.dueDate).toLocaleDateString('es-CO') : '';
       setAccionMsg((prev) => ({ ...prev, [loanId]: { ok: true, msg: `Renovado${nuevaFecha ? ` · Vence ${nuevaFecha}` : ''}` } }));
-      // Actualizar la fecha de vencimiento en la lista
-      setPrestamosActivos((prev) =>
-        prev.map((p) => p.id === loanId && loanData.dueDate ? { ...p, dueDate: loanData.dueDate!, status: 'active' } : p),
-      );
+      await Promise.all([cargarPrestamosTab(), cargarStats()]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error';
       setAccionMsg((prev) => ({ ...prev, [loanId]: { ok: false, msg } }));
@@ -369,8 +366,8 @@ export default function CirculationPage() {
         body: JSON.stringify({ dueDate: nuevaFecha }),
       });
       if (res.ok) {
-        setPrestamosActivos((prev) => prev.map((p) => p.id === editLoanModal.id ? { ...p, dueDate: nuevaFecha, status: 'active' } : p));
         setEditLoanModal(null);
+        await Promise.all([cargarPrestamosTab(), cargarStats()]);
       }
     } catch { /* ignorar */ } finally {
       setActualizandoLoan(false);
@@ -388,7 +385,7 @@ export default function CirculationPage() {
     setCancelandoLoan(loanId);
     try {
       await fetch(`/api/circulacion/loan/${loanId}`, { method: 'DELETE' });
-      setPrestamosActivos((prev) => prev.filter((p) => p.id !== loanId));
+      await Promise.all([cargarPrestamosTab(), cargarStats()]);
     } catch { /* ignorar */ } finally {
       setCancelandoLoan(null);
     }
@@ -396,6 +393,7 @@ export default function CirculationPage() {
 
   const handleFineAction = async (fineId: string, patronId: string, action: 'paid' | 'waived') => {
     setMultaAccion((prev) => ({ ...prev, [fineId]: true }));
+    setLoadingGlobal(true);
     try {
       await fetch(`/api/socios/${patronId}/multas/${fineId}`, {
         method: 'PATCH',
@@ -403,7 +401,6 @@ export default function CirculationPage() {
         body: JSON.stringify({ status: action }),
       });
       const multaResuelta = multas.find((m) => m.fineId === fineId);
-      // Si no quedan multas pendientes para ese préstamo, limpiar fineAmount en el préstamo
       if (multaResuelta) {
         const otrasDelLoan = multas.filter(
           (m) => m.loanId === multaResuelta.loanId && m.fineId !== fineId && m.status === 'pending',
@@ -414,14 +411,12 @@ export default function CirculationPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ fineAmount: 0 }),
           });
-          setPrestamosActivos((prev) =>
-            prev.map((p) => p.id === multaResuelta.loanId ? { ...p, fineAmount: 0 } : p),
-          );
         }
       }
-      setMultas((prev) => prev.map((m) => m.fineId === fineId ? { ...m, status: action } : m));
+      await Promise.all([cargarMultas(), cargarPrestamosTab(), cargarStats()]);
     } catch { /* ignorar */ } finally {
       setMultaAccion((prev) => { const n = { ...prev }; delete n[fineId]; return n; });
+      setLoadingGlobal(false);
     }
   };
 
@@ -517,7 +512,7 @@ export default function CirculationPage() {
       } else {
         setLoanOk(body);
         loanForm.reset();
-        cargarStats();
+        await Promise.all([cargarStats(), cargarPrestamosTab(), cargarSolicitudes()]);
       }
     } catch {
       setLoanError('No se pudo conectar con el servidor');
@@ -542,9 +537,8 @@ export default function CirculationPage() {
       } else {
         setReturnOk(body);
         returnForm.reset();
-        setPrestamosActivos((prev) => prev.filter((p) => p.itemBarcode !== data.itemBarcode));
-        cargarStats();
         marcarSolicitudDevuelta(data.itemBarcode);
+        await Promise.all([cargarPrestamosTab(), cargarMultas(), cargarStats(), cargarSolicitudes()]);
       }
     } catch {
       setReturnError('No se pudo conectar con el servidor');
@@ -1023,7 +1017,7 @@ export default function CirculationPage() {
                 </button>
               ))}
             </div>
-            <button onClick={cargarMultas} disabled={cargandoMultas} className="btn-ghost flex items-center gap-1.5 text-sm">
+            <button onClick={cargarMultas} disabled={cargandoMultas} className="btn-ghost ml-auto flex items-center gap-1.5 text-sm">
               <RotateCcw className={`h-3.5 w-3.5 ${cargandoMultas ? 'animate-spin' : ''}`} />
               Actualizar
             </button>
