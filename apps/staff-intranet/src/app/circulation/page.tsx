@@ -744,7 +744,7 @@ export default function CirculationPage() {
               <button
                 onClick={cargarPrestamosTab}
                 disabled={cargandoPrestamos}
-                className="btn-ghost flex items-center gap-1.5 text-sm"
+                className="btn-ghost ml-auto flex items-center gap-1.5 text-sm"
               >
                 <RotateCcw className={`h-3.5 w-3.5 ${cargandoPrestamos ? 'animate-spin' : ''}`} />
                 Actualizar
@@ -914,7 +914,7 @@ export default function CirculationPage() {
                   className="input-dark w-full pl-8 py-2 text-sm"
                 />
               </div>
-              <button onClick={cargarPrestamosTab} disabled={cargandoPrestamos} className="btn-ghost flex items-center gap-1.5 text-sm">
+              <button onClick={cargarPrestamosTab} disabled={cargandoPrestamos} className="btn-ghost ml-auto flex items-center gap-1.5 text-sm">
                 <RotateCcw className={`h-3.5 w-3.5 ${cargandoPrestamos ? 'animate-spin' : ''}`} />
                 Actualizar
               </button>
