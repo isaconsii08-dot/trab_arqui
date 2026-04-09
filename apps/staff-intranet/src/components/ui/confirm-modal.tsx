@@ -29,7 +29,7 @@ export function ConfirmModal({
         : 'btn-green';
 
   return (
-    <div className="fixed inset-0 z-[9999] mt-0 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(10,13,18,0.80)', backdropFilter: 'blur(4px)' }}>
+    <div className="fixed inset-0 z-[9999] !mt-0 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(10,13,18,0.80)' }}>
       <div className="w-full max-w-sm rounded-sm border border-surface-border bg-surface-card p-6 shadow-2xl">
         <div className="mb-4 flex items-start gap-3">
           <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-accent-red/10">

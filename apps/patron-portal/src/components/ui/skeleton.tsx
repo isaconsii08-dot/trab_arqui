@@ -32,7 +32,7 @@ export function PaperSpinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
 
 export function LoadingModal({ label = 'Cargando...' }: { label?: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ backgroundColor: 'rgba(245,239,224,0.92)', backdropFilter: 'blur(4px)' }}>
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ backgroundColor: 'rgba(245,239,224,0.92)' }}>
       {/* Grain sutil */}
       <div
         className="pointer-events-none absolute inset-0"
