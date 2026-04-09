@@ -132,6 +132,7 @@ dev: kill-ports ## Inicia TODOS los servicios en modo watch (requiere `make infr
 	@echo "Limpiando cache Next.js..."
 	@powershell -NoProfile -ExecutionPolicy Bypass -Command "Remove-Item -Recurse -Force apps/patron-portal/.next, apps/staff-intranet/.next -ErrorAction SilentlyContinue"
 	@echo "Iniciando todos los servicios en modo desarrollo..."
+	@start powershell -NoProfile -ExecutionPolicy Bypass -File scripts\wait-services.ps1
 	pnpm dev
 
 status: ## Muestra qué servicios de BiblioFlow están activos
