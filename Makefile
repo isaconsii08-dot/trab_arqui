@@ -22,7 +22,7 @@
 # "construido" y no ejecutaría el comando.
 .PHONY: help install dev kill-ports status build test lint type-check clean \
         infra infra-down infra-logs infra-obs infra-reset \
-        db-setup db-migrate db-seed db-generate \
+        db-setup db-migrate db-seed db-generate db-dump db-restore \
         db-migrate-patron db-migrate-catalog db-migrate-holdings db-migrate-circulation \
         dev-patron dev-catalog dev-holdings dev-circulation \
         dev-notification dev-acquisitions dev-space dev-analytics \
@@ -374,6 +374,12 @@ db-seed: ## Crea la cuenta de servicio del staff en patron-service
 	@echo "$(GREEN)▶ Ejecutando seed de patron-service...$(RESET)"
 	pnpm --filter @biblioflow/patron-service       db:seed
 	@echo "$(GREEN)✓ Seed completado$(RESET)"
+
+db-dump: ## Exporta los datos actuales de todas las DBs a dumps/*.sql
+	@powershell -NoProfile -ExecutionPolicy Bypass -File scripts\db-dump.ps1
+
+db-restore: ## Importa los datos desde dumps/*.sql a las DBs locales
+	@powershell -NoProfile -ExecutionPolicy Bypass -File scripts\db-restore.ps1
 
 # db-generate: regenera los clientes TypeScript de Prisma en todos los servicios.
 # Cuando modificas un archivo schema.prisma (añades un modelo, cambias un campo),
