@@ -20,7 +20,7 @@
 # .PHONY le indica a Make que estos nombres NO son archivos del sistema de ficheros.
 # Sin esto, si existiera un archivo llamado "install", Make pensaría que ya está
 # "construido" y no ejecutaría el comando.
-.PHONY: help install dev kill-ports build test lint type-check clean \
+.PHONY: help install dev kill-ports status build test lint type-check clean \
         infra infra-down infra-logs infra-obs infra-reset \
         db-setup db-migrate db-seed db-generate \
         db-migrate-patron db-migrate-catalog db-migrate-holdings db-migrate-circulation \
@@ -56,6 +56,7 @@ help: ## Muestra todos los comandos disponibles
 	@echo ""
 	@echo "  --- Desarrollo ---"
 	@echo "  dev                  Mata procesos en puertos, limpia .next e inicia todo"
+	@echo "  status               Muestra que servicios estan activos"
 	@echo "  kill-ports           Libera puertos 3000-3005, 4000, 4001"
 	@echo "  dev-patron           Solo patron-service"
 	@echo "  dev-catalog          Solo catalog-service"
@@ -124,7 +125,7 @@ install: ## Instala las dependencias de todos los workspaces (pnpm install)
 # Necesita que la infraestructura Docker esté levantada (`make infra`) antes.
 kill-ports: ## Libera los puertos de BiblioFlow (3000-3005, 4000, 4001) si están ocupados
 	@echo "Liberando puertos..."
-	@powershell -NoProfile -ExecutionPolicy Bypass -Command "foreach ($$p in @(3000,3001,3002,3003,3004,3005,4000,4001)) { $$m = netstat -ano | Select-String (':'+$$p+' ') | Where-Object { $$_ -match 'LISTENING' }; if ($$m) { $$id = ($$m[0].ToString().Trim() -split '\s+')[-1]; Stop-Process -Id $$id -Force -ErrorAction SilentlyContinue; Write-Host ('  Puerto '+$$p+' liberado (PID '+$$id+')') } }"
+	@powershell -NoProfile -ExecutionPolicy Bypass -Command "foreach ($$p in @(3000,3001,3002,3003,3004,3005,4000,4001)) { $$m = netstat -ano | Select-String (':'+$$p+' .*LISTENING'); if ($$m) { $$id = ($$m[0].ToString().Trim() -split '\s+')[-1]; Stop-Process -Id $$id -Force -ErrorAction SilentlyContinue; Write-Host ('  Puerto '+$$p+' liberado (PID '+$$id+')') } }"
 	@echo "Puertos listos"
 
 dev: kill-ports ## Inicia TODOS los servicios en modo watch (requiere `make infra` previo)
@@ -132,6 +133,9 @@ dev: kill-ports ## Inicia TODOS los servicios en modo watch (requiere `make infr
 	@powershell -NoProfile -ExecutionPolicy Bypass -Command "Remove-Item -Recurse -Force apps/patron-portal/.next, apps/staff-intranet/.next -ErrorAction SilentlyContinue"
 	@echo "Iniciando todos los servicios en modo desarrollo..."
 	pnpm dev
+
+status: ## Muestra qué servicios de BiblioFlow están activos
+	@powershell -NoProfile -ExecutionPolicy Bypass -Command "Write-Host ''; Write-Host 'Estado de BiblioFlow:'; Write-Host ''; if(netstat -ano|Select-String ':3000 .*LISTENING'){Write-Host '  [OK]  :3000  API Gateway'}else{Write-Host '  [--]  :3000  API Gateway'}; if(netstat -ano|Select-String ':3001 .*LISTENING'){Write-Host '  [OK]  :3001  Patron Service'}else{Write-Host '  [--]  :3001  Patron Service'}; if(netstat -ano|Select-String ':3002 .*LISTENING'){Write-Host '  [OK]  :3002  Catalog Service'}else{Write-Host '  [--]  :3002  Catalog Service'}; if(netstat -ano|Select-String ':3003 .*LISTENING'){Write-Host '  [OK]  :3003  Holdings Service'}else{Write-Host '  [--]  :3003  Holdings Service'}; if(netstat -ano|Select-String ':3004 .*LISTENING'){Write-Host '  [OK]  :3004  Circulation Service'}else{Write-Host '  [--]  :3004  Circulation Service'}; if(netstat -ano|Select-String ':3005 .*LISTENING'){Write-Host '  [OK]  :3005  Notification Service'}else{Write-Host '  [--]  :3005  Notification Service'}; if(netstat -ano|Select-String ':4000 .*LISTENING'){Write-Host '  [OK]  :4000  Portal Socio'}else{Write-Host '  [--]  :4000  Portal Socio'}; if(netstat -ano|Select-String ':4001 .*LISTENING'){Write-Host '  [OK]  :4001  Staff Intranet'}else{Write-Host '  [--]  :4001  Staff Intranet'}; Write-Host ''"
 
 # build: compila todos los paquetes y servicios en orden de dependencias.
 # Turborepo ejecuta `npm run build` en cada workspace respetando el grafo:
