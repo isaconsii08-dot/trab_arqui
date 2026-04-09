@@ -8,7 +8,7 @@ $dbs = @(
 $src = "dumps"
 
 if (-not (Test-Path $src)) {
-    Write-Host "No se encontro la carpeta 'dumps/'. Copia los archivos .sql ahi primero."
+    Write-Host "No se encontro la carpeta dumps/. Copia los archivos .sql ahi primero."
     exit 1
 }
 
@@ -19,7 +19,7 @@ Write-Host ""
 foreach ($db in $dbs) {
     $file = "$src\$($db.DB).sql"
     if (-not (Test-Path $file)) {
-        Write-Host "  [SKIP] $($db.DB) — no se encontro $file"
+        Write-Host "  [SKIP] $($db.DB) - no se encontro $file"
         continue
     }
     Write-Host "  Importando $($db.DB)..."
@@ -28,5 +28,5 @@ foreach ($db in $dbs) {
 }
 
 Write-Host ""
-Write-Host "Listo. Corre 'make dev' para iniciar los servicios."
+Write-Host "Listo. Corre make dev para iniciar los servicios."
 Write-Host ""

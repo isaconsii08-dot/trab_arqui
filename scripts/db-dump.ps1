@@ -20,5 +20,5 @@ foreach ($db in $dbs) {
 }
 
 Write-Host ""
-Write-Host "Listo. Comparte la carpeta 'dumps/' con tu compañero."
+Write-Host "Listo. Comparte la carpeta dumps/ con tu companero."
 Write-Host ""
