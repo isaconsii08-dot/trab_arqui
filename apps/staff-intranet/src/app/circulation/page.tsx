@@ -383,11 +383,13 @@ export default function CirculationPage() {
     const loanId = confirmCancelId;
     setConfirmCancelId(null);
     setCancelandoLoan(loanId);
+    setLoadingGlobal(true);
     try {
       await fetch(`/api/circulacion/loan/${loanId}`, { method: 'DELETE' });
-      await Promise.all([cargarPrestamosTab(), cargarStats()]);
+      await Promise.all([cargarPrestamosTab(), cargarStats(), cargarSolicitudes()]);
     } catch { /* ignorar */ } finally {
       setCancelandoLoan(null);
+      setLoadingGlobal(false);
     }
   };
 

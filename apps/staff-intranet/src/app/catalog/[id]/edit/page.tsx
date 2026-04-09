@@ -143,6 +143,7 @@ export default function EditCatalogPage() {
   };
 
   const handleDelete = async () => {
+    setConfirmarEliminar(false);
     setEliminando(true);
     try {
       const res = await fetch(`/api/catalogo/${id}`, { method: 'DELETE' });
@@ -152,11 +153,9 @@ export default function EditCatalogPage() {
       } else {
         const data = await res.json() as { message?: string };
         setError(data.message ?? 'Error al desactivar');
-        setConfirmarEliminar(false);
       }
     } catch {
       setError('No se pudo conectar con el servidor');
-      setConfirmarEliminar(false);
     } finally {
       setEliminando(false);
     }

@@ -65,6 +65,7 @@ export default function EditPatronPage() {
   };
 
   const handleDelete = async () => {
+    setConfirmDelete(false);
     setDeleting(true);
     try {
       await fetch(`/api/socios/${id}`, { method: 'DELETE' });
