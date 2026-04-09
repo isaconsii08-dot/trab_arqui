@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { BookOpen, Clock, MapPin, ArrowRight, Library, BookMarked, Star } from 'lucide-react';
@@ -5,7 +7,7 @@ import Navbar from '@/components/layout/navbar';
 import Footer from '@/components/layout/footer';
 import SearchBar from '@/components/search/search-bar';
 import BookCover from '@/components/ui/book-cover';
-import { buscarCatalogo } from '@/lib/api';
+import { buscarCatalogo, obtenerStatsPortal } from '@/lib/api';
 
 const categorias = [
   { name: 'Literatura', subject: 'Literatura', count: null, icon: BookOpen },
@@ -29,13 +31,14 @@ export default async function HomePage() {
   // Portada: últimos 8 libros ingresados
   const destacados = await buscarCatalogo({ limit: 8, page: 1 });
 
-  // Conteos por materia
-  const [litRes, histRes, cienRes, filosRes, totalItems] = await Promise.all([
+  // Conteos por materia y estadísticas reales
+  const [litRes, histRes, cienRes, filosRes, totalItems, statsPortal] = await Promise.all([
     buscarCatalogo({ subject: 'Literatura', limit: 1 }),
     buscarCatalogo({ subject: 'Historia', limit: 1 }),
     buscarCatalogo({ subject: 'Ciencias', limit: 1 }),
     buscarCatalogo({ subject: 'Filosofía', limit: 1 }),
     buscarCatalogo({ limit: 1 }),
+    obtenerStatsPortal(),
   ]);
 
   const conteosPorMateria = [litRes.total, histRes.total, cienRes.total, filosRes.total];
@@ -108,8 +111,8 @@ export default async function HomePage() {
           >
             {[
               { value: totalRegistros.toLocaleString('es-CO'), label: 'Títulos en catálogo' },
-              { value: '65', label: 'Ejemplares disponibles' },
-              { value: '12', label: 'Socios activos' },
+              { value: statsPortal.ejemplaresDisponibles.toLocaleString('es-CO'), label: 'Ejemplares disponibles' },
+              { value: statsPortal.sociosActivos.toLocaleString('es-CO'), label: 'Socios activos' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <div className="font-display text-3xl font-semibold" style={{ color: '#C1614A' }}>{stat.value}</div>

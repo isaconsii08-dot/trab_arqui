@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { Suspense } from 'react';
 import { SlidersHorizontal, BookOpen } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';

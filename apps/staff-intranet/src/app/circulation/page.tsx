@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { BookOpen, RefreshCw, Scan, CheckCircle, XCircle, ArrowLeft, Inbox, Clock, ThumbsUp, ThumbsDown, Package, User, Loader2, Library, AlertTriangle, Search, RotateCcw, Pencil, Trash2, BadgeDollarSign, ShieldOff, CreditCard, CalendarDays, X } from 'lucide-react';
 import Image from 'next/image';
 import { useForm } from 'react-hook-form';
+import { LoadingOverlay } from '@/components/ui/loading-overlay';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { DatePicker } from '@/components/ui/date-picker';
 
 type LoanForm = { itemBarcode: string; patronCardNumber: string };
 type ReturnForm = { itemBarcode: string };
@@ -176,6 +179,8 @@ export default function CirculationPage() {
   const [loanError, setLoanError] = useState<string | null>(null);
   const [returnOk, setReturnOk] = useState<ReturnResult | null>(null);
   const [returnError, setReturnError] = useState<string | null>(null);
+  const [loadingGlobal, setLoadingGlobal] = useState(false);
+  const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
 
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [pendienteCount, setPendienteCount] = useState(0);
@@ -369,7 +374,13 @@ export default function CirculationPage() {
   };
 
   const handleCancelLoan = async (loanId: string) => {
-    if (!confirm('¿Cancelar este préstamo? El ejemplar volverá a estar disponible sin registrar multa.')) return;
+    setConfirmCancelId(loanId);
+  };
+
+  const doConfirmCancel = async () => {
+    if (!confirmCancelId) return;
+    const loanId = confirmCancelId;
+    setConfirmCancelId(null);
     setCancelandoLoan(loanId);
     try {
       await fetch(`/api/circulacion/loan/${loanId}`, { method: 'DELETE' });
@@ -485,6 +496,7 @@ export default function CirculationPage() {
   const handleLoan = async (data: LoanForm) => {
     setLoanOk(null);
     setLoanError(null);
+    setLoadingGlobal(true);
     try {
       const res = await fetch('/api/circulacion/loan', {
         method: 'POST',
@@ -497,15 +509,19 @@ export default function CirculationPage() {
       } else {
         setLoanOk(body);
         loanForm.reset();
+        cargarStats();
       }
     } catch {
       setLoanError('No se pudo conectar con el servidor');
+    } finally {
+      setLoadingGlobal(false);
     }
   };
 
   const handleReturn = async (data: ReturnForm) => {
     setReturnOk(null);
     setReturnError(null);
+    setLoadingGlobal(true);
     try {
       const res = await fetch('/api/circulacion/return', {
         method: 'POST',
@@ -524,6 +540,8 @@ export default function CirculationPage() {
       }
     } catch {
       setReturnError('No se pudo conectar con el servidor');
+    } finally {
+      setLoadingGlobal(false);
     }
   };
 
@@ -1112,7 +1130,7 @@ export default function CirculationPage() {
 
       {/* ── MODAL: Editar fecha de vencimiento ── */}
       {editLoanModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(10,13,18,0.80)', backdropFilter: 'blur(4px)' }}>
           <div className="w-full max-w-sm rounded-sm border border-surface-border bg-surface-card p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-display text-sm font-semibold text-text-primary">Cambiar fecha de vencimiento</h3>
@@ -1122,12 +1140,9 @@ export default function CirculationPage() {
             </div>
             <p className="mb-4 font-body text-xs text-text-muted line-clamp-2">{editLoanModal.title}</p>
             <label className="mb-1.5 block font-mono text-[10px] uppercase tracking-wider text-text-muted">Nueva fecha</label>
-            <input
-              type="date"
-              value={nuevaFecha}
-              onChange={(e) => setNuevaFecha(e.target.value)}
-              className="input-dark w-full mb-4"
-            />
+            <div className="mb-4">
+              <DatePicker value={nuevaFecha} onChange={setNuevaFecha} />
+            </div>
             <div className="flex gap-2 justify-end">
               <button onClick={() => setEditLoanModal(null)} className="btn-ghost text-sm">Cancelar</button>
               <button
@@ -1144,7 +1159,7 @@ export default function CirculationPage() {
 
       {/* ── MODAL: Multa manual ── */}
       {multaManualModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(10,13,18,0.80)', backdropFilter: 'blur(4px)' }}>
           <div className="w-full max-w-sm rounded-sm border border-surface-border bg-surface-card p-6 shadow-xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="font-display text-sm font-semibold text-text-primary">Crear multa manual</h3>
@@ -1527,6 +1542,21 @@ export default function CirculationPage() {
           <Clock className="h-3 w-3" /> Actualización automática cada 8 s
         </p>
       )}
+
+      {/* Confirmación cancelar préstamo */}
+      {confirmCancelId && (
+        <ConfirmModal
+          title="¿Cancelar este préstamo?"
+          description="El ejemplar volverá a estar disponible sin registrar multa."
+          confirmLabel="Cancelar préstamo"
+          variant="danger"
+          onConfirm={doConfirmCancel}
+          onCancel={() => setConfirmCancelId(null)}
+        />
+      )}
+
+      {/* Loading global */}
+      {loadingGlobal && <LoadingOverlay label="Procesando..." />}
     </div>
   );
 }

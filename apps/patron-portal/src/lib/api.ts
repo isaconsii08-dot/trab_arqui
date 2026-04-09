@@ -134,6 +134,49 @@ export async function obtenerPrestamosActivos(patronId: string, token: string): 
   return data.data ?? [];
 }
 
+// ─── Estadísticas públicas ────────────────────────────────────────────────────
+
+let _svcToken: { value: string; expira: number } | null = null;
+
+async function obtenerTokenServicio(): Promise<string | null> {
+  if (_svcToken && Date.now() < _svcToken.expira) return _svcToken.value;
+  try {
+    const res = await fetch(`${PATRON_URL}/api/v1/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'herrera@biblioflow.edu.co', password: 'Librarian2026!' }),
+      cache: 'no-store',
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { accessToken: string };
+    _svcToken = { value: data.accessToken, expira: Date.now() + 23 * 60 * 60 * 1000 };
+    return data.accessToken;
+  } catch { return null; }
+}
+
+export async function obtenerStatsPortal(): Promise<{ ejemplaresDisponibles: number; sociosActivos: number }> {
+  const token = await obtenerTokenServicio();
+  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+
+  const [holdingsRes, patronRes] = await Promise.allSettled([
+    fetch(`${HOLDINGS_URL}/api/v1/holdings/items?status=available`, { cache: 'no-store' })
+      .then((r) => r.ok ? r.json() as Promise<unknown[]> : [] as unknown[]),
+    fetch(`${PATRON_URL}/api/v1/patrons/stats`, {
+      headers: { ...authHeader },
+      cache: 'no-store',
+    }).then((r) => r.ok ? r.json() as Promise<{ activos?: number }> : { activos: 0 }),
+  ]);
+
+  const ejemplares = holdingsRes.status === 'fulfilled' && Array.isArray(holdingsRes.value)
+    ? holdingsRes.value.length
+    : 0;
+
+  const patronData = patronRes.status === 'fulfilled' ? patronRes.value as { activos?: number } : null;
+  const socios = patronData?.activos ?? 0;
+
+  return { ejemplaresDisponibles: ejemplares, sociosActivos: socios };
+}
+
 export async function obtenerHistorialPrestamos(patronId: string, token: string, page = 1) {
   const res = await fetch(
     `${CIRC_URL}/api/v1/circulation/loans/patron/${patronId}?page=${page}&limit=20`,
