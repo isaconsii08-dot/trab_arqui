@@ -22,6 +22,8 @@ foreach ($db in $dbs) {
         Write-Host "  [SKIP] $($db.DB) - no se encontro $file"
         continue
     }
+    Write-Host "  Limpiando $($db.DB)..."
+    "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" | docker exec -i $db.Container psql -U $db.User $db.DB | Out-Null
     Write-Host "  Importando $($db.DB)..."
     Get-Content $file | docker exec -i $db.Container psql -U $db.User $db.DB | Out-Null
     Write-Host "  -> ok"
