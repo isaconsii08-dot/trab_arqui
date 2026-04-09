@@ -15,7 +15,7 @@ Write-Host ""
 foreach ($db in $dbs) {
     $file = "$out\$($db.DB).sql"
     Write-Host "  Exportando $($db.DB)..."
-    docker exec $db.Container pg_dump -U $db.User $db.DB | Out-File -FilePath $file -Encoding utf8
+    cmd /c "docker exec $($db.Container) pg_dump -U $($db.User) --encoding=UTF8 $($db.DB) > $file"
     Write-Host "  -> $file"
 }
 

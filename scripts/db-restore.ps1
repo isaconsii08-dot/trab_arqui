@@ -23,9 +23,9 @@ foreach ($db in $dbs) {
         continue
     }
     Write-Host "  Limpiando $($db.DB)..."
-    "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" | docker exec -i $db.Container psql -U $db.User $db.DB | Out-Null
+    cmd /c "echo DROP SCHEMA public CASCADE; CREATE SCHEMA public; | docker exec -i $($db.Container) psql -U $($db.User) $($db.DB)"
     Write-Host "  Importando $($db.DB)..."
-    Get-Content $file | docker exec -i $db.Container psql -U $db.User $db.DB | Out-Null
+    cmd /c "type $file | docker exec -i $($db.Container) psql -U $($db.User) $($db.DB)"
     Write-Host "  -> ok"
 }
 
