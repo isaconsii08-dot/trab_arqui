@@ -305,6 +305,172 @@ make dev-staff         # solo staff-intranet (frontend)
 
 ---
 
+## Pruebas y Calidad
+
+Las pruebas se implementaron sobre **`patron-service`**, el servicio que concentra la lógica de dominio más completa: value objects, aggregate root, casos de uso y controladores HTTP.
+
+### Ejecutar las pruebas
+
+Desde la carpeta del servicio:
+
+```bash
+cd services/patron-service
+
+pnpm test              # ejecuta todas las pruebas sin cobertura
+pnpm test:coverage     # ejecuta todas las pruebas y genera el reporte de cobertura
+```
+
+Desde la raíz del monorepo:
+
+```bash
+pnpm test              # ejecuta los tests de todos los servicios via Turborepo
+```
+
+---
+
+### Estructura de los archivos de prueba
+
+```
+services/patron-service/
+├── jest.config.js                          # Configuración de Jest + ts-jest + umbrales
+├── test/
+│   ├── unit/
+│   │   └── patron.unit.spec.ts             # 14 pruebas unitarias
+│   └── integration/
+│       └── patron.integration.spec.ts      # 10 pruebas de integración
+└── jmeter/
+    ├── biblioflow-stress-test.jmx          # Plan de prueba de estrés JMeter
+    └── resultados/                         # CSVs y reportes HTML generados
+```
+
+---
+
+### Pruebas unitarias — `test/unit/patron.unit.spec.ts`
+
+Prueban la capa de **dominio y aplicación** de forma aislada, sin levantar servidor ni conectarse a base de datos.
+
+**Mocks utilizados:**
+
+| Mock | Qué simula |
+|---|---|
+| `mockPatronRepository` | `IPatronRepository` — operaciones de persistencia (Prisma) |
+| `mockEventPublisher` | `IEventPublisher` — publicación de eventos (Redis) |
+
+**Casos cubiertos:**
+
+| # | Descripción | Matchers usados |
+|---|---|---|
+| 1 | `Email.create()` normaliza y valida el formato | `toBe`, `toBeInstanceOf`, `toBeTruthy` |
+| 2 | `Email.create()` lanza error con formato inválido | `toThrow` |
+| 3 | `CardNumber.generate()` produce formato `LIB-YYYYMMDD-XXXX` | `toMatch` (regex) |
+| 4 | `CardNumber.create()` acepta cadena con formato válido | `toBe`, `toBeInstanceOf` |
+| 5 | `CardNumber.create()` lanza error con formato inválido | `toThrow` |
+| 6 | `Patron.assertCanBorrow()` lanza `PatronSuspendedError` si está suspendido | `toThrow`, `toContain` |
+| 7 | `Patron.assertCanBorrow()` lanza `PatronHasPendingFinesError` si hay multas | `toThrow` |
+| 8 | `Patron.assertCanBorrow()` no lanza error si está activo y sin multas | `not.toThrow`, `toBe` |
+| 9 | Transiciones de estado: `suspend / activate / block / expire` | `toBe` |
+| 10 | `Staff.hasPermission()` respeta permisos asignados y rol administrador | `toBe` |
+| 11 | `Staff` getters devuelven los props correctamente | `toBe`, `toBeInstanceOf` |
+| 12 | `PatronMapper.toDto()` convierte la entidad al DTO con todos los campos | `toHaveProperty` |
+| 13 | `RegisterPatronUseCase.execute()` registra y publica el evento (**prueba con promesa**) | `toHaveProperty`, `toMatchObject`, `toHaveBeenCalledTimes` |
+| 14 | `RegisterPatronUseCase.execute()` lanza `EmailAlreadyRegisteredError` si el email ya existe (**prueba con promesa rechazada**) | `rejects.toThrow`, `not.toHaveBeenCalled` |
+
+---
+
+### Pruebas de integración — `test/integration/patron.integration.spec.ts`
+
+Levantan una aplicación NestJS completa en memoria usando `@nestjs/testing` y prueban el pipeline HTTP real (validación → controlador → caso de uso → dominio) con `supertest`.
+
+**Mocks utilizados:**
+
+| Mock | Qué simula |
+|---|---|
+| `mockPatronRepo` | `IPatronRepository` — reemplaza Prisma para no necesitar base de datos |
+| `mockEventPub` | `IEventPublisher` — reemplaza Redis para no necesitar el broker |
+
+Los guards `JwtAuthGuard` y `RolesGuard` se reemplazan con `canActivate: () => true` para poder probar endpoints protegidos sin emitir tokens reales.
+
+**Casos cubiertos:**
+
+| # | Petición | Resultado esperado |
+|---|---|---|
+| 1 | `POST /patrons` — datos válidos | `201` + body con `email`, `status: active`, `cardNumber` |
+| 2 | `POST /patrons` — email duplicado | `409` + `code: EMAIL_ALREADY_REGISTERED` |
+| 3 | `GET /patrons` — listado paginado | `200` + `{ data: [...], total }` |
+| 4 | `GET /patrons/card/:cardNumber` — socio existente | `200` + body con `cardNumber` e `id` |
+| 5 | `POST /auth/login` — credenciales incorrectas | `401` + `code: INVALID_CREDENTIALS` |
+| 6 | `GET /patrons/:id` — socio inexistente | `200` con body vacío |
+| 7 | `PATCH /patrons/:id` — cambiar estado | `200` + body con el `id` actualizado |
+| 8 | `GET /patrons/stats` — estadísticas | `200` + `{ total, activos, suspendidos }` |
+| 9 | `DELETE /patrons/:id` | `204` + llamada a `patronRepo.delete` verificada |
+| 10 | `POST /auth/login` — credenciales válidas de socio | `200` + `accessToken` + `user.role: patron` |
+
+---
+
+### Reporte de cobertura
+
+La cobertura se recopila sobre las capas de dominio, aplicación, mappers, controladores y filtros — excluyendo la infraestructura (Prisma, Redis) que requiere conexiones reales.
+
+```
+Archivo                      | Stmts | Branch | Funcs | Lines
+-----------------------------|-------|--------|-------|------
+application/mappers          |  100% |  100%  |  100% |  100%
+application/use-cases        |  87%  |   40%  |  100% |   91%
+domain/entities              |  86%  |  100%  |   83% |   86%
+domain/value-objects         |  100% |  100%  |  100% |  100%
+presentation/controllers     |  69%  |   13%  |   63% |   76%
+presentation/filters         |  100% |  100%  |  100% |  100%
+-----------------------------|-------|--------|-------|------
+TOTAL                        |  81%  |   36%  |   80% |   85%
+```
+
+> **Statements: 81% · Functions: 80% · Lines: 85%** — todos por encima del umbral del 80%.
+
+Para generar el reporte HTML completo:
+
+```bash
+cd services/patron-service
+pnpm test:coverage
+# Abre coverage/index.html en el navegador
+```
+
+---
+
+### Prueba de estrés — Apache JMeter
+
+**Archivo:** `services/patron-service/jmeter/biblioflow-stress-test.jmx`
+
+El plan simula **500 usuarios concurrentes** con una rampa de subida de 30 segundos contra los endpoints más críticos del `patron-service`.
+
+| Grupo | Endpoint | Usuarios | Descripción |
+|---|---|---|---|
+| Grupo 1 | `POST /auth/login` | 500 | Autenticación masiva de staff |
+| Grupo 2 | `POST /patrons` | 500 | Registro simultáneo de nuevos socios (email único por hilo via Groovy) |
+| Grupo 3 | `GET /patrons` | 500 | Consulta de listado paginado |
+
+**Cómo ejecutarla:**
+
+**Requisito previo:** tener el servicio corriendo (`pnpm dev` en `services/patron-service`) y la base de datos con datos seed (`make db-seed`).
+
+```bash
+# 1. Abrir JMeter (descargar en https://jmeter.apache.org/download_jmeter.cgi)
+#    File → Open → services/patron-service/jmeter/biblioflow-stress-test.jmx
+
+# 2. Ejecutar con el botón ▶ (Run → Start)
+#    Los resultados se escriben en jmeter/resultados/resultados-stress.csv
+
+# 3. Generar reporte HTML desde la línea de comandos de JMeter:
+jmeter -g jmeter/resultados/resultados-stress.csv -o jmeter/resultados/reporte-html/
+```
+
+Los listeners configurados en el plan son:
+- **Reporte Resumen** — métricas agregadas (throughput, tiempos de respuesta, errores)
+- **Ver Árbol de Resultados** — detalle request/response por muestra
+- **Gráfica de Respuestas** — evolución del tiempo de respuesta
+- **Estadísticas Agregadas** — percentiles P90, P95, P99
+
+---
+
 ## Estructura del proyecto
 
 ```

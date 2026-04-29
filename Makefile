@@ -26,7 +26,7 @@
         db-migrate-patron db-migrate-catalog db-migrate-holdings db-migrate-circulation \
         dev-patron dev-catalog dev-holdings dev-circulation \
         dev-notification dev-acquisitions dev-space dev-analytics \
-        dev-portal dev-staff build-packages env-setup setup
+        dev-portal dev-staff build-packages env-setup setup test-all
 
 # ─── Variables de color para la terminal ─────────────────────────────────────
 # Estos códigos ANSI colorean la salida: verde para éxito, amarillo para
@@ -74,7 +74,8 @@ help: ## Muestra todos los comandos disponibles
 	@echo "  build-packages       Solo paquetes compartidos (shared-*)"
 	@echo "  lint                 Linting en todo el monorepo"
 	@echo "  type-check           Verificacion de tipos TypeScript"
-	@echo "  test                 Tests unitarios"
+	@echo "  test                 Tests unitarios en todos los servicios"
+	@echo "  test-all             Suite completa: unitarias + integracion + cobertura"
 	@echo "  test-e2e             Tests de integracion (Circulation Service)"
 	@echo "  format               Formatea con Prettier"
 	@echo "  format-check         Verifica formato sin aplicar cambios"
@@ -250,6 +251,17 @@ test: ## Ejecuta los tests unitarios en todos los servicios
 test-e2e: ## Ejecuta los tests de integración (requiere infra Docker activa)
 	@echo "$(GREEN)▶ Ejecutando tests e2e...$(RESET)"
 	pnpm test:e2e
+
+# test-all: ejecuta la suite completa de pruebas con progreso visual.
+# Delega en scripts/test-all.ps1 para manejar correctamente colores,
+# emojis y encoding UTF-8 en PowerShell/Windows Terminal.
+# Corre en 3 fases secuenciales:
+#   1. Pruebas unitarias (dominio + casos de uso, sin infraestructura)
+#   2. Pruebas de integración (HTTP pipeline completo con mocks)
+#   3. Reporte de cobertura consolidado
+# Si cualquier fase falla, se detiene y muestra el error.
+test-all: ## Ejecuta suite completa con progreso visual: unitarias + integracion + cobertura
+	@powershell -NoProfile -ExecutionPolicy Bypass -File scripts\test-all.ps1
 
 # format: aplica Prettier a todos los archivos .ts, .tsx, .json y .md.
 # Prettier reescribe el archivo con el formato correcto de forma automática.
