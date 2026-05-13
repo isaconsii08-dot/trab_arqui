@@ -15,6 +15,22 @@ echo ""
 echo ">>> [1/7] Actualizando sistema..."
 apt-get update -y && apt-get upgrade -y
 
+# ── 1.5. Configurar Memoria Swap (CRÍTICO para t3.small) ───
+echo ""
+echo ">>> [1.5/7] Configurando Memoria Swap (4GB)..."
+if [ ! -f /swapfile ]; then
+  fallocate -l 4G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' | tee -a /etc/fstab
+  sysctl vm.swappiness=10
+  echo 'vm.swappiness=10' | tee -a /etc/sysctl.conf
+  echo "  ✅ Memoria Swap activada"
+else
+  echo "  Swap ya existe"
+fi
+
 # ── 2. Instalar Docker ────────────────────────────────────
 echo ""
 echo ">>> [2/7] Instalando Docker..."
