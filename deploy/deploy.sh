@@ -7,7 +7,7 @@
 
 set -e
 
-REPO_URL="https://github.com/Ju4nMarin/biblioflow.git"
+REPO_URL="https://github.com/isaconsii08-dot/trab_arqui.git"
 APP_DIR="/home/ubuntu/biblioflow"
 
 echo "=================================================="
@@ -60,6 +60,14 @@ for svc in patron-service catalog-service holdings-service circulation-service; 
   cd "../.."
 done
 echo "  ✅ Bases de datos listas"
+
+# ── 5.5 Construir servicios ─────────────────────────────────
+echo ""
+echo ">>> [5.5/6] Construyendo microservicios..."
+pnpm --filter "@biblioflow/shared-*" build
+for svc in api-gateway patron-service catalog-service holdings-service circulation-service notification-service; do
+  pnpm --filter "@biblioflow/$svc" build
+done
 
 # ── 6. Iniciar servicios con PM2 ─────────────────────────
 echo ""
