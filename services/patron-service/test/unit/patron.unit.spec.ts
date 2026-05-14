@@ -23,7 +23,7 @@ import {
   PatronHasPendingFinesError,
 } from '@biblioflow/shared-errors';
 import { IPatronRepository } from '../../src/domain/repositories/patron.repository.interface';
-import { IEventPublisher } from '@biblioflow/shared-events';
+import { IEventPublisher } from '../../src/application/ports/event-publisher.interface';
 
 // ─── Mock 1: IPatronRepository ────────────────────────────────────────────────
 const mockPatronRepository = {

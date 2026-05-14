@@ -12,8 +12,8 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const supertest = require('supertest') as (app: unknown) => unknown;
+// eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-explicit-any
+const supertest = require('supertest') as (app: any) => any;
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
