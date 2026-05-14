@@ -2,9 +2,16 @@ name: CI – Lint, Type Check & Test
 
 on:
   push:
-    branches: [main, develop, 'feature/**', 'hotfix/**', 'release/**']
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'hotfix/**'
+      - 'release/**'
   pull_request:
-    branches: [develop, main]
+    branches:
+      - develop
+      - main
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -160,4 +167,4 @@ jobs:
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          tags: ghcr.io/juanguillermomarinco/biblioflow/${{ matrix.service }}:ci-${{ github.sha }}
+          tags: ghcr.io/${{ github.repository_owner }}/biblioflow/${{ matrix.service }}:ci-${{ github.sha }}
