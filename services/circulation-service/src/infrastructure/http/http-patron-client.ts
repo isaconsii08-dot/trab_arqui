@@ -21,7 +21,7 @@ export class HttpPatronClient implements IPatronServiceClient {
         `${this.baseUrl}/api/v1/patrons/card/${cardNumber}`,
       );
       if (!res.ok) return null;
-      const data = await res.json() as any;
+      const data = await res.json() as Record<string, unknown>;
       return this.toSnapshot(data);
     } catch (err) {
       this.logger.warn(`Could not reach patron-service: ${String(err)}`);
@@ -33,7 +33,7 @@ export class HttpPatronClient implements IPatronServiceClient {
     try {
       const res = await fetch(`${this.baseUrl}/api/v1/patrons/${id}`);
       if (!res.ok) return null;
-      const data = await res.json() as any;
+      const data = await res.json() as Record<string, unknown>;
       return this.toSnapshot(data);
     } catch (err) {
       this.logger.warn(`Could not reach patron-service: ${String(err)}`);
@@ -53,7 +53,7 @@ export class HttpPatronClient implements IPatronServiceClient {
     }
   }
 
-  private toSnapshot(data: any): PatronSnapshot {
+  private toSnapshot(data: Record<string, unknown>): PatronSnapshot {
     return {
       id: data.id as string,
       cardNumber: data.cardNumber as string,

@@ -22,6 +22,8 @@ import {
   PatronSuspendedError,
   PatronHasPendingFinesError,
 } from '@biblioflow/shared-errors';
+import { IPatronRepository } from '../../src/domain/repositories/patron.repository.interface';
+import { IEventPublisher } from '@biblioflow/shared-events';
 
 // ─── Mock 1: IPatronRepository ────────────────────────────────────────────────
 const mockPatronRepository = {
@@ -201,8 +203,8 @@ describe('Pruebas Unitarias – patron-service', () => {
 
     beforeEach(() => {
       useCase = new RegisterPatronUseCase(
-        mockPatronRepository as any,
-        mockEventPublisher as any,
+        mockPatronRepository as unknown as IPatronRepository,
+        mockEventPublisher as unknown as IEventPublisher,
       );
     });
 

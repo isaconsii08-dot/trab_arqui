@@ -80,7 +80,7 @@ export class CatalogController {
       issn: dto.issn ?? null,
       summary: dto.summary ?? null,
       coverImageUrl: dto.coverImageUrl ?? null,
-      materialType: dto.materialType as any,
+      materialType: dto.materialType as 'book' | 'ebook' | 'dvd' | 'journal' | 'map',
       libraryId: dto.libraryId,
       authors: [],
       subjects: [],
@@ -116,7 +116,7 @@ export class CatalogController {
       issn: dto.issn !== undefined ? (dto.issn ?? null) : existing.issn,
       summary: dto.summary !== undefined ? (dto.summary ?? null) : existing.summary,
       coverImageUrl: dto.coverImageUrl !== undefined ? (dto.coverImageUrl ?? null) : existing.coverImageUrl,
-      materialType: (dto.materialType as any) ?? existing.materialType,
+      materialType: (dto.materialType as 'book' | 'ebook' | 'dvd' | 'journal' | 'map') ?? existing.materialType,
     });
 
     // Solo reemplazar autores/materias si vienen en el body

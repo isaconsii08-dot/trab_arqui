@@ -129,15 +129,17 @@ function useLookup<T>(type: 'patron' | 'item', query: string, delay = 400, forRe
       setLoading(true);
       fetch(`/api/circulacion/lookup?type=${type}&q=${encodeURIComponent(q)}${forReturn ? '&forReturn=1' : ''}`)
         .then((r) => r.json())
-        .then((data: any) => {
+        .then((data: unknown) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const typedData = data as any;
           // Si el API devuelve un objeto con un campo 'data' (como el patron-service)
-          if (data && data.data && Array.isArray(data.data)) {
-            setResults(data.data);
-          } else if (Array.isArray(data)) {
-            setResults(data);
-          } else if (data && typeof data === 'object') {
+          if (typedData && typedData.data && Array.isArray(typedData.data)) {
+            setResults(typedData.data);
+          } else if (Array.isArray(typedData)) {
+            setResults(typedData);
+          } else if (typedData && typeof typedData === 'object') {
             // Un solo resultado
-            setResults([data]);
+            setResults([typedData]);
           } else {
             setResults([]);
           }

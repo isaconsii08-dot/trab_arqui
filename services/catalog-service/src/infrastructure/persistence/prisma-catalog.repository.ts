@@ -225,6 +225,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private toDomain(r: any): BibliographicRecord {
     return BibliographicRecord.create({
       id: r.id,
@@ -239,6 +240,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
       coverImageUrl: r.coverImageUrl ?? null,
       materialType: r.materialType,
       libraryId: r.libraryId,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       authors: r.recordAuthors?.map((ra: any) => ({
         id: ra.author.id,
         name: ra.author.name,
@@ -246,6 +248,7 @@ export class PrismaCatalogRepository implements ICatalogRepository {
         authorityId: ra.author.authorityId ?? null,
         role: ra.role,
       })) ?? [],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       subjects: r.recordSubjects?.map((rs: any) => ({
         id: rs.subject.id,
         term: rs.subject.term,

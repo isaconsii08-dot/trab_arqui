@@ -13,7 +13,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const supertest = require('supertest') as (app: any) => any;
+const supertest = require('supertest') as (app: unknown) => unknown;
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { ConfigModule } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
@@ -82,7 +82,7 @@ function makePatron(overrides: Partial<{ id: string; email: string; status: stri
     address: null,
     passwordHash: '$2b$12$hashedvalue',
     registrationDate: new Date('2024-06-01'),
-    status: (overrides.status as any) ?? 'active',
+    status: (overrides.status as 'active' | 'suspended' | 'blocked' | 'expired') ?? 'active',
     pendingFinesAmount: 0,
   });
 }

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { LoanStatus as PrismaLoanStatus } from '../../generated/prisma';
+import { Loan as PrismaLoanModel, LoanStatus as PrismaLoanStatus } from '../../generated/prisma';
 import { PrismaService } from '../prisma/prisma.service';
 import { ILoanRepository } from '../../domain/repositories/loan.repository.interface';
 import { Loan } from '../../domain/entities/loan.entity';
@@ -89,7 +89,7 @@ export class PrismaLoanRepository implements ILoanRepository {
     });
   }
 
-  private toDomain(r: any): Loan {
+  private toDomain(r: PrismaLoanModel): Loan {
     return Loan.reconstitute({
       id: r.id,
       itemId: r.itemId,

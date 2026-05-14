@@ -47,8 +47,9 @@ export class CirculationController {
   async createLoan(@Body() dto: CreateLoanDto) {
     try {
       return await this.createLoanSaga.execute(dto);
-    } catch (err: any) {
-      let mensaje = err.message;
+    } catch (err: unknown) {
+      const error = err as Error;
+      let mensaje = error.message;
       if (mensaje.includes('not available') && mensaje.includes('loaned')) {
         mensaje = `El ejemplar ${dto.itemBarcode} ya está prestado.`;
       } else if (mensaje.includes('not found')) {
@@ -68,8 +69,9 @@ export class CirculationController {
   async returnItem(@Body() dto: ReturnItemDto) {
     try {
       return await this.returnItemSaga.execute(dto);
-    } catch (err: any) {
-      let mensaje = err.message;
+    } catch (err: unknown) {
+      const error = err as Error;
+      let mensaje = error.message;
       if (mensaje.includes('not found')) {
         mensaje = `El ejemplar ${dto.itemBarcode} no tiene un préstamo activo.`;
       }
