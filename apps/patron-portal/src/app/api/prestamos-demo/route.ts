@@ -33,7 +33,7 @@ export async function GET() {
     const data = await loanRes.json() as { data: unknown[] };
     // Devolver solo préstamos activos/vencidos para el dashboard
     const activos = (data.data ?? []).filter(
-      (l: any) => l.status === 'active' || l.status === 'overdue',
+      (l: { status: string }) => l.status === 'active' || l.status === 'overdue',
     );
     return NextResponse.json({ data: activos });
   } catch {

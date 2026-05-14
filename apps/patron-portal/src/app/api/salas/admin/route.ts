@@ -65,7 +65,7 @@ export async function GET() {
 // Activar o desactivar una sala: { salaId, activa }
 
 export async function PATCH(req: NextRequest) {
-  const { store: _s, config } = getStore();
+  const { config } = getStore();
   const body = await req.json() as { salaId: string; activa: boolean };
   const { salaId, activa } = body;
 

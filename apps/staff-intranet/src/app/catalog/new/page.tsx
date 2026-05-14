@@ -159,7 +159,6 @@ export default function NewCatalogPage() {
               )}
               {form.coverImageUrl && (
                 <div className="flex items-start gap-3 mt-1">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={form.coverImageUrl} alt="Preview" className="h-20 w-14 rounded-sm object-cover bg-surface-raised" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display='none'; }} />
                   <div className="space-y-1 text-[10px] font-mono text-text-muted">
                     <p>{form.coverImageUrl.startsWith('data:') ? `Embebida (${Math.round(form.coverImageUrl.length*0.75/1024)} KB)` : 'URL externa'}</p>

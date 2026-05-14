@@ -169,7 +169,7 @@ export async function obtenerPrestamosActivos(): Promise<LoanConDetalle[]> {
   const loans = loansData.data ?? [];
 
   // Mapear patronId → nombre
-  let patronMap: Record<string, string> = {};
+  const patronMap: Record<string, string> = {};
   if (patronesRes.ok) {
     const patData = await patronesRes.json() as { data: Array<{ id: string; fullName: string }> };
     for (const p of patData.data ?? []) patronMap[p.id] = p.fullName;

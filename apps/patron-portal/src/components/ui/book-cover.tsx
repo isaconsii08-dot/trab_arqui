@@ -89,7 +89,6 @@ export default function BookCover({
   }
 
   return (
-    // eslint-disable-next-line @next/next/no-img-element
     <img
       src={src}
       alt={`Portada de ${title}`}

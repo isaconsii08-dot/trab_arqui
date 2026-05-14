@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { BookOpen, Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
 
 import { LoadingModal } from '@/components/ui/skeleton';
 

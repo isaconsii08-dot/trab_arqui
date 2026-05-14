@@ -293,7 +293,6 @@ export default function EditCatalogPage() {
               {/* Preview */}
               {form.coverImageUrl && (
                 <div className="mt-2 flex items-start gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={form.coverImageUrl}
                     alt="Preview portada"

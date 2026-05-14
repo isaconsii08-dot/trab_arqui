@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BookOpen, ArrowLeft, Clock, CheckCircle, AlertTriangle, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle, AlertTriangle, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -44,7 +44,6 @@ export default function HistorialPage() {
     const hasToken = document.cookie.split('; ').some(r => r.startsWith('bf_token='));
     if (!hasToken) { router.replace('/login?redirect=/dashboard/historial'); return; }
     cargarHistorial(page);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page]);
 
   async function cargarHistorial(p: number) {

@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense } from 'react';
-import { SlidersHorizontal, BookOpen } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 import Navbar from '@/components/layout/navbar';
 import SearchBar from '@/components/search/search-bar';
 import SearchFiltersPanel from '@/components/search/search-filters';
