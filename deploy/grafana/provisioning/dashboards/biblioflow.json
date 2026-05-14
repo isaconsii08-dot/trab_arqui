@@ -19,6 +19,20 @@
   "liveNow": false,
   "panels": [
     {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 10,
+      "panels": [],
+      "repeat": "job",
+      "title": "$job Metrics",
+      "type": "row"
+    },
+    {
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
@@ -30,20 +44,20 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "never",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -64,15 +78,16 @@
                 "value": 80
               }
             ]
-          }
+          },
+          "unit": "percent"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 12,
         "x": 0,
-        "y": 0
+        "y": 1
       },
       "id": 2,
       "options": {
@@ -87,12 +102,12 @@
       },
       "targets": [
         {
-          "expr": "rate(process_cpu_user_seconds_total[1m]) * 100",
-          "legendFormat": "{{job}}",
+          "expr": "rate(process_cpu_user_seconds_total{job=\"$job\"}[1m]) * 100",
+          "legendFormat": "CPU Usage (%)",
           "refId": "A"
         }
       ],
-      "title": "CPU Usage (%) por Microservicio",
+      "title": "CPU Usage - $job",
       "type": "timeseries"
     },
     {
@@ -107,20 +122,20 @@
             "axisPlacement": "auto",
             "barAlignment": 0,
             "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
+            "fillOpacity": 15,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
             "pointSize": 5,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "auto",
+            "showPoints": "never",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -147,10 +162,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 9,
+        "h": 8,
         "w": 12,
         "x": 12,
-        "y": 0
+        "y": 1
       },
       "id": 4,
       "options": {
@@ -165,12 +180,12 @@
       },
       "targets": [
         {
-          "expr": "process_resident_memory_bytes",
-          "legendFormat": "{{job}}",
+          "expr": "process_resident_memory_bytes{job=\"$job\"}",
+          "legendFormat": "RAM Usage",
           "refId": "A"
         }
       ],
-      "title": "Uso de Memoria RAM (Bytes)",
+      "title": "Memory Usage (RAM) - $job",
       "type": "timeseries"
     }
   ],
@@ -178,7 +193,29 @@
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(job)",
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "job",
+        "options": [],
+        "query": "label_values(job)",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",
@@ -188,5 +225,5 @@
   "timezone": "",
   "title": "BiblioFlow - System Overview",
   "uid": "biblioflow-overview",
-  "version": 1
+  "version": 2
 }
