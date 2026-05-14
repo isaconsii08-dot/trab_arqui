@@ -9,21 +9,21 @@ scrape_configs:
       - targets: ['host.docker.internal:3000']
 
   - job_name: 'patron-service'
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     static_configs:
       - targets: ['host.docker.internal:3001']
 
   - job_name: 'catalog-service'
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     static_configs:
       - targets: ['host.docker.internal:3002']
 
   - job_name: 'holdings-service'
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     static_configs:
       - targets: ['host.docker.internal:3003']
 
   - job_name: 'circulation-service'
-    metrics_path: '/metrics'
+    metrics_path: '/api/v1/metrics'
     static_configs:
       - targets: ['host.docker.internal:3004']
