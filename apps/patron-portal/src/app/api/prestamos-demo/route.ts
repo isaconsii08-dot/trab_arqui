@@ -30,10 +30,10 @@ export async function GET() {
 
     if (!loanRes.ok) return NextResponse.json({ data: [] });
 
-    const data = await loanRes.json() as { data: unknown[] };
+    const data = await loanRes.json() as { data: { status: string }[] };
     // Devolver solo préstamos activos/vencidos para el dashboard
     const activos = (data.data ?? []).filter(
-      (l: { status: string }) => l.status === 'active' || l.status === 'overdue',
+      (l) => l.status === 'active' || l.status === 'overdue',
     );
     return NextResponse.json({ data: activos });
   } catch {
