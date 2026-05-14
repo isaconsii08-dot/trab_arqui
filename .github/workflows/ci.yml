@@ -2,7 +2,7 @@ name: CI – Lint, Type Check & Test
 
 on:
   push:
-    branches: [develop, 'feature/**', 'hotfix/**', 'release/**']
+    branches: [main, develop, 'feature/**', 'hotfix/**', 'release/**']
   pull_request:
     branches: [develop, main]
 
