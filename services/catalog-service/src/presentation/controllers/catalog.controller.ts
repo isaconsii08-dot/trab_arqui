@@ -19,7 +19,7 @@ import { randomUUID } from 'crypto';
 import { SearchCatalogUseCase } from '../../application/use-cases/search-catalog.use-case';
 import { GetRecordUseCase } from '../../application/use-cases/get-record.use-case';
 import { CreateRecordDto } from '../dtos/create-record.dto';
-import { SearchFilters } from '@biblioflow/shared-types';
+import { SearchFilters, MaterialType } from '@biblioflow/shared-types';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
@@ -80,7 +80,7 @@ export class CatalogController {
       issn: dto.issn ?? null,
       summary: dto.summary ?? null,
       coverImageUrl: dto.coverImageUrl ?? null,
-      materialType: dto.materialType as 'book' | 'ebook' | 'dvd' | 'journal' | 'map',
+      materialType: dto.materialType as MaterialType,
       libraryId: dto.libraryId,
       authors: [],
       subjects: [],
@@ -116,7 +116,7 @@ export class CatalogController {
       issn: dto.issn !== undefined ? (dto.issn ?? null) : existing.issn,
       summary: dto.summary !== undefined ? (dto.summary ?? null) : existing.summary,
       coverImageUrl: dto.coverImageUrl !== undefined ? (dto.coverImageUrl ?? null) : existing.coverImageUrl,
-      materialType: (dto.materialType as 'book' | 'ebook' | 'dvd' | 'journal' | 'map') ?? existing.materialType,
+      materialType: (dto.materialType as MaterialType) ?? existing.materialType,
     });
 
     // Solo reemplazar autores/materias si vienen en el body
