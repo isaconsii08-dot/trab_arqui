@@ -23,7 +23,32 @@ Las Bases de Datos (PostgreSQL), la Caché (Redis) y el Motor de Búsqueda (Elas
 
 ---
 
-## 2. CI/CD: Despliegue Continuo Automatizado
+## 2. Despliegue del Frontend (Vercel)
+
+El sistema cuenta con dos aplicaciones frontend desarrolladas en **Next.js**:
+1. `patron-portal` (Portal público para los socios)
+2. `staff-intranet` (Sistema administrativo interno)
+
+Ambos frentes han sido diseñados para ser desplegados en **Vercel**, la plataforma oficial y óptima para aplicaciones Next.js.
+
+### 🌐 Proceso de Despliegue en Vercel
+1. **Integración con GitHub:** Los proyectos en Vercel se conectan directamente al repositorio de GitHub (`isaconsii08-dot/trab_arqui`).
+2. **Configuración del Monorepo:** En la configuración del proyecto en Vercel, se especifica el "Root Directory" apuntando a la carpeta de cada frontend respectivo (`apps/patron-portal` y `apps/staff-intranet`). Vercel detecta automáticamente que es un entorno gestionado por TurboRepo y pnpm.
+3. **Variables de Entorno:** Durante el despliegue de cada frontend en Vercel, es obligatorio configurar las siguientes variables de entorno para que el frontend pueda comunicarse correctamente con el servidor backend (AWS EC2):
+
+   **Para `patron-portal`:**
+   * `API_URL`: `http://100.24.233.220:3000` *(Apunta a la IP pública del servidor EC2 donde vive el api-gateway).*
+   * `NEXT_PUBLIC_API_URL`: `http://100.24.233.220:3000` *(La misma URL pública para peticiones desde el cliente).*
+
+   **Para `staff-intranet`:**
+   * `API_URL`: `http://100.24.233.220:3000`
+   * `NEXT_PUBLIC_API_URL`: `http://100.24.233.220:3000`
+
+4. **Despliegues Automáticos:** Al igual que el backend, Vercel provee CI/CD out-of-the-box. Cada vez que se suben cambios a la rama `main` en el repositorio, Vercel dispara automáticamente un nuevo build y despliegue del frontend, generando una URL pública segura (`https`) instantáneamente.
+
+---
+
+## 3. CI/CD: Despliegue Continuo Automatizado
 
 Todo el proceso de entrega de código ha sido automatizado mediante **GitHub Actions**.
 
@@ -47,7 +72,7 @@ En este proceso, GitHub utiliza credenciales seguras (Variables de Entorno Secre
 
 ---
 
-## 3. Stack de Monitoreo: Prometheus y Grafana (10% Rúbrica)
+## 4. Stack de Monitoreo: Prometheus y Grafana (10% Rúbrica)
 
 Para cumplir con el hito de Observabilidad, se implementó un sistema de monitoreo en tiempo real utilizando el estándar de la industria.
 
@@ -63,22 +88,6 @@ Grafana se ejecuta en el puerto `3005` y se conecta directamente a Prometheus.
 Para este proyecto, se ha aprovisionado (Auto-Provisioning) de manera nativa un **Dashboard Profesional ("BiblioFlow - System Overview")**, el cual utiliza técnicas de *Templates* y *Repeating Rows*. Este Dashboard muestra una sección independiente para **cada microservicio**, midiendo en tiempo real:
 *   **Uso de CPU:** Porcentaje de tiempo de procesamiento utilizado por cada proceso de PM2.
 *   **Uso de Memoria RAM:** Cantidad en bytes que está consumiendo cada microservicio del servidor EC2.
-
----
-
-## 4. Despliegue del Frontend (Vercel)
-
-El sistema cuenta con dos aplicaciones frontend desarrolladas en **Next.js**:
-1. `patron-portal` (Portal público para los socios)
-2. `staff-intranet` (Sistema administrativo interno)
-
-Ambos frentes han sido diseñados para ser desplegados en **Vercel**, la plataforma oficial y óptima para aplicaciones Next.js.
-
-### 🌐 Proceso de Despliegue en Vercel
-1. **Integración con GitHub:** Los proyectos en Vercel se conectan directamente al repositorio de GitHub (`isaconsii08-dot/trab_arqui`).
-2. **Configuración del Monorepo:** En la configuración del proyecto en Vercel, se especifica el "Root Directory" apuntando a la carpeta de cada frontend respectivo (`apps/patron-portal` y `apps/staff-intranet`). Vercel detecta automáticamente que es un entorno gestionado por TurboRepo y pnpm.
-3. **Variables de Entorno:** Durante el despliegue, se configuran las variables de entorno necesarias (ej: `API_URL`, `NEXT_PUBLIC_API_URL`) para que el frontend pueda comunicarse correctamente con el `api-gateway` desplegado en la instancia EC2 (`http://100.24.233.220:3000`).
-4. **Despliegues Automáticos:** Al igual que el backend, Vercel provee CI/CD out-of-the-box. Cada `push` a la rama `main` dispara automáticamente un nuevo build y despliegue del frontend, generando una URL pública segura (`https`) instantáneamente.
 
 ---
 
