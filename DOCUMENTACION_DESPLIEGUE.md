@@ -66,4 +66,20 @@ Para este proyecto, se ha aprovisionado (Auto-Provisioning) de manera nativa un 
 
 ---
 
+## 4. Despliegue del Frontend (Vercel)
+
+El sistema cuenta con dos aplicaciones frontend desarrolladas en **Next.js**:
+1. `patron-portal` (Portal público para los socios)
+2. `staff-intranet` (Sistema administrativo interno)
+
+Ambos frentes han sido diseñados para ser desplegados en **Vercel**, la plataforma oficial y óptima para aplicaciones Next.js.
+
+### 🌐 Proceso de Despliegue en Vercel
+1. **Integración con GitHub:** Los proyectos en Vercel se conectan directamente al repositorio de GitHub (`isaconsii08-dot/trab_arqui`).
+2. **Configuración del Monorepo:** En la configuración del proyecto en Vercel, se especifica el "Root Directory" apuntando a la carpeta de cada frontend respectivo (`apps/patron-portal` y `apps/staff-intranet`). Vercel detecta automáticamente que es un entorno gestionado por TurboRepo y pnpm.
+3. **Variables de Entorno:** Durante el despliegue, se configuran las variables de entorno necesarias (ej: `API_URL`, `NEXT_PUBLIC_API_URL`) para que el frontend pueda comunicarse correctamente con el `api-gateway` desplegado en la instancia EC2 (`http://100.24.233.220:3000`).
+4. **Despliegues Automáticos:** Al igual que el backend, Vercel provee CI/CD out-of-the-box. Cada `push` a la rama `main` dispara automáticamente un nuevo build y despliegue del frontend, generando una URL pública segura (`https`) instantáneamente.
+
+---
+
 *Despliegue finalizado exitosamente.*
