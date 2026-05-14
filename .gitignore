@@ -58,3 +58,9 @@ src/generated/
 tmp/
 temp/
 .vercel
+
+# Archivos de documentacion
+DOCUMENTACION_DESPLIEGUE.md
+ARCHITECTURE.md
+GITFLOW.md
+Propuesta de Proyecto_page-0001.pdf
