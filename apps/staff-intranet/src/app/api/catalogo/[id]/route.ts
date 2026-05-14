@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { obtenerCredencialesServicio } from '@/lib/api';
 
-export const config = { api: { bodyParser: { sizeLimit: '10mb' } } };
+
 
 const CATALOG_URL = process.env.CATALOG_SERVICE_URL ?? 'http://localhost:3002';
 
