@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 // Salas base (mismas que en el frontend — fuente de verdad para admin)
-export const SALAS_BASE = [
+const SALAS_BASE = [
   { id: 's1', nombre: 'Sala de estudio A',   capacidad: 8,  planta: 'Planta 1', horarioInicio: 7,  horarioFin: 22 },
   { id: 's2', nombre: 'Sala de estudio B',   capacidad: 6,  planta: 'Planta 1', horarioInicio: 7,  horarioFin: 22 },
   { id: 's3', nombre: 'Sala de grupos C',    capacidad: 12, planta: 'Planta 2', horarioInicio: 8,  horarioFin: 20 },

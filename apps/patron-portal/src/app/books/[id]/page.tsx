@@ -29,7 +29,7 @@ export default async function BookDetailPage({ params }: Props) {
     obtenerLibro(id),
     obtenerEjemplaresLibro(id),
     new Promise<void>((r) => setTimeout(r, 500)),
-  ]).then(([l, e]) => [l, e]);
+  ]);
 
   if (!libro) notFound();
 

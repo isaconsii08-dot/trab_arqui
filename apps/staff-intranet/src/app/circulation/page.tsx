@@ -30,7 +30,7 @@ interface Solicitud {
   userName: string;
   cardNumber?: string;
   itemBarcode?: string;
-  estado: 'pendiente' | 'aprobada' | 'rechazada' | 'entregada';
+  estado: 'pendiente' | 'aprobada' | 'rechazada' | 'entregada' | 'devuelta';
   creadaEn: string;
   notas?: string;
 }

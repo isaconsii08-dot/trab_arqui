@@ -46,7 +46,7 @@ function horaActual(): number {
   return new Date().getHours();
 }
 
-export function isSalaActiva(salaId: string): boolean {
+function isSalaActiva(salaId: string): boolean {
   const cfg = config.find((c) => c.id === salaId);
   return cfg ? cfg.activa : true; // por defecto activa
 }

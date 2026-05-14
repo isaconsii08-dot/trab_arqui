@@ -156,13 +156,13 @@ async function obtenerTokenServicio(): Promise<string | null> {
 
 export async function obtenerStatsPortal(): Promise<{ ejemplaresDisponibles: number; sociosActivos: number }> {
   const token = await obtenerTokenServicio();
-  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+  const authHeader: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
   const [holdingsRes, patronRes] = await Promise.allSettled([
     fetch(`${HOLDINGS_URL}/api/v1/holdings/items?status=available`, { cache: 'no-store' })
       .then((r) => r.ok ? r.json() as Promise<unknown[]> : [] as unknown[]),
     fetch(`${PATRON_URL}/api/v1/patrons/stats`, {
-      headers: { ...authHeader },
+      headers: authHeader,
       cache: 'no-store',
     }).then((r) => r.ok ? r.json() as Promise<{ activos?: number }> : { activos: 0 }),
   ]);
