@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 // Infrastructure
 import { PrismaService } from './infrastructure/prisma/prisma.service';
@@ -26,6 +27,7 @@ import { JwtStrategy } from './infrastructure/auth/jwt.strategy';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    PrometheusModule.register(),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       inject: [ConfigService],

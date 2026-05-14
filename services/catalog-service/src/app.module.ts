@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { PrismaService } from './infrastructure/prisma/prisma.service';
 import { PrismaCatalogRepository } from './infrastructure/persistence/prisma-catalog.repository';
 import { NoopSearchEngine } from './infrastructure/search/noop-search-engine';
@@ -15,6 +16,7 @@ import { SEARCH_ENGINE } from './application/ports/search-engine.interface';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    PrometheusModule.register(),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: () => ({

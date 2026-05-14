@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { PrismaService } from './infrastructure/prisma/prisma.service';
 import { PrismaLoanRepository } from './infrastructure/persistence/prisma-loan.repository';
 import { RedisEventPublisher } from './infrastructure/messaging/redis-event-publisher';
@@ -19,6 +20,7 @@ import { HOLDINGS_SERVICE_CLIENT } from './application/ports/holdings-service-cl
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    PrometheusModule.register(),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.registerAsync({
       useFactory: () => ({

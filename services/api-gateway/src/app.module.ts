@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { ProxyMiddleware } from './middleware/proxy.middleware';
 import { JwtStrategy } from './auth/jwt.strategy';
 import { HealthController } from './controllers/health.controller';
@@ -25,6 +26,7 @@ import { HealthController } from './controllers/health.controller';
       { name: 'short', ttl: 1000, limit: 10 },
       { name: 'medium', ttl: 10000, limit: 50 },
     ]),
+    PrometheusModule.register(),
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],

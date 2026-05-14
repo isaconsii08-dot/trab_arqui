@@ -77,6 +77,8 @@ ufw allow 3001  # patron-service
 ufw allow 3002  # catalog-service
 ufw allow 3003  # holdings-service
 ufw allow 3004  # circulation-service
+ufw allow 3005
+ufw allow 9090
 ufw --force enable
 
 echo ""
